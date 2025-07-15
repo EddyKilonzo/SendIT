@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  password      String
+  name          String
+  phone         String?
+  address       String?
+  role          UserRole      @default(CUSTOMER)
+  
+  // Driver-specific fields (only for DRIVER role)
+  licenseNumber String?       @unique
+  vehicleNumber String?
+  vehicleType   VehicleType?
+  isAvailable   Boolean       @default(true)
+  currentLat    Float?
+  currentLng    Float?
+  
+  // Driver application fields
+  driverApplicationStatus DriverApplicationStatus? @default(PENDING)
+  driverApplicationDate   DateTime?
+  driverApprovalDate      DateTime?
+  driverApprovedBy        String?
+  driverRejectionReason   String?
+  
+  // Common fields
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?     // soft delete
+
+  // Relations
+  sentParcels     Parcel[] @relation("SenderParcels")
+  receivedParcels Parcel[] @relation("RecipientParcels")
+  assignedParcels Parcel[] @relation("DriverParcels")
+  approvedDriverApplications User[] @relation("DriverApprovals", fields: [driverApprovedBy], references: [id])
+
+  @@map("users")
+}
+
+model Parcel {
+  id                   String        @id @default(cuid())
+  trackingNumber       String        @unique
+  
+  // Sender info (can be registered or non-registered)
+  senderId             String?       // Optional: if sender is registered user
+  senderName           String        // Always stored
+  senderEmail          String        // Always stored
+  senderPhone          String        // Always stored
+  
+  // Recipient info (can be registered or non-registered)
+  recipientId          String?       // Optional: if recipient is registered user
+  recipientName        String        // Always stored
+  recipientEmail       String        // Always stored
+  recipientPhone       String        // Always stored
+  
+  // Driver assignment
+  driverId             String?       // Optional: assigned driver
+  assignedAt           DateTime?     // When parcel was assigned to driver
+  
+  pickupAddress        String
+  deliveryAddress      String
+  currentLocation      String?
+  status               ParcelStatus  @default(pending)
+  weight               Float
+  description          String?
+  value                Float?
+  deliveryInstructions String?
+  notes                String?
+  latitude             Float?
+  longitude            Float?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  deletedAt            DateTime?     // soft delete
+
+  // Relations
+  sender    User? @relation("SenderParcels", fields: [senderId], references: [id])
+  recipient User? @relation("RecipientParcels", fields: [recipientId], references: [id])
+  driver    User? @relation("DriverParcels", fields: [driverId], references: [id])
+
+  @@map("parcels")
+}
+
+enum UserRole {
+  CUSTOMER
+  DRIVER
+  ADMIN
+}
+
+enum DriverApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VehicleType {
+  MOTORCYCLE
+  CAR
+  VAN
+  TRUCK
+}
+
+enum ParcelStatus {
+  pending
+  assigned
+  picked_up
+  in_transit
+  delivered
+  cancelled
+} 
