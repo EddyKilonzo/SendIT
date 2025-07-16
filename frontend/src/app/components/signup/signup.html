@@ -1,0 +1,73 @@
+<div class="signup-page">
+  <div class="signup-container">
+    <div class="form-section">
+      <div class="form-content">
+        <div class="form-header">
+          <h2>Create Account</h2>
+          <p>Join SendIT and start delivering with confidence</p>
+        </div>
+        
+        <form (ngSubmit)="onSubmit()" class="signup-form">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input 
+              type="text" 
+              id="name" 
+              name="name" 
+              [(ngModel)]="signupData.name" 
+              required 
+              placeholder="Enter your full name"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              [(ngModel)]="signupData.email" 
+              required 
+              placeholder="Enter your email"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-input-container">
+              <input 
+                [type]="showPassword ? 'text' : 'password'"
+                id="password" 
+                name="password" 
+                [(ngModel)]="signupData.password" 
+                required 
+                placeholder="Create a password"
+              >
+              <button 
+                type="button" 
+                class="password-toggle" 
+                (click)="togglePassword()"
+                [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+              >
+                <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+              </button>
+            </div>
+          </div>
+          
+          <button type="submit" class="signup-btn">Create Account</button>
+        </form>
+        
+        <div class="login-link">
+          <p>Already have an account? <a routerLink="/login">Sign in</a></p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="image-section">
+      <div class="image-overlay">
+        <h3>Welcome to SendIT</h3>
+        <p>Your trusted partner for reliable deliveries</p>
+      </div>
+    </div>
+  </div>
+</div>

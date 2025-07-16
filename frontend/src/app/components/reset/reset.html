@@ -1,0 +1,108 @@
+<div class="reset-page">
+  <div class="reset-container">
+    <div class="form-section">
+      <div class="form-content">
+        <div class="form-header">
+          <h2>Reset Password</h2>
+          <p>{{ getStepDescription() }}</p>
+        </div>
+        
+        <form (ngSubmit)="onSubmit()" class="reset-form">
+          <!-- Step 1: Email -->
+          <div *ngIf="currentStep === 1" class="step-content">
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                [(ngModel)]="resetData.email" 
+                required 
+                placeholder="Enter your email address"
+              >
+            </div>
+            <button type="submit" class="reset-btn">Send Verification Code</button>
+          </div>
+
+          <!-- Step 2: Verification Code -->
+          <div *ngIf="currentStep === 2" class="step-content">
+            <div class="form-group">
+              <label for="verificationCode">Verification Code</label>
+              <input 
+                type="text" 
+                id="verificationCode" 
+                name="verificationCode" 
+                [(ngModel)]="resetData.verificationCode" 
+                required 
+                placeholder="Enter verification code"
+                maxlength="6"
+              >
+            </div>
+            <button type="submit" class="reset-btn">Verify Code</button>
+            <button type="button" class="resend-btn" (click)="resendCode()">Resend Code</button>
+          </div>
+
+          <!-- Step 3: New Password -->
+          <div *ngIf="currentStep === 3" class="step-content">
+            <div class="form-group">
+              <label for="password">New Password</label>
+              <div class="password-input-container">
+                <input 
+                  [type]="showPassword ? 'text' : 'password'"
+                  id="password" 
+                  name="password" 
+                  [(ngModel)]="resetData.password" 
+                  required 
+                  placeholder="Enter new password"
+                >
+                <button 
+                  type="button" 
+                  class="password-toggle" 
+                  (click)="togglePassword()"
+                  [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                >
+                  <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="confirmPassword">Confirm Password</label>
+              <div class="password-input-container">
+                <input 
+                  [type]="showConfirmPassword ? 'text' : 'password'"
+                  id="confirmPassword" 
+                  name="confirmPassword" 
+                  [(ngModel)]="resetData.confirmPassword" 
+                  required 
+                  placeholder="Confirm new password"
+                >
+                <button 
+                  type="button" 
+                  class="password-toggle" 
+                  (click)="toggleConfirmPassword()"
+                  [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'"
+                >
+                  <i class="fas" [class.fa-eye]="!showConfirmPassword" [class.fa-eye-slash]="showConfirmPassword"></i>
+                </button>
+              </div>
+            </div>
+            
+            <button type="submit" class="reset-btn">Reset Password</button>
+          </div>
+        </form>
+        
+        <div class="back-to-login">
+          <p>Remember your password? <a routerLink="/login">Back to login</a></p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="image-section">
+      <div class="image-overlay">
+        <h3>Forgot Password?</h3>
+        <p>Don't worry, we'll help you get back to your account</p>
+      </div>
+    </div>
+  </div>
+</div>

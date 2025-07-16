@@ -1,0 +1,23 @@
+<div *ngIf="visible && message" class="toast-container">
+  <div 
+    [class]="getToastClass()" 
+    class="toast-message"
+    (mouseenter)="pauseTimer()"
+    (mouseleave)="resumeTimer()"
+  >
+    <div class="toast-content">
+      <i [class]="getIconClass()" class="toast-icon"></i>
+      <div class="toast-text-container">
+        <span class="toast-text">{{ message.message }}</span>
+        <div class="toast-progress-container">
+          <div class="toast-progress-bar">
+            <div class="toast-progress-fill" [style.width.%]="progress"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="toast-close" (click)="closeToast()" aria-label="Close notification">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+</div>
