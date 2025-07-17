@@ -1,0 +1,84 @@
+<!-- Admin Container -->
+<div class="admin-container">
+  <!-- Left Sidebar -->
+  <div class="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/admin-dashboard" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/admin-create-delivery" class="nav-item">
+        <i class="fas fa-plus"></i>
+        <span>Create Delivery</span>
+      </a>
+      <a routerLink="/admin-manage-parcels" class="nav-item">
+        <i class="fas fa-box"></i>
+        <span>Manage Parcels</span>
+      </a>
+      <a routerLink="/admin-manage-users" class="nav-item active" routerLinkActive="active">
+        <i class="fas fa-users"></i>
+        <span>Manage Users</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a routerLink="/login" class="nav-item logout">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="user-management-container">
+      <h1 class="title">User Management</h1>
+      <p class="subtitle">Manage all users registered in the system</p>
+
+      <div class="search-filter-row">
+        <input class="search-input" type="text" placeholder="Search users by name, email, or phone" [(ngModel)]="searchTerm" />
+        <select class="filter-select" [(ngModel)]="selectedStatus">
+          <option value="">Account Status</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="selectedRole">
+          <option value="">Role</option>
+          <option value="User">User</option>
+          <option value="Driver">Driver</option>
+        </select>
+        <button class="clear-filters-btn" (click)="clearFilters()">Clear Filters</button>
+      </div>
+
+      <div class="users-grid" *ngIf="filteredUsers.length > 0">
+        <div class="user-card" *ngFor="let user of paginatedUsers" (click)="viewUserDetails(user.id)" style="cursor: pointer;">
+          <div class="user-card-image">
+            <img class="avatar" [src]="user.avatar" [alt]="user.name" />
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ user.name }}</div>
+            <div class="user-email">{{ user.email }}</div>
+            <div class="user-role">{{ user.role }}</div>
+            <div class="user-meta">Registered: {{ user.registered }}</div>
+            <div class="user-meta">Status: <span [ngClass]="{'active': user.status === 'Active', 'inactive': user.status === 'Inactive'}">{{ user.status }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="no-users-found" *ngIf="filteredUsers.length === 0">
+        <div class="no-users-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <h3>No Users Found</h3>
+        <p>No users match your current search criteria or filters.</p>
+        <button class="clear-filters-btn" (click)="clearFilters()">Clear All Filters</button>
+      </div>
+
+      <div class="pagination">
+        <button (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">&lt;</button>
+        <button *ngFor="let page of [].constructor(totalPages); let i = index" (click)="setPage(i + 1)" [class.active]="currentPage === i + 1">{{ i + 1 }}           
+        </button>
+        <button (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages">&gt;</button>
+      </div>
+    </div>
+  </div>
+</div>

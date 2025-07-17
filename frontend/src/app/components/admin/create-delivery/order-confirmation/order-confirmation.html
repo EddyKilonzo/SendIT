@@ -1,0 +1,286 @@
+<div class="order-confirmation">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    
+    <nav class="sidebar-nav">
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link active">
+            <i class="fas fa-plus"></i>
+            <span>Create Delivery</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-box"></i>
+            <span>Manage Parcels</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-users"></i>
+            <span>Manage Users</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a routerLink="/login" class="logout-link">
+        <i class="fas fa-arrow-left"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <header class="content-header">
+      <div class="header-left">
+        <h1 class="page-title">{{ isEditMode ? 'Edit Order' : 'Order Created Successfully' }}</h1>
+        <p class="page-description">
+          <span *ngIf="!isEditMode">
+            The order has been successfully created. Below are the key details of the order. 
+            You can edit the pickup and delivery locations by dragging the markers on the map.
+          </span>
+          <span *ngIf="isEditMode">
+            Edit the order details below. Make your changes and click "Save Changes" to update the order.
+          </span>
+        </p>
+      </div>
+      
+    </header>
+
+    <div class="confirmation-content">
+      <!-- Order Details Section -->
+      <div class="order-details-section">
+        <div class="order-details-card">
+          <div class="card-header">
+            <h3 class="section-title">Order Details</h3>
+            <div class="card-actions">
+              <button *ngIf="!isEditMode" class="btn btn-edit-small" (click)="toggleEditMode()">
+                <i class="fas fa-edit"></i>
+                Edit
+              </button>
+              <button *ngIf="isEditMode" class="btn btn-save-small" (click)="saveChanges()">
+                <i class="fas fa-save"></i>
+                Save
+              </button>
+              <button *ngIf="isEditMode" class="btn btn-cancel-small" (click)="cancelEdit()">
+                <i class="fas fa-times"></i>
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <!-- View Mode -->
+          <div *ngIf="!isEditMode" class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">Parcel ID:</span>
+              <span class="detail-value">#123456</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Sender Name:</span>
+              <span class="detail-value">{{ orderDetails.senderName }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Sender Phone:</span>
+              <span class="detail-value">{{ orderDetails.senderContact }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Recipient Name:</span>
+              <span class="detail-value">{{ orderDetails.recipientName }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Recipient Phone:</span>
+              <span class="detail-value">{{ orderDetails.recipientContact }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Pickup Address:</span>
+              <span class="detail-value">{{ orderDetails.pickupLocation }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Delivery Address:</span>
+              <span class="detail-value">{{ orderDetails.destination }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Expected Delivery Date:</span>
+              <span class="detail-value">{{ expectedDeliveryDate }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Total Price:</span>
+              <span class="detail-value total-price">{{ orderDetails.totalPrice | currency:'KSH ' }}</span>
+            </div>
+          </div>
+
+          <!-- Edit Mode -->
+          <form *ngIf="isEditMode" [formGroup]="editForm" class="edit-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="senderName">Sender Name</label>
+                <input 
+                  type="text" 
+                  id="senderName" 
+                  formControlName="senderName"
+                  placeholder="Enter sender's name"
+                  [class.error]="isFieldInvalid('senderName')"
+                >
+                <div class="error-message" *ngIf="getFieldError('senderName')">
+                  {{ getFieldError('senderName') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="senderContact">Sender Contact</label>
+                <input 
+                  type="tel" 
+                  id="senderContact" 
+                  formControlName="senderContact"
+                  placeholder="Enter sender's contact number"
+                  [class.error]="isFieldInvalid('senderContact')"
+                >
+                <div class="error-message" *ngIf="getFieldError('senderContact')">
+                  {{ getFieldError('senderContact') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="recipientName">Recipient Name</label>
+                <input 
+                  type="text" 
+                  id="recipientName" 
+                  formControlName="recipientName"
+                  placeholder="Enter recipient's name"
+                  [class.error]="isFieldInvalid('recipientName')"
+                >
+                <div class="error-message" *ngIf="getFieldError('recipientName')">
+                  {{ getFieldError('recipientName') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="recipientContact">Recipient Contact</label>
+                <input 
+                  type="tel" 
+                  id="recipientContact" 
+                  formControlName="recipientContact"
+                  placeholder="Enter recipient's contact number"
+                  [class.error]="isFieldInvalid('recipientContact')"
+                >
+                <div class="error-message" *ngIf="getFieldError('recipientContact')">
+                  {{ getFieldError('recipientContact') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="pickupLocation">Pickup Location</label>
+                <input 
+                  type="text" 
+                  id="pickupLocation" 
+                  formControlName="pickupLocation"
+                  placeholder="Enter pickup location"
+                  [class.error]="isFieldInvalid('pickupLocation')"
+                >
+                <div class="error-message" *ngIf="getFieldError('pickupLocation')">
+                  {{ getFieldError('pickupLocation') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="destination">Delivery Location</label>
+                <input 
+                  type="text" 
+                  id="destination" 
+                  formControlName="destination"
+                  placeholder="Enter delivery location"
+                  [class.error]="isFieldInvalid('destination')"
+                >
+                <div class="error-message" *ngIf="getFieldError('destination')">
+                  {{ getFieldError('destination') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="parcelWeight">Parcel Weight (kg)</label>
+                <input 
+                  type="number" 
+                  id="parcelWeight" 
+                  formControlName="parcelWeight"
+                  placeholder="Enter parcel weight"
+                  step="0.1"
+                  min="0.1"
+                  [class.error]="isFieldInvalid('parcelWeight')"
+                >
+                <div class="error-message" *ngIf="getFieldError('parcelWeight')">
+                  {{ getFieldError('parcelWeight') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="pricePerKg">Price per Kilogram</label>
+                <div class="input-with-icon">
+                  <input 
+                    type="number" 
+                    id="pricePerKg" 
+                    formControlName="pricePerKg"
+                    placeholder="100.00"
+                    step="0.01"
+                    min="0.01"
+                    [class.error]="isFieldInvalid('pricePerKg')"
+                  >
+                  <span class="currency-symbol">KSH</span>
+                </div>
+                <div class="error-message" *ngIf="getFieldError('pricePerKg')">
+                  {{ getFieldError('pricePerKg') }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Price Calculation Section -->
+            <div class="price-calculation">
+              <h4>Price Calculation</h4>
+              <div class="price-details">
+                <div class="price-row">
+                  <span class="price-label">Price per Kilogram:</span>
+                  <span class="price-value">{{ getFormattedPricePerKg() }}</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Parcel Weight:</span>
+                  <span class="price-value">{{ editForm.get('parcelWeight')?.value || 0 }} kg</span>
+                </div>
+                <div class="price-row total">
+                  <span class="price-label">Total Price:</span>
+                  <span class="price-value total-price">{{ getFormattedTotalPrice() }}</span>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Map Section -->
+      <div class="map-section">
+        <div class="map-container">
+          <div class="tracking-map">
+            <img src="/images/tracking-map.jpg" alt="Delivery Tracking Map" class="tracking-map-image">
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button *ngIf="!isEditMode" class="btn btn-assign" (click)="assignDriver()">
+          <i class="fas fa-user-plus"></i>
+          Assign Driver
+        </button>
+      </div>
+    </div>
+  </main>
+</div>

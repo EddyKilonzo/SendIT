@@ -1,0 +1,166 @@
+<div class="assign-driver">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-plus"></i>
+            <span>Create Delivery</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-box"></i>
+            <span>Manage Parcels</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-users"></i>
+            <span>Manage Users</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a routerLink="/login" class="logout-link">
+        <i class="fas fa-arrow-left"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="assign-driver-header">
+      <h1 class="page-title">Assign Driver to Parcel</h1>
+    </div>
+
+    <div class="assign-driver-content">
+      <!-- Parcel Details Section -->
+      <div class="parcel-details-section">
+        <h2 class="section-title">Parcel Details</h2>
+        <div class="parcel-info" *ngIf="parcelDetails">
+          <div class="parcel-row">
+            <span class="parcel-label">Parcel ID:</span>
+            <span class="parcel-value">#{{ parcelDetails.id }}</span>
+          </div>
+          <div class="parcel-row">
+            <span class="parcel-label">Pickup Address:</span>
+            <span class="parcel-value">{{ parcelDetails.pickupAddress }}</span>
+          </div>
+          <div class="parcel-row">
+            <span class="parcel-label">Delivery Address:</span>
+            <span class="parcel-value">{{ parcelDetails.deliveryAddress }}</span>
+          </div>
+          <div class="parcel-row">
+            <span class="parcel-label">Weight:</span>
+            <span class="parcel-value">{{ parcelDetails.weight }} kg</span>
+          </div>
+          <div class="parcel-row">
+            <span class="parcel-label">Price:</span>
+            <span class="parcel-value">KSH {{ parcelDetails.price.toFixed(2) }}</span>
+          </div>
+        </div>
+        <div class="parcel-info" *ngIf="!parcelDetails">
+          <p class="no-parcel">No parcel details available</p>
+        </div>
+      </div>
+
+      <!-- Available Drivers Section -->
+      <div class="drivers-section">
+        <h2 class="section-title">Available Drivers</h2>
+        
+        <!-- Filter Options -->
+        <div class="filter-options" [formGroup]="assignForm">
+          <div class="filter-group">
+            <label for="vehicleType">Vehicle Type</label>
+            <select id="vehicleType" formControlName="vehicleType" class="filter-select">
+              <option *ngFor="let type of vehicleTypes" [value]="type">{{ type }}</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="availability">Availability</label>
+            <select id="availability" formControlName="availability" class="filter-select">
+              <option *ngFor="let option of availabilityOptions" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="rating">Ratings</label>
+            <select id="rating" formControlName="rating" class="filter-select">
+              <option *ngFor="let rating of ratingOptions" [value]="rating">{{ rating }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Drivers List -->
+        <div class="drivers-list">
+          <div 
+            *ngFor="let driver of filteredDrivers" 
+            class="driver-item"
+            [class.selected]="driver.isSelected"
+            (click)="selectDriver(driver)"
+          >
+            <div class="driver-radio">
+              <input 
+                type="radio" 
+                [id]="'driver-' + driver.id"
+                [name]="'driver-selection'"
+                [checked]="driver.isSelected"
+                (click)="selectDriver(driver)"
+              >
+              <label [for]="'driver-' + driver.id"></label>
+            </div>
+            
+            <div class="driver-info">
+              <div class="driver-name">{{ driver.name }}</div>
+              <div class="driver-details">
+                <span class="driver-rating">{{ driver.rating }} ★</span>
+                <span class="driver-deliveries">{{ driver.deliveries }} Deliveries</span>
+                <span class="driver-vehicle">{{ driver.vehicleType }}</span>
+                <span class="driver-status" [class]="getDriverStatusClass(driver.availability)">
+                  {{ driver.availability }}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="no-drivers" *ngIf="filteredDrivers.length === 0">
+            <p>No drivers match the selected filters</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map Section -->
+      <div class="map-section">
+        <div class="map-container">
+          <div class="tracking-map">
+            <img src="/images/tracking-map.jpg" alt="Delivery Tracking Map" class="tracking-map-image">
+          </div>
+        </div>
+      </div>
+
+      <!-- Assign Driver Button -->
+      <div class="assign-actions">
+        <button 
+          type="button" 
+          class="assign-btn"
+          [disabled]="!selectedDriver"
+          (click)="assignDriver()"
+        >
+          Assign Driver
+        </button>
+      </div>
+    </div>
+  </main>
+</div> 

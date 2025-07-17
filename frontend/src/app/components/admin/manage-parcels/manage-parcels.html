@@ -1,0 +1,131 @@
+<div class="admin-container">
+  <!-- Left Sidebar -->
+  <div class="sidebar">
+    
+    
+    <nav class="sidebar-nav">
+      <a routerLink="/admin-dashboard" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/admin-create-delivery" class="nav-item">
+        <i class="fas fa-plus"></i>
+        <span>Create Delivery</span>
+      </a>
+      <a routerLink="/admin-manage-parcels" class="nav-item active" routerLinkActive="active">
+        <i class="fas fa-box"></i>
+        <span>Manage Parcels</span>
+      </a>
+      <a routerLink="/admin-manage-users" class="nav-item">
+        <i class="fas fa-users"></i>
+        <span>Manage Users</span>
+      </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a routerLink="/login" class="nav-item logout">
+        <i class="fas fa-arrow-left"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Header -->
+    <div class="content-header">
+      <h1>All Parcels</h1>
+      <button class="btn-new-parcel" routerLink="/admin-create-delivery">
+        New Parcel
+      </button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-section">
+      <div class="search-bar">
+        <i class="fas fa-search search-icon"></i>
+        <input 
+          type="text" 
+          placeholder="Search by Parcel ID, Sender, Receiver"
+          [(ngModel)]="searchTerm"
+          class="search-input"
+        >
+      </div>
+    </div>
+
+    <!-- Filter & Sort Section -->
+    <div class="filter-section">
+      <h3>Filter & Sort</h3>
+      <div class="filter-controls">
+        <select [(ngModel)]="selectedFilter" class="filter-select">
+          <option value="">Parcel ID</option>
+          <option value="sender">Sender</option>
+          <option value="receiver">Receiver</option>
+        </select>
+        
+        <select [(ngModel)]="selectedStatus" class="filter-select">
+          <option value="">Status</option>
+          <option value="Pending">Pending</option>
+          <option value="In Transit">In Transit</option>
+          <option value="Delivered">Delivered</option>
+        </select>
+        
+        <select class="filter-select">
+          <option value="">Sender/Receiver</option>
+          <option value="sender">Sender</option>
+          <option value="receiver">Receiver</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Parcels Table -->
+    <div class="table-container">
+      <table class="parcels-table">
+        <thead>
+          <tr>
+            <th>Parcel ID</th>
+            <th>Sender</th>
+            <th>Receiver</th>
+            <th>Status</th>
+            <th>Driver</th>
+            <th>Expected Delivery</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="7" class="loading-cell">
+              <div class="loading-spinner">Loading parcels...</div>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && filteredParcels.length === 0">
+            <td colspan="7" class="no-data-cell">
+              <div class="no-data">No parcels found</div>
+            </td>
+          </tr>
+          <tr *ngFor="let parcel of filteredParcels">
+            <td>{{ parcel.id }}</td>
+            <td>{{ parcel.sender }}</td>
+            <td>{{ parcel.receiver }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
+                {{ parcel.status }}
+              </span>
+            </td>
+            <td>
+              <span class="driver-name" [ngClass]="{'unassigned': parcel.driver === 'Unassigned'}">
+                {{ parcel.driver || 'Unassigned' }}
+              </span>
+            </td>
+            <td>{{ parcel.expectedDelivery }}</td>
+            <td>
+              <button class="btn-view-details" (click)="viewDetails(parcel.id)">
+                View Details
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

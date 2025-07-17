@@ -1,0 +1,231 @@
+<div class="admin-container">
+  <!-- Left Sidebar -->
+  <div class="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/admin-dashboard" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/admin-create-delivery" class="nav-item">
+        <i class="fas fa-plus"></i>
+        <span>Create Delivery</span>
+      </a>
+      <a routerLink="/admin-manage-parcels" class="nav-item active" routerLinkActive="active">
+        <i class="fas fa-box"></i>
+        <span>Manage Parcels</span>
+      </a>
+      <a routerLink="/admin-manage-users" class="nav-item">
+        <i class="fas fa-users"></i>
+        <span>Manage Users</span>
+      </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a routerLink="/login" class="nav-item logout">
+        <i class="fas fa-arrow-left"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-container">
+      <div class="loading-spinner">Loading parcel details...</div>
+    </div>
+
+    <!-- Parcel Details -->
+    <div *ngIf="!loading && parcel" class="parcel-details">
+      <!-- Header -->
+      <div class="details-header">
+        <div class="breadcrumb">
+          <a routerLink="/admin-manage-parcels" class="breadcrumb-link">Parcels</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Parcel Details</span>
+        </div>
+        <div class="header-content">
+          <h1 class="order-title">Parcel #{{ parcel.trackingNumber }}</h1>
+          <button class="btn-update-status" (click)="updateStatus()">
+            Update Status
+          </button>
+        </div>
+      </div>
+
+      <!-- Order Information -->
+      <div class="section">
+        <h2 class="section-title">Order Information</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Tracking Number:</label>
+            <span>{{ parcel.trackingNumber }}</span>
+          </div>
+          <div class="info-item">
+            <label>Status:</label>
+            <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
+              {{ parcel.status }}
+            </span>
+          </div>
+          <div class="info-item">
+            <label>Pickup Date:</label>
+            <span>{{ parcel.pickupDate }}</span>
+          </div>
+          <div class="info-item">
+            <label>Delivery Date:</label>
+            <span>{{ parcel.deliveryDate }}</span>
+          </div>
+          <div class="info-item">
+            <label>Weight:</label>
+            <span>{{ parcel.weight }}</span>
+          </div>
+          <div class="info-item">
+            <label>Dimensions:</label>
+            <span>{{ parcel.dimensions }}</span>
+          </div>
+          <div class="info-item">
+            <label>Price:</label>
+            <span class="price-value">{{ parcel.price }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sender Information -->
+      <div class="section">
+        <h2 class="section-title">Sender Information</h2>
+        <div class="contact-info">
+          <div class="info-item">
+            <label>Name:</label>
+            <span>{{ parcel.sender.name }}</span>
+          </div>
+          <div class="info-item">
+            <label>Address:</label>
+            <span>{{ parcel.sender.address }}</span>
+          </div>
+          <div class="info-item">
+            <label>Contact Number:</label>
+            <span>{{ parcel.sender.phone }}</span>
+          </div>
+          <div class="info-item">
+            <label>Email:</label>
+            <span>{{ parcel.sender.email }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Receiver Information -->
+      <div class="section">
+        <h2 class="section-title">Receiver Information</h2>
+        <div class="contact-info">
+          <div class="info-item">
+            <label>Name:</label>
+            <span>{{ parcel.receiver.name }}</span>
+          </div>
+          <div class="info-item">
+            <label>Address:</label>
+            <span>{{ parcel.receiver.address }}</span>
+          </div>
+          <div class="info-item">
+            <label>Contact Number:</label>
+            <span>{{ parcel.receiver.phone }}</span>
+          </div>
+          <div class="info-item">
+            <label>Email:</label>
+            <span>{{ parcel.receiver.email }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Driver Information -->
+      <div class="section" *ngIf="parcel.driver">
+        <h2 class="section-title">Assigned Driver</h2>
+        <div class="driver-info">
+          <div class="driver-header">
+            <div class="driver-avatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="driver-name-title">
+              <h3>{{ parcel.driver.name }}</h3>
+              <span class="driver-status">Active Driver</span>
+            </div>
+          </div>
+          <div class="driver-details">
+            <div class="info-item">
+              <label>Phone:</label>
+              <span>{{ parcel.driver.phone }}</span>
+            </div>
+            <div class="info-item">
+              <label>Email:</label>
+              <span>{{ parcel.driver.email }}</span>
+            </div>
+            <div class="info-item">
+              <label>Vehicle Number:</label>
+              <span>{{ parcel.driver.vehicleNumber }}</span>
+            </div>
+            <div class="info-item">
+              <label>License Number:</label>
+              <span>{{ parcel.driver.licenseNumber }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Driver Assigned -->
+      <div class="section" *ngIf="!parcel.driver">
+        <h2 class="section-title">Driver Assignment</h2>
+        <div class="no-driver">
+          <div class="no-driver-icon">
+            <i class="fas fa-user-slash"></i>
+          </div>
+          <div class="no-driver-content">
+            <h3>No Driver Assigned</h3>
+            <p>This parcel has not been assigned to a driver yet.</p>
+            <button class="btn-assign-driver" routerLink="/admin-assign-driver">
+              <i class="fas fa-plus"></i>
+              Assign Driver
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order History -->
+      <div class="section">
+        <h2 class="section-title">Order History</h2>
+        <div class="history-list">
+          <div *ngFor="let item of parcel.orderHistory" class="history-item">
+            <div class="history-icon">
+              <i [class]="item.icon"></i>
+            </div>
+            <div class="history-content">
+              <div class="history-status">{{ item.status }}</div>
+              <div class="history-time">{{ item.date }}, {{ item.time }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parcel Location (Map) -->
+      <div class="section">
+        <h2 class="section-title">Parcel Location</h2>
+        <div class="map-container">
+          <img src="/images/tracking-map.jpg" alt="Tracking Map" class="tracking-map">
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="section">
+        <h2 class="section-title">Activity Log</h2>
+        <div class="activity-list">
+          <div *ngFor="let activity of parcel.activityLog" class="activity-item">
+            <div class="activity-icon">
+              <i [class]="activity.icon"></i>
+            </div>
+            <div class="activity-content">
+              <div class="activity-action">{{ activity.action }}</div>
+              <div class="activity-time">{{ activity.date }}, {{ activity.time }} by {{ activity.user }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

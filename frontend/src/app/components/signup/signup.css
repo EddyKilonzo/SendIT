@@ -1,5 +1,5 @@
 .signup-page {
-  min-height: 100vh;
+  min-height: 90vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,9 +14,9 @@
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  min-height: 400px;
+box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px, rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;  min-height: 400px;
   max-height: 90vh;
+  margin-bottom: 100px;
 }
 
 .form-section {
@@ -74,6 +74,7 @@
   font-size: 0.85rem;
   transition: all 0.3s ease;
   background-color: #fafbfc;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 8px 24px;
 }
 
 .form-group input:focus {
@@ -143,6 +144,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 5px;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 8px 24px;
 }
 
 .signup-btn:hover {

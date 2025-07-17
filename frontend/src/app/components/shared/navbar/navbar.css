@@ -26,6 +26,12 @@
   display: flex;
   gap: 2rem;
 }
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 .nav-link{
   text-decoration: none;
   color: #000;
@@ -37,6 +43,63 @@
   font-size: 1.2rem;
   font-weight: 600;
   transition: all 0.3s ease;
+}
+
+.notification-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+  position: relative;
+}
+
+.notification-btn:hover {
+  background-color: #f8f9fa;
+  color: #DBBB02;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #dc3545;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #DBBB02;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid #e9ecef;
+}
+
+.user-avatar:hover {
+  background-color: #c4a602;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(219, 187, 2, 0.3);
+}
+
+.user-avatar i {
+  display: block;
+  font-size: 20px;
 }
 
 

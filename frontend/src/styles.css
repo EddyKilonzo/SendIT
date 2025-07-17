@@ -7,6 +7,27 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    position: relative;
+  }
+  
+  /* Ensure footer stays at bottom and doesn't get overlapped */
+  app-root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  /* Ensure footer is positioned correctly */
+  app-footer {
+    margin-top: auto;
+    position: relative;
+    z-index: 1;
+  }
 }
 
 @layer components {

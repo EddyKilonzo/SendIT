@@ -1,0 +1,283 @@
+<div class="create-delivery">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    
+    <nav class="sidebar-nav">
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-plus"></i>
+            <span>Create Delivery</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-box"></i>
+            <span>Manage Parcels</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-users"></i>
+            <span>Manage Users</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a routerLink="/login" class="logout-link">
+        <i class="fas fa-arrow-left"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="content-header">
+      <h1 class="page-title">Create Delivery</h1>
+    </div>
+
+    <div class="delivery-content">
+      <form [formGroup]="deliveryForm" (ngSubmit)="onSubmit()" class="delivery-form">
+        
+        <!-- Sender Details Section -->
+        <div class="form-section">
+          <h2 class="section-title">Sender Details</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="senderName">Sender Name</label>
+              <input 
+                type="text" 
+                id="senderName" 
+                formControlName="senderName"
+                placeholder="Enter sender's name"
+                [class.error]="isFieldInvalid('senderName')"
+              >
+              <div class="error-message" *ngIf="getFieldError('senderName')">
+                {{ getFieldError('senderName') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="senderContact">Sender Contact</label>
+              <input 
+                type="tel" 
+                id="senderContact" 
+                formControlName="senderContact"
+                placeholder="Enter sender's contact number"
+                [class.error]="isFieldInvalid('senderContact')"
+              >
+              <div class="error-message" *ngIf="getFieldError('senderContact')">
+                {{ getFieldError('senderContact') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="senderAddress">Sender Address</label>
+              <input 
+                type="text" 
+                id="senderAddress" 
+                formControlName="senderAddress"
+                placeholder="Enter sender's address"
+                [class.error]="isFieldInvalid('senderAddress')"
+              >
+              <div class="error-message" *ngIf="getFieldError('senderAddress')">
+                {{ getFieldError('senderAddress') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="senderEmail">Sender Email</label>
+              <input 
+                type="email" 
+                id="senderEmail" 
+                formControlName="senderEmail"
+                placeholder="Enter sender's email"
+                [class.error]="isFieldInvalid('senderEmail')"
+              >
+              <div class="error-message" *ngIf="getFieldError('senderEmail')">
+                {{ getFieldError('senderEmail') }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recipient Details Section -->
+        <div class="form-section">
+          <h2 class="section-title">Recipient Details</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="recipientName">Recipient Name</label>
+              <input 
+                type="text" 
+                id="recipientName" 
+                formControlName="recipientName"
+                placeholder="Enter recipient's name"
+                [class.error]="isFieldInvalid('recipientName')"
+              >
+              <div class="error-message" *ngIf="getFieldError('recipientName')">
+                {{ getFieldError('recipientName') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="recipientContact">Recipient Contact</label>
+              <input 
+                type="tel" 
+                id="recipientContact" 
+                formControlName="recipientContact"
+                placeholder="Enter recipient's contact number"
+                [class.error]="isFieldInvalid('recipientContact')"
+              >
+              <div class="error-message" *ngIf="getFieldError('recipientContact')">
+                {{ getFieldError('recipientContact') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="recipientAddress">Recipient Address</label>
+              <input 
+                type="text" 
+                id="recipientAddress" 
+                formControlName="recipientAddress"
+                placeholder="Recipient's address"
+                [class.error]="isFieldInvalid('recipientAddress')"
+              >
+              <div class="error-message" *ngIf="getFieldError('recipientAddress')">
+                {{ getFieldError('recipientAddress') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="recipientEmail">Recipient Email</label>
+              <input 
+                type="email" 
+                id="recipientEmail" 
+                formControlName="recipientEmail"
+                placeholder="Enter recipient's email"
+                [class.error]="isFieldInvalid('recipientEmail')"
+              >
+              <div class="error-message" *ngIf="getFieldError('recipientEmail')">
+                {{ getFieldError('recipientEmail') }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Location Details Section -->
+        <div class="form-section">
+          <h2 class="section-title">Location Details</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="pickupLocation">Pickup Location</label>
+              <input 
+                type="text" 
+                id="pickupLocation" 
+                formControlName="pickupLocation"
+                placeholder="pickup location"
+                [class.error]="isFieldInvalid('pickupLocation')"
+              >
+              <div class="error-message" *ngIf="getFieldError('pickupLocation')">
+                {{ getFieldError('pickupLocation') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="destination">Destination</label>
+              <input 
+                type="text" 
+                id="destination" 
+                formControlName="destination"
+                placeholder="Destination"
+                [class.error]="isFieldInvalid('destination')"
+              >
+              <div class="error-message" *ngIf="getFieldError('destination')">
+                {{ getFieldError('destination') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="parcelWeight">Parcel Weight (kg)</label>
+              <input 
+                type="number" 
+                id="parcelWeight" 
+                formControlName="parcelWeight"
+                placeholder="Enter parcel weight"
+                step="0.1"
+                min="0.1"
+                [class.error]="isFieldInvalid('parcelWeight')"
+              >
+              <div class="error-message" *ngIf="getFieldError('parcelWeight')">
+                {{ getFieldError('parcelWeight') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="pricePerKg">Price per Kilogram</label>
+              <div class="input-with-icon">
+                <input 
+                  type="number" 
+                  id="pricePerKg" 
+                  formControlName="pricePerKg"
+                  placeholder="100.00"
+                  step="0.01"
+                  min="0.01"
+                  [class.error]="isFieldInvalid('pricePerKg')"
+                >
+                <span class="currency-symbol">KSH</span>
+              </div>
+              <div class="error-message" *ngIf="getFieldError('pricePerKg')">
+                {{ getFieldError('pricePerKg') }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price Calculation Section -->
+        <div class="form-section price-calculation">
+          <h2 class="section-title">Price Calculation</h2>
+          <div class="price-details">
+            <div class="price-row">
+              <span class="price-label">Price per Kilogram:</span>
+              <span class="price-value">{{ getFormattedPricePerKg() }}</span>
+            </div>
+            <div class="price-row">
+              <span class="price-label">Parcel Weight:</span>
+              <span class="price-value">{{ deliveryForm.get('parcelWeight')?.value || 0 }} kg</span>
+            </div>
+            <div class="price-row total">
+              <span class="price-label">Total Price:</span>
+              <span class="price-value total-price">{{ getFormattedTotalPrice() }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="map-section">
+          <div class="map-container">
+            <div class="tracking-map">
+              <img src="/images/tracking-map.jpg" alt="Delivery Tracking Map" class="tracking-map-image">
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+          <button type="submit" class="submit-btn" [disabled]="deliveryForm.invalid">
+            {{ getSubmitButtonText() }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+
+  </main>
+</div>

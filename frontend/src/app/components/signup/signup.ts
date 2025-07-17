@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { ToastService } from '../shared/toast/toast.service';
 
 @Component({
@@ -19,7 +19,7 @@ export class Signup {
     password: ''
   };
 
-  constructor(private toastService: ToastService) {}
+  constructor(private toastService: ToastService, private router: Router) {}
 
   togglePassword() {
     this.showPassword = !this.showPassword;
@@ -50,7 +50,9 @@ export class Signup {
     // Simulate API call
     this.toastService.showSuccess('Account created successfully! Welcome to SendIT');
     
-    // Add your signup logic here
-    // You can redirect to login page after successful signup
+    // Redirect to login page after successful signup
+    setTimeout(() => {
+      this.router.navigate(['/login']);
+    }, 1000); 
   }
 }
