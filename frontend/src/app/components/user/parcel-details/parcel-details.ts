@@ -57,6 +57,9 @@ export class ParcelDetails implements OnInit {
   userReview: Review | null = null;
   isEditingReview = false;
   
+  // User role for role-based access control
+  userRole: string = 'CUSTOMER'; // Default role, will be set from auth service later
+  
   parcels: Parcel[] = [
     {
       id: '#12345',

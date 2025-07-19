@@ -4,25 +4,28 @@
     
     
     <nav class="sidebar-nav">
+      <!-- Common Navigation Items -->
       <a routerLink="/admin-dashboard" class="nav-item">
         <i class="fas fa-home"></i>
         <span>Dashboard</span>
       </a>
-      <a routerLink="/admin-create-delivery" class="nav-item">
-        <i class="fas fa-plus"></i>
-        <span>Create Delivery</span>
-      </a>
-      <a routerLink="/admin-manage-parcels" class="nav-item active" routerLinkActive="active">
-        <i class="fas fa-box"></i>
-        <span>Manage Parcels</span>
-      </a>
-      <a routerLink="/admin-manage-users" class="nav-item">
-        <i class="fas fa-users"></i>
-        <span>Manage Users</span>
-      </a>
       <a routerLink="/profile" class="nav-item">
         <i class="fas fa-user"></i>
         <span>Profile</span>
+      </a>
+      
+      <!-- Admin-Only Navigation Items -->
+      <a routerLink="/admin-create-delivery" class="nav-item admin-nav" *ngIf="userRole === 'ADMIN'">
+        <i class="fas fa-plus"></i>
+        <span>Create Delivery</span>
+      </a>
+      <a routerLink="/admin-manage-parcels" class="nav-item active admin-nav" routerLinkActive="active" *ngIf="userRole === 'ADMIN'">
+        <i class="fas fa-box"></i>
+        <span>Manage Parcels</span>
+      </a>
+      <a routerLink="/admin-manage-users" class="nav-item admin-nav" *ngIf="userRole === 'ADMIN'">
+        <i class="fas fa-users"></i>
+        <span>Manage Users</span>
       </a>
     </nav>
     

@@ -4,6 +4,7 @@
     
     <nav class="sidebar-nav">
       <ul class="nav-menu">
+        <!-- Common Navigation Items -->
         <li class="nav-item">
           <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
             <i class="fas fa-home"></i>
@@ -11,27 +12,29 @@
           </a>
         </li>
         <li class="nav-item">
-          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link">
+          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
+        
+        <!-- Admin-Only Navigation Items -->
+        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
+          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link admin-nav">
             <i class="fas fa-plus"></i>
             <span>Create Delivery</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link">
+        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
+          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link admin-nav">
             <i class="fas fa-box"></i>
             <span>Manage Parcels</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link">
+        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
+          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link admin-nav">
             <i class="fas fa-users"></i>
             <span>Manage Users</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
           </a>
         </li>
       </ul>

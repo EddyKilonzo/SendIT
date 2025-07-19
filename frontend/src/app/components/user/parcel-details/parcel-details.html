@@ -2,6 +2,7 @@
   <!-- Left Sidebar -->
   <aside class="sidebar">
     <nav class="sidebar-nav">
+      <!-- Common Navigation Items -->
       <a routerLink="/user-dashboard" class="nav-item">
         <i class="fas fa-home"></i>
         <span>Home</span>
@@ -14,6 +15,25 @@
         <i class="fas fa-user"></i>
         <span>Profile</span>
       </a>
+      
+      <!-- Admin-Only Navigation Items -->
+      <div class="admin-section" *ngIf="userRole === 'ADMIN'">
+        <div class="nav-divider">
+          <span>Admin Panel</span>
+        </div>
+        <a routerLink="/admin/manage-parcels" class="nav-item admin-nav">
+          <i class="fas fa-boxes"></i>
+          <span>Manage Parcels</span>
+        </a>
+        <a routerLink="/admin/manage-users" class="nav-item admin-nav">
+          <i class="fas fa-users-cog"></i>
+          <span>Manage Users</span>
+        </a>
+        <a routerLink="/admin/create-delivery" class="nav-item admin-nav">
+          <i class="fas fa-plus-circle"></i>
+          <span>Create Delivery</span>
+        </a>
+      </div>
     </nav>
   </aside>
 

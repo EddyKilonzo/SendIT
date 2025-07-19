@@ -81,6 +81,9 @@ interface OrderDetails {
   styleUrls: ['./create-delivery.css']
 })
 export class CreateDelivery implements OnInit {
+  // User role for role-based access control
+  userRole: string = 'ADMIN'; // Default role for admin component, will be set from auth service later
+  
   deliveryForm: FormGroup;
   pricePerKg: number = 100; // Fixed price per kg in KSH
   totalPrice: number = 0;

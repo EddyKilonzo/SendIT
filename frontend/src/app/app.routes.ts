@@ -15,6 +15,10 @@ import { Profile } from './components/profile/profile';
 import { UserDashboard } from './components/user/user-dashboard/user-dashboard';
 import { UserParcels } from './components/user/user-parcels/user-parcels';
 import { ParcelDetails } from './components/user/parcel-details/parcel-details';
+import { DriverDashboard } from './components/driver/driver-dashboard/driver-dashboard';
+import { AssignedParcels } from './components/driver/assigned-parcels/assigned-parcels';
+import { DriverParcelDetails } from './components/driver/parcel-details/parcel-details';
+import { DeliveryHistory } from './components/driver/delivery-history/delivery-history';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -36,4 +40,9 @@ export const routes: Routes = [
   { path: 'user-dashboard', component: UserDashboard },
   { path: 'user-parcels', component: UserParcels },
   { path: 'parcel-details/:id', component: ParcelDetails },
+  // Driver routes
+  { path: 'driver-dashboard', component: DriverDashboard },
+  { path: 'driver-my-parcels', component: AssignedParcels },
+  { path: 'driver-history', component: DeliveryHistory },
+  { path: 'driver-parcel-details/:id', component: DriverParcelDetails },
 ];

@@ -11,6 +11,10 @@ import { RouterModule, Router } from '@angular/router';
 })
 export class AdminDashboard {
   constructor(private router: Router) {}
+  
+  // User role for role-based access control
+  userRole: string = 'ADMIN'; // Default role for admin dashboard, will be set from auth service later
+  
   // Dashboard metrics matching the image
   dashboardStats = {
     totalParcels: 1200,

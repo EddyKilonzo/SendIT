@@ -1,0 +1,175 @@
+<div class="assigned-parcels">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/driver-dashboard" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/driver-my-parcels" class="nav-item active" routerLinkActive="active">
+        <i class="fas fa-box"></i>
+        <span>My Parcels</span>
+      </a>
+      <a routerLink="/driver-history" class="nav-item">
+        <i class="fas fa-history"></i>
+        <span>Delivery History</span>
+      </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+      </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a routerLink="/help" class="nav-item help-link">
+        <i class="fas fa-question-circle"></i>
+        <span>Help</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+      <!-- Header -->
+      <div class="content-header">
+        <h1 class="page-title">Parcels Assigned</h1>
+      </div>
+
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+      <div class="search-container">
+        <div class="search-bar">
+          <i class="fas fa-search search-icon"></i>
+          <input 
+            type="text" 
+            placeholder="Search for parcel..." 
+            [(ngModel)]="searchTerm"
+            class="search-input"
+          >
+          <button 
+            class="clear-search-btn" 
+            (click)="clearSearch()"
+            type="button"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="filter-container">
+        <button class="filter-btn" (click)="toggleFilterDropdown()">
+          <span>Delivery Status</span>
+          <i class="fas fa-chevron-down" [class.rotated]="showFilterDropdown"></i>
+        </button>
+        
+        <!-- Filter Dropdown -->
+        <div class="filter-dropdown" *ngIf="showFilterDropdown">
+          <div class="filter-option" (click)="selectFilter('all')">
+            <span>All Parcels</span>
+          </div>
+          <div class="filter-option" (click)="selectFilter('pending')">
+            <span>Pending</span>
+          </div>
+          <div class="filter-option" (click)="selectFilter('in-transit')">
+            <span>In Transit</span>
+          </div>
+          <div class="filter-option" (click)="selectFilter('delivered')">
+            <span>Delivered</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clear Filters Button -->
+      <div class="clear-filters-container">
+        <button class="clear-filters-btn" (click)="clearFilters()">
+          <i class="fas fa-times"></i>
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Parcels List -->
+    <div class="parcels-container">
+      <div class="parcels-list">
+        <div 
+          class="parcel-card" 
+          *ngFor="let parcel of filteredParcels"
+          [class.highlighted]="parcel.id === selectedParcelId"
+          (click)="viewParcelDetails(parcel.id)"
+          style="cursor: pointer;"
+        >
+          <div class="parcel-header">
+            <h3 class="parcel-id">Parcel ID: {{ parcel.parcelId }}</h3>
+            <span class="parcel-status" [ngClass]="getStatusClass(parcel.status)">
+              {{ parcel.status }}
+            </span>
+          </div>
+          
+          <div class="parcel-details">
+            <div class="address-section">
+              <div class="pickup-address">
+                <span class="label">Pickup:</span>
+                <span class="address"><strong>{{ parcel.pickupAddress }}</strong></span>
+              </div>
+              <div class="delivery-address">
+                <span class="label">Delivery:</span>
+                <span class="address">{{ parcel.deliveryAddress }}</span>
+              </div>
+            </div>
+            
+            <div class="parcel-meta">
+              <div class="meta-item" *ngIf="parcel.scheduledTime">
+                <i class="fas fa-clock"></i>
+                <span>{{ parcel.scheduledTime }}</span>
+              </div>
+              <div class="meta-item" *ngIf="parcel.customerName">
+                <i class="fas fa-user"></i>
+                <span>{{ parcel.customerName }}</span>
+              </div>
+              <div class="meta-item" *ngIf="parcel.weight">
+                <i class="fas fa-weight-hanging"></i>
+                <span>{{ parcel.weight }} kg</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="parcel-actions">
+            <button class="view-details-btn" (click)="viewParcelDetails(parcel.id); $event.stopPropagation()">
+              <i class="fas fa-eye"></i>
+              View Details
+            </button>
+            <button 
+              class="action-btn start-btn" 
+              *ngIf="parcel.status === 'Pending'"
+              (click)="startDelivery(parcel.id); $event.stopPropagation()"
+            >
+              <i class="fas fa-play"></i>
+              Start Delivery
+            </button>
+            <button 
+              class="action-btn complete-btn" 
+              *ngIf="parcel.status === 'In Transit'"
+              (click)="completeDelivery(parcel.id); $event.stopPropagation()"
+            >
+              <i class="fas fa-check"></i>
+              Complete
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- No Parcels Message -->
+      <div class="no-parcels" *ngIf="filteredParcels.length === 0">
+        <div class="no-parcels-content">
+          <i class="fas fa-box-open no-parcels-icon"></i>
+          <h3>No Parcels Found</h3>
+          <p>No parcels match your current search criteria or filters.</p>
+          <button class="clear-filters-btn" (click)="clearFilters()">
+            <i class="fas fa-times"></i>
+            Clear All Filters
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

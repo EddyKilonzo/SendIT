@@ -1,0 +1,163 @@
+<div class="driver-parcel-details">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/driver-dashboard" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/driver-my-parcels" class="nav-item">
+        <i class="fas fa-box"></i>
+        <span>My Parcels</span>
+      </a>
+      <a routerLink="/driver-history" class="nav-item">
+        <i class="fas fa-history"></i>
+        <span>Delivery History</span>
+      </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+      </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a routerLink="/help" class="nav-item help-link">
+        <i class="fas fa-question-circle"></i>
+        <span>Help</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <div class="content-header">
+      <div class="breadcrumb">
+        <a routerLink="/driver-my-parcels" class="breadcrumb-link">My Parcels</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Parcel Details</span>
+      </div>
+      <h1 class="page-title">Parcel Details</h1>
+    </div>
+
+    <!-- Parcel Information Section -->
+    <div class="parcel-info-section">
+      <h2 class="section-title">Parcel Information</h2>
+      <div class="info-grid">
+        <div class="info-column">
+          <div class="info-item">
+            <label class="info-label">Parcel ID:</label>
+            <span class="info-value">{{ parcel?.parcelId || '#123456' }}</span>
+          </div>
+          <div class="info-item">
+            <label class="info-label">Delivery Address:</label>
+            <span class="info-value">{{ parcel?.deliveryAddress || '456 Oak Avenue, Anytown, USA' }}</span>
+          </div>
+          <div class="info-item">
+            <label class="info-label">Scheduled Delivery Time:</label>
+            <span class="info-value">{{ parcel?.scheduledDeliveryTime || '2024-03-15 12:00 PM' }}</span>
+          </div>
+          <div class="info-item">
+            <label class="info-label">Recipient Phone:</label>
+            <span class="info-value">{{ parcel?.recipientPhone || '+1-555-123-4567' }}</span>
+          </div>
+        </div>
+        
+        <div class="info-column">
+          <div class="info-item">
+            <label class="info-label">Pickup Address:</label>
+            <span class="info-value">{{ parcel?.pickupAddress || '123 Maple Street, Anytown, USA' }}</span>
+          </div>
+          <div class="info-item">
+            <label class="info-label">Scheduled Pickup Time:</label>
+            <span class="info-value">{{ parcel?.scheduledPickupTime || '2024-03-15 10:00 AM' }}</span>
+          </div>
+          <div class="info-item">
+            <label class="info-label">Recipient Name:</label>
+            <span class="info-value">{{ parcel?.recipientName || 'Liam Carter' }}</span>
+          </div>
+          <div class="info-item">
+            <label class="info-label">Special Instructions:</label>
+            <span class="info-value">{{ parcel?.specialInstructions || 'Handle with care' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Section -->
+    <div class="status-section">
+      <h2 class="section-title">Status</h2>
+      <div class="status-content">
+        <div class="status-input-group">
+          <label class="status-label">Current Status:</label>
+          <div class="status-display" [ngClass]="getStatusClass(parcel?.status || 'Pending')">
+            {{ parcel?.status || 'Pending' }}
+          </div>
+        </div>
+        <div class="status-actions">
+          <button class="btn-secondary" (click)="toggleView()" [class.active]="showMapView">
+            <i class="fas fa-map-marker-alt"></i>
+            {{ showMapView ? 'Show Instructions' : 'Show Map' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map View -->
+    <div class="map-section" *ngIf="showMapView">
+      <h2 class="section-title">Tracking Map</h2>
+      <div class="map-container">
+        <img src="/images/tracking-map.jpg" alt="Tracking Map" class="tracking-map">
+        <div class="map-overlay">
+          <div class="map-legend">
+            <div class="legend-item">
+              <div class="legend-pin blue"></div>
+              <span>Current Location</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-pin orange"></div>
+              <span>Pickup Points</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-pin green"></div>
+              <span>Delivery Points</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delivery Instructions Section -->
+    <div class="instructions-section" *ngIf="!showMapView">
+      <h2 class="section-title">Delivery Instructions</h2>
+      <div class="instructions-list">
+        <div class="instruction-item" *ngFor="let instruction of deliveryInstructions; let i = index">
+          <input 
+            type="checkbox" 
+            [id]="'instruction-' + i"
+            [checked]="instruction.completed"
+            (change)="toggleInstruction(i)"
+            class="instruction-checkbox"
+            [disabled]="!canCompleteInstruction(i)"
+          >
+          <label [for]="'instruction-' + i" class="instruction-label">
+            <span class="instruction-number">{{ i + 1 }}.</span>
+            <span class="instruction-text">{{ instruction.text }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Action Buttons -->
+    <div class="bottom-actions">
+      <button 
+        class="btn-primary" 
+        (click)="markAsCompleted()"
+        [disabled]="!canMarkAsCompleted()"
+      >
+        <i class="fas fa-check"></i>
+        Mark as Completed
+      </button>
+    </div>
+  </main>
+</div> 

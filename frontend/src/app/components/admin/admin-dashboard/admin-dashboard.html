@@ -5,6 +5,7 @@
     
     <nav class="sidebar-nav">
       <ul class="nav-menu">
+        <!-- Common Navigation Items -->
         <li class="nav-item">
           <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
             <i class="fas fa-home"></i>
@@ -12,27 +13,29 @@
           </a>
         </li>
         <li class="nav-item">
-          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link">
+          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
+        
+        <!-- Admin-Only Navigation Items -->
+        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
+          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link admin-nav">
             <i class="fas fa-plus"></i>
             <span>Create Delivery</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link">
+        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
+          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link admin-nav">
             <i class="fas fa-box"></i>
             <span>Manage Parcels</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link">
+        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
+          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link admin-nav">
             <i class="fas fa-users"></i>
             <span>Manage Users</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
           </a>
         </li>
       </ul>
@@ -48,98 +51,115 @@
 
   <!-- Main Content -->
   <main class="main-content">
-    <div class="content-header">
-      <div class="header-left">
-        <h1 class="dashboard-title">Admin Dashboard</h1>
+    <!-- Access Control - Only Admin Users -->
+    <div *ngIf="userRole === 'ADMIN'">
+      <div class="content-header">
+        <div class="header-left">
+          <h1 class="dashboard-title">Admin Dashboard</h1>
+        </div>
+      </div>
+
+      <!-- Dashboard Content -->
+      <div class="dashboard-content">
+        
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+          <div class="summary-card">
+            <h3>Total parcels</h3>
+            <p class="card-value">1200</p>
+          </div>
+          <div class="summary-card">
+            <h3>Deliveries in Progress</h3>
+            <p class="card-value">30</p>
+          </div>
+          <div class="summary-card">
+            <h3>Revenue</h3>
+            <p class="card-value">KSH 57,544.00</p>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+          <h2>Quick Actions</h2>
+          <div class="action-buttons">
+            <button routerLink="/admin-create-delivery" class="action-btn primary">
+              <i class="fas fa-plus"></i>
+              <span>Create Delivery</span>
+            </button>
+            <button routerLink="/admin-manage-parcels" class="action-btn primary">
+              <i class="fas fa-box"></i>
+              <span>Manage Parcels</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Performance Insights -->
+        <div class="performance-insights">
+          <h2>Performance Insights</h2>
+          <div class="insights-grid">
+            <!-- Delivery Status Card -->
+            <div class="insight-card">
+              <h3>Delivery Status</h3>
+              <p class="insight-value">120</p>
+              <p class="insight-subtitle">Last 30 Days</p>
+              <div class="status-bars">
+                <div class="status-bar">
+                  <span class="bar-label">Delivered</span>
+                  <div class="bar-container">
+                    <div class="bar delivered"></div>
+                  </div>
+                </div>
+                <div class="status-bar">
+                  <span class="bar-label">In Progress</span>
+                  <div class="bar-container">
+                    <div class="bar in-progress"></div>
+                  </div>
+                </div>
+                <div class="status-bar">
+                  <span class="bar-label">Pending</span>
+                  <div class="bar-container">
+                    <div class="bar pending"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Average Delivery Time Card -->
+            <div class="insight-card">
+              <h3>Average Delivery Time</h3>
+              <p class="insight-value">2.5 days</p>
+              <p class="insight-subtitle">Last 30 Days</p>
+              <div class="line-chart">
+                <div class="chart-labels">
+                  <span>Week 1</span>
+                  <span>Week 2</span>
+                  <span>Week 3</span>
+                  <span>Week 4</span>
+                </div>
+                <div class="chart-line">
+                  <div class="line-segment"></div>
+                  <div class="line-segment"></div>
+                  <div class="line-segment"></div>
+                  <div class="line-segment"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Dashboard Content -->
-    <div class="dashboard-content">
-      
-      <!-- Summary Cards -->
-      <div class="summary-cards">
-        <div class="summary-card">
-          <h3>Total parcels</h3>
-          <p class="card-value">1200</p>
-        </div>
-        <div class="summary-card">
-          <h3>Deliveries in Progress</h3>
-          <p class="card-value">30</p>
-        </div>
-        <div class="summary-card">
-          <h3>Revenue</h3>
-          <p class="card-value">KSH 57,544.00</p>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="quick-actions">
-        <h2>Quick Actions</h2>
-        <div class="action-buttons">
-          <button routerLink="/admin-create-delivery" class="action-btn primary">
-            <i class="fas fa-plus"></i>
-            <span>Create Delivery</span>
-          </button>
-          <button routerLink="/admin-manage-parcels" class="action-btn primary">
-            <i class="fas fa-box"></i>
-            <span>Manage Parcels</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Performance Insights -->
-      <div class="performance-insights">
-        <h2>Performance Insights</h2>
-        <div class="insights-grid">
-          <!-- Delivery Status Card -->
-          <div class="insight-card">
-            <h3>Delivery Status</h3>
-            <p class="insight-value">120</p>
-            <p class="insight-subtitle">Last 30 Days</p>
-            <div class="status-bars">
-              <div class="status-bar">
-                <span class="bar-label">Delivered</span>
-                <div class="bar-container">
-                  <div class="bar delivered"></div>
-                </div>
-              </div>
-              <div class="status-bar">
-                <span class="bar-label">In Progress</span>
-                <div class="bar-container">
-                  <div class="bar in-progress"></div>
-                </div>
-              </div>
-              <div class="status-bar">
-                <span class="bar-label">Pending</span>
-                <div class="bar-container">
-                  <div class="bar pending"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Average Delivery Time Card -->
-          <div class="insight-card">
-            <h3>Average Delivery Time</h3>
-            <p class="insight-value">2.5 days</p>
-            <p class="insight-subtitle">Last 30 Days</p>
-            <div class="line-chart">
-              <div class="chart-labels">
-                <span>Week 1</span>
-                <span>Week 2</span>
-                <span>Week 3</span>
-                <span>Week 4</span>
-              </div>
-              <div class="chart-line">
-                <div class="line-segment"></div>
-                <div class="line-segment"></div>
-                <div class="line-segment"></div>
-                <div class="line-segment"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <!-- Access Denied for Non-Admin Users -->
+    <div *ngIf="userRole !== 'ADMIN'" class="access-denied">
+      <div class="access-denied-content">
+        <i class="fas fa-lock access-denied-icon"></i>
+        <h2>Access Denied</h2>
+        <p>You don't have permission to access the Admin Dashboard.</p>
+        <p>Please contact your administrator if you believe this is an error.</p>
+        <button routerLink="/user-dashboard" class="btn-primary">
+          <i class="fas fa-home"></i>
+          Go to User Dashboard
+        </button>
       </div>
     </div>
   </main>

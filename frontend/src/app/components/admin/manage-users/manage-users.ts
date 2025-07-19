@@ -24,6 +24,9 @@ interface User {
 export class ManageUsers {
   constructor(private router: Router) {}
   
+  // User role for role-based access control
+  userRole: string = 'ADMIN'; // Default role for admin component, will be set from auth service later
+  
   searchTerm = '';
   selectedStatus = '';
   selectedRole = '';

@@ -1,0 +1,116 @@
+<div class="driver-dashboard">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/driver-dashboard" class="nav-item active" routerLinkActive="active">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/driver-my-parcels" class="nav-item">
+        <i class="fas fa-box"></i>
+        <span>My Parcels</span>
+      </a>
+      <a routerLink="/driver-history" class="nav-item">
+        <i class="fas fa-history"></i>
+        <span>Delivery History</span>
+      </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+      </a>
+    </nav>
+    
+    
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <div class="content-header">
+      <div class="header-left">
+        <h1 class="welcome-title">Welcome back, <span class="highlight">Driver!</span></h1>
+      </div>
+      
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="metrics-section">
+      <h2 class="section-title">Performance Metrics</h2>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-header">
+            <h3>Average Rating</h3>
+            <i class="fas fa-star metric-icon"></i>
+          </div>
+          <div class="metric-value">4.8/5</div>
+          <div class="metric-change positive">
+            <i class="fas fa-arrow-up"></i>
+            <span>+0.2%</span>
+          </div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-header">
+            <h3>Deliveries Completed</h3>
+            <i class="fas fa-check-circle metric-icon"></i>
+          </div>
+          <div class="metric-value">150</div>
+          <div class="metric-change positive">
+            <i class="fas fa-arrow-up"></i>
+            <span>+10%</span>
+          </div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-header">
+            <h3>On-Time Delivery Rate</h3>
+            <i class="fas fa-clock metric-icon"></i>
+          </div>
+          <div class="metric-value">95%</div>
+          <div class="metric-change positive">
+            <i class="fas fa-arrow-up"></i>
+            <span>+5%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Deliveries -->
+    <div class="deliveries-section">
+      <h2 class="section-title">Today's Deliveries</h2>
+      <div class="table-container">
+        <table class="deliveries-table">
+          <thead>
+            <tr>
+              <th>Parcel ID</th>
+              <th>Pickup Address</th>
+              <th>Delivery Address</th>
+              <th>Scheduled Time</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let delivery of todayDeliveries">
+              <td class="parcel-id">{{ delivery.parcelId }}</td>
+              <td class="pickup-address">{{ delivery.pickupAddress }}</td>
+              <td class="delivery-address">{{ delivery.deliveryAddress }}</td>
+              <td class="scheduled-time">{{ delivery.scheduledTime }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(delivery.status)">
+                  {{ delivery.status }}
+                </span>
+              </td>
+              <td>
+                <button class="action-btn" (click)="viewDeliveryDetails(delivery.id)">
+                  <i class="fas fa-eye"></i>
+                  View
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>

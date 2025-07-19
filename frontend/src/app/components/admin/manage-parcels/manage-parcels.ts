@@ -20,6 +20,9 @@ interface Parcel {
   styleUrl: './manage-parcels.css'
 })
 export class ManageParcels implements OnInit {
+  // User role for role-based access control
+  userRole: string = 'ADMIN'; // Default role for admin component, will be set from auth service later
+  
   searchTerm = '';
   selectedStatus = '';
   selectedFilter = '';
