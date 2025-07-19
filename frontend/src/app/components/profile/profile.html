@@ -1,0 +1,356 @@
+<div class="profile-container">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-plus"></i>
+            <span>Create Delivery</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-box"></i>
+            <span>Manage Parcels</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-users"></i>
+            <span>Users</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/profile" routerLinkActive="active" class="nav-link active">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a routerLink="/login" class="logout-link">
+        <i class="fas fa-arrow-left"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="content-header">
+      <h1 class="page-title">Profile</h1>
+    </div>
+
+    <div class="profile-content">
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" *ngIf="isLoading">
+        <div class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Loading...</span>
+        </div>
+      </div>
+
+      <!-- Profile Picture Section -->
+      <div class="profile-section">
+        <div class="profile-picture-section">
+          <div class="profile-picture-container">
+            <img 
+              [src]="imagePreview || userProfile.profileImage || '/images/premium_photo-1681487863055-6e87-removebg-preview.jpg'" 
+              alt="Profile Picture" 
+              class="profile-picture"
+            >
+            <div class="profile-picture-overlay">
+              <label for="profile-image-upload" class="upload-icon">
+                <i class="fas fa-camera"></i>
+              </label>
+              <input 
+                type="file" 
+                id="profile-image-upload" 
+                accept="image/*" 
+                (change)="onImageSelected($event)"
+                style="display: none;"
+              >
+            </div>
+          </div>
+          <div class="profile-info">
+            <h2 class="user-name">{{ userProfile.name }}</h2>
+            <p class="profile-label">Profile Picture</p>
+            <button 
+              class="btn-upload-picture" 
+              (click)="uploadProfileImage()"
+              [disabled]="!selectedImage || isLoading"
+            >
+              <i class="fas fa-upload"></i>
+              Upload New Picture
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Information Section -->
+      <div class="profile-section">
+        <h2 class="section-title">Personal Information</h2>
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfileChanges()" class="profile-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="fullName">Full name</label>
+              <input 
+                type="text" 
+                id="fullName" 
+                formControlName="name"
+                placeholder="Enter your full name"
+                [class.error]="isFieldInvalid(profileForm, 'name')"
+              >
+              <div class="error-message" *ngIf="getFieldError(profileForm, 'name')">
+                {{ getFieldError(profileForm, 'name') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input 
+                type="email" 
+                id="email" 
+                formControlName="email"
+                placeholder="Enter your email address"
+                [class.error]="isFieldInvalid(profileForm, 'email')"
+              >
+              <div class="error-message" *ngIf="getFieldError(profileForm, 'email')">
+                {{ getFieldError(profileForm, 'email') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="phone">Phone number</label>
+              <input 
+                type="tel" 
+                id="phone" 
+                formControlName="phone"
+                placeholder="Enter your phone number"
+                [class.error]="isFieldInvalid(profileForm, 'phone')"
+              >
+              <div class="error-message" *ngIf="getFieldError(profileForm, 'phone')">
+                {{ getFieldError(profileForm, 'phone') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="address">Address</label>
+              <input 
+                type="text" 
+                id="address" 
+                formControlName="address"
+                placeholder="Enter your street address"
+                [class.error]="isFieldInvalid(profileForm, 'address')"
+              >
+              <div class="error-message" *ngIf="getFieldError(profileForm, 'address')">
+                {{ getFieldError(profileForm, 'address') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="city">City</label>
+              <input 
+                type="text" 
+                id="city" 
+                formControlName="city"
+                placeholder="Enter your city"
+                [class.error]="isFieldInvalid(profileForm, 'city')"
+              >
+              <div class="error-message" *ngIf="getFieldError(profileForm, 'city')">
+                {{ getFieldError(profileForm, 'city') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="state">State</label>
+              <input 
+                type="text" 
+                id="state" 
+                formControlName="state"
+                placeholder="Enter your state"
+                [class.error]="isFieldInvalid(profileForm, 'state')"
+              >
+              <div class="error-message" *ngIf="getFieldError(profileForm, 'state')">
+                {{ getFieldError(profileForm, 'state') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="zipCode">Zip code</label>
+              <input 
+                type="text" 
+                id="zipCode" 
+                formControlName="zipCode"
+                placeholder="Enter your zip code"
+                [class.error]="isFieldInvalid(profileForm, 'zipCode')"
+              >
+              <div class="error-message" *ngIf="getFieldError(profileForm, 'zipCode')">
+                {{ getFieldError(profileForm, 'zipCode') }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="btn-save-changes" [disabled]="isLoading || !hasProfileChanges()">
+              <i class="fas fa-save"></i>
+              Save changes
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Change Password Section -->
+      <div class="profile-section">
+        <h2 class="section-title">Change Password</h2>
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="password-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="currentPassword">Current Password</label>
+              <input 
+                type="password" 
+                id="currentPassword" 
+                formControlName="currentPassword"
+                placeholder="Enter current password"
+                [class.error]="isFieldInvalid(passwordForm, 'currentPassword')"
+              >
+              <div class="error-message" *ngIf="getFieldError(passwordForm, 'currentPassword')">
+                {{ getFieldError(passwordForm, 'currentPassword') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="newPassword">New Password</label>
+              <input 
+                type="password" 
+                id="newPassword" 
+                formControlName="newPassword"
+                placeholder="Enter new password"
+                [class.error]="isFieldInvalid(passwordForm, 'newPassword')"
+              >
+              <div class="error-message" *ngIf="getFieldError(passwordForm, 'newPassword')">
+                {{ getFieldError(passwordForm, 'newPassword') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="confirmPassword">Confirm New Password</label>
+              <input 
+                type="password" 
+                id="confirmPassword" 
+                formControlName="confirmPassword"
+                placeholder="Confirm new password"
+                [class.error]="isFieldInvalid(passwordForm, 'confirmPassword')"
+              >
+              <div class="error-message" *ngIf="getFieldError(passwordForm, 'confirmPassword')">
+                {{ getFieldError(passwordForm, 'confirmPassword') }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="btn-save-changes" [disabled]="isLoading || !hasPasswordChanges() || isPasswordFormEmpty()">
+              <i class="fas fa-key"></i>
+              Save changes
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Account Management Section -->
+      <div class="profile-section account-management" *ngIf="userProfile.role !== 'ADMIN'">
+        <h2 class="section-title">Account Management</h2>
+        <div class="account-actions">
+          <div class="action-card">
+            <div class="action-icon">
+              <i class="fas fa-pause-circle"></i>
+            </div>
+            <div class="action-content">
+              <h3>Deactivate Account</h3>
+              <p>Temporarily disable your account. You can reactivate it later by contacting support.</p>
+              <button class="btn-deactivate" (click)="deactivateAccount()" [disabled]="isLoading">
+                <i class="fas fa-pause"></i>
+                Deactivate Account
+              </button>
+            </div>
+          </div>
+          
+          <div class="action-card">
+            <div class="action-icon danger">
+              <i class="fas fa-trash-alt"></i>
+            </div>
+            <div class="action-content">
+              <h3>Delete Account</h3>
+              <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+              <button class="btn-delete" (click)="deleteAccount()" [disabled]="isLoading">
+                <i class="fas fa-trash"></i>
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" *ngIf="showDeleteConfirmation">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Delete Account</h3>
+      <button class="modal-close" (click)="cancelAction()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="warning-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <p>Are you sure you want to permanently delete your account?</p>
+      <p class="warning-text">This action cannot be undone and will permanently remove all your data.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cancelAction()">Cancel</button>
+      <button class="btn-confirm-delete" (click)="confirmDelete()" [disabled]="isLoading">
+        <i class="fas fa-trash"></i>
+        Delete Account
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Deactivate Confirmation Modal -->
+<div class="modal-overlay" *ngIf="showDeactivateConfirmation">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Deactivate Account</h3>
+      <button class="modal-close" (click)="cancelAction()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="warning-icon">
+        <i class="fas fa-pause-circle"></i>
+      </div>
+      <p>Are you sure you want to deactivate your account?</p>
+      <p class="warning-text">You can reactivate your account later by contacting support.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cancelAction()">Cancel</button>
+      <button class="btn-confirm-deactivate" (click)="confirmDeactivate()" [disabled]="isLoading">
+        <i class="fas fa-pause"></i>
+        Deactivate Account
+      </button>
+    </div>
+  </div>
+</div>

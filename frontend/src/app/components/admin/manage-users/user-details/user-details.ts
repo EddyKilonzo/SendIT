@@ -25,12 +25,14 @@ interface User {
 
 interface Parcel {
   id: string;
-  status: 'In Transit' | 'Delivered' | 'Pending Pickup';
-  destination: string;
+  trackingNumber: string;
+  status: 'In Transit' | 'Delivered' | 'Pending Pickup' | 'Cancelled';
   pickupDate: string;
-  date?: string;
-  type: 'Sent' | 'Received';
-  rating?: number;
+  deliveryDate: string;
+  weight: string;
+  price: string;
+  sender: string;
+  receiver: string;
 }
 
 interface Activity {
@@ -117,45 +119,61 @@ export class UserDetails implements OnInit {
   private mockParcels: Parcel[] = [
     {
       id: 'P12345',
+      trackingNumber: 'TRK12345',
       status: 'In Transit',
-      destination: '456 Oak Avenue, Anytown',
       pickupDate: '2024-07-26',
-      type: 'Sent'
+      deliveryDate: '2024-07-28',
+      weight: '2.5 kg',
+      price: 'KSH 2,500',
+      sender: 'John Doe',
+      receiver: 'Jane Smith'
     },
     {
       id: 'P67890',
+      trackingNumber: 'TRK67890',
       status: 'Delivered',
-      destination: '789 Pine Lane, Anytown',
       pickupDate: '2024-07-25',
-      type: 'Sent',
-      rating: 5
+      deliveryDate: '2024-07-27',
+      weight: '1.8 kg',
+      price: 'KSH 1,800',
+      sender: 'Alice Johnson',
+      receiver: 'Bob Wilson'
     },
     {
       id: 'P11223',
+      trackingNumber: 'TRK11223',
       status: 'Pending Pickup',
-      destination: '101 Maple Drive, Anytown',
       pickupDate: '2024-07-27',
-      type: 'Sent'
+      deliveryDate: '2024-07-29',
+      weight: '3.2 kg',
+      price: 'KSH 3,200',
+      sender: 'Charlie Brown',
+      receiver: 'Diana Prince'
     }
   ];
 
   private mockUserParcels: Parcel[] = [
     {
       id: '789012',
+      trackingNumber: 'TRK789012',
       status: 'Delivered',
-      destination: '456 Oak Avenue, Anytown',
       pickupDate: '2024-03-15',
-      date: '2024-03-15',
-      type: 'Sent',
-      rating: 4
+      deliveryDate: '2024-03-17',
+      weight: '1.5 kg',
+      price: 'KSH 1,500',
+      sender: 'Emma Davis',
+      receiver: 'Frank Miller'
     },
     {
       id: '345678',
+      trackingNumber: 'TRK345678',
       status: 'In Transit',
-      destination: '789 Pine Lane, Anytown',
       pickupDate: '2024-03-10',
-      date: '2024-03-10',
-      type: 'Received'
+      deliveryDate: '2024-03-12',
+      weight: '2.8 kg',
+      price: 'KSH 2,800',
+      sender: 'Grace Lee',
+      receiver: 'Henry Taylor'
     }
   ];
 

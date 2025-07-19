@@ -1,0 +1,166 @@
+<div class="user-parcels">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/user-dashboard" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+      </a>
+      <a routerLink="/user-parcels" class="nav-item active" routerLinkActive="active">
+        <i class="fas fa-box"></i>
+        <span>My Parcels</span>
+      </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header Section -->
+    <div class="header-section">
+      <h1 class="page-title">My Parcels</h1>
+      
+      <!-- Tabs -->
+      <div class="tabs">
+        <button 
+          class="tab-button" 
+          [class.active]="activeTab === 'sent'"
+          (click)="switchTab('sent')"
+        >
+          Sent
+        </button>
+        <button 
+          class="tab-button" 
+          [class.active]="activeTab === 'received'"
+          (click)="switchTab('received')"
+        >
+          Received
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-section">
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="card-icon">
+            <i class="fas fa-paper-plane"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">Total Parcels {{ activeTab === 'sent' ? 'Sent' : 'Received' }}</h3>
+            <p class="card-value">{{ totalParcelsSent }}</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">
+            <i class="fas fa-calendar"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">Most Recent {{ activeTab === 'sent' ? 'Shipment' : 'Delivery' }}</h3>
+            <p class="card-value">{{ mostRecentShipment }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="filters-section">
+      <div class="filters-container">
+        <div class="filter-group">
+          <label for="status-filter">Status</label>
+          <select 
+            id="status-filter" 
+            class="filter-select"
+            [(ngModel)]="statusFilter"
+          >
+            <option *ngFor="let option of statusOptions" [value]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="search-group">
+          <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Search"
+              [(ngModel)]="searchQuery"
+            >
+          </div>
+        </div>
+        
+        <div class="clear-filters-group">
+          <button 
+            class="clear-filters-btn"
+            (click)="clearFilters()"
+            [disabled]="!statusFilter && !searchQuery"
+          >
+            <i class="fas fa-times"></i>
+            Clear Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parcels Table -->
+    <div class="table-section">
+      <div class="table-container">
+        <table class="parcels-table">
+          <thead>
+            <tr>
+              <th>Parcel ID</th>
+              <th>Weight</th>
+              <th>Status</th>
+              <th>Pickup Address</th>
+              <th>Delivery Address</th>
+              <th>Expected Delivery</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              *ngFor="let parcel of getFilteredParcels()"
+              class="parcel-row"
+              (click)="viewParcelDetails(parcel.id)"
+            >
+              <td class="parcel-id">{{ parcel.id }}</td>
+              <td class="parcel-weight">{{ parcel.weight }}kg</td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
+                  {{ parcel.status }}
+                </span>
+              </td>
+              <td class="address">{{ parcel.pickupAddress }}</td>
+              <td class="address">{{ parcel.deliveryAddress }}</td>
+              <td class="delivery-date">{{ parcel.expectedDelivery }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Notifications Section -->
+    <div class="notifications-section">
+      <h2 class="section-title">Notifications</h2>
+      <div class="notifications-list">
+        <div 
+          class="notification-item" 
+          *ngFor="let notification of notifications"
+          [ngClass]="getNotificationClass(notification)"
+        >
+          <div class="notification-icon">
+            <i [class]="getNotificationIcon(notification)"></i>
+          </div>
+          <div class="notification-content">
+            <p class="notification-message">{{ notification.message }}</p>
+            <span class="notification-date">{{ notification.date }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div> 

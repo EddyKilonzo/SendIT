@@ -1,0 +1,158 @@
+<div class="user-dashboard">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/user-dashboard" class="nav-item active" routerLinkActive="active">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+      </a>
+      <a routerLink="/user-parcels" class="nav-item">
+        <i class="fas fa-box"></i>
+        <span>My Parcels</span>
+      </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="welcome-message">
+        <h1>Welcome back, <span class="user-name">{{ userName }}!</span></h1>
+        <p class="info-text">
+          You have {{ parcelsInTransit }} parcels in transit and {{ scheduledForTomorrow }} scheduled for delivery tomorrow. 
+          Keep track of your shipments below.
+        </p>
+      </div>
+    </div>
+
+    <!-- Recent Activity Section -->
+    <div class="dashboard-section">
+      <h2 class="section-title">Recent Activity</h2>
+      <div class="activity-list">
+        <div class="activity-item" *ngFor="let activity of recentActivities">
+          <div class="activity-icon">
+            <i [class]="getActivityIcon(activity)"></i>
+          </div>
+          <div class="activity-content">
+            <div class="activity-header">
+              <span class="parcel-id">{{ activity.parcelId }}</span>
+              <span class="activity-status" [ngClass]="getStatusClass(activity.status)">
+                {{ activity.status }}
+              </span>
+            </div>
+            <p class="activity-text">{{ getActivityText(activity) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="dashboard-section">
+      <div class="summary-cards">
+        <div class="summary-card" *ngFor="let card of summaryCards">
+          <div class="card-icon">
+            <i [class]="card.icon"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">{{ card.title }}</h3>
+            <p class="card-value">{{ card.value }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Parcels Section -->
+    <div class="dashboard-section">
+      <div class="parcels-header">
+        <h2 class="section-title">Recent Parcels</h2>
+        <div class="tabs">
+          <button 
+            class="tab-button" 
+            [class.active]="activeTab === 'sent'"
+            (click)="switchTab('sent')"
+          >
+            Sent
+          </button>
+          <button 
+            class="tab-button" 
+            [class.active]="activeTab === 'received'"
+            (click)="switchTab('received')"
+          >
+            Received
+          </button>
+        </div>
+      </div>
+
+      <div class="parcels-table-container">
+        <table class="parcels-table">
+          <thead>
+            <tr>
+              <th>Parcel ID</th>
+              <th>Weight</th>
+              <th>Status</th>
+              <th>Pickup Address</th>
+              <th>Delivery Address</th>
+              <th>Expected Delivery</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let parcel of getRecentParcels()">
+              <td class="parcel-id">{{ parcel.id }}</td>
+              <td class="parcel-weight">{{ parcel.weight }}kg</td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
+                  {{ parcel.status }}
+                </span>
+              </td>
+              <td class="address">{{ parcel.pickupAddress }}</td>
+              <td class="address">{{ parcel.deliveryAddress }}</td>
+              <td class="delivery-date">{{ parcel.expectedDelivery }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="dashboard-section">
+      <div class="stats-container">
+        <div class="stats-header">
+          <h2 class="section-title">Parcels Over Time</h2>
+        </div>
+        <div class="stats-content">
+          <div class="stats-summary">
+            <div class="stats-number">{{ totalParcels }}</div>
+            <div class="stats-growth">
+              Last 6 Months <span class="growth-indicator">+{{ growthPercentage }}%</span>
+            </div>
+          </div>
+          <div class="stats-chart">
+            <div class="chart-container">
+              <div class="chart-line">
+                <div class="line-segment" style="height: 40%"></div>
+                <div class="line-segment" style="height: 60%"></div>
+                <div class="line-segment" style="height: 50%"></div>
+                <div class="line-segment" style="height: 80%"></div>
+                <div class="line-segment" style="height: 70%"></div>
+                <div class="line-segment" style="height: 90%"></div>
+              </div>
+              <div class="chart-labels">
+                <span>Jul</span>
+                <span>Aug</span>
+                <span>Sep</span>
+                <span>Oct</span>
+                <span>Nov</span>
+                <span>Dec</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div> 

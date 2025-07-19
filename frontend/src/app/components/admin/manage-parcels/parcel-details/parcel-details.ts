@@ -6,7 +6,7 @@ import { RouterModule, ActivatedRoute } from '@angular/router';
 interface ParcelDetailsData {
   id: string;
   trackingNumber: string;
-  status: 'Pending' | 'In Transit' | 'Delivered';
+  status: 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled';
   pickupDate: string;
   deliveryDate: string;
   weight: string;
@@ -94,7 +94,7 @@ export class ParcelDetails implements OnInit {
       this.parcel = {
         id: foundParcel.id,
         trackingNumber: foundParcel.id.replace('#', ''),
-        status: foundParcel.status as 'Pending' | 'In Transit' | 'Delivered',
+        status: foundParcel.status as 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled',
         pickupDate: this.getPickupDate(foundParcel.expectedDelivery),
         deliveryDate: foundParcel.expectedDelivery,
         weight: weight,
@@ -372,6 +372,7 @@ export class ParcelDetails implements OnInit {
       case 'Pending': return 'status-pending';
       case 'In Transit': return 'status-transit';
       case 'Delivered': return 'status-delivered';
+      case 'Cancelled': return 'status-cancelled';
       default: return '';
     }
   }

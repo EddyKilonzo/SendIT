@@ -20,6 +20,10 @@
         <i class="fas fa-users"></i>
         <span>Manage Users</span>
       </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+      </a>
     </nav>
     
     <div class="sidebar-footer">
@@ -68,13 +72,13 @@
           <option value="Pending">Pending</option>
           <option value="In Transit">In Transit</option>
           <option value="Delivered">Delivered</option>
+          <option value="Cancelled">Cancelled</option>
         </select>
         
-        <select class="filter-select">
-          <option value="">Sender/Receiver</option>
-          <option value="sender">Sender</option>
-          <option value="receiver">Receiver</option>
-        </select>
+        <button class="btn-clear-filters" (click)="clearFilters()">
+          <i class="fas fa-times"></i>
+          Clear Filters
+        </button>
       </div>
     </div>
 

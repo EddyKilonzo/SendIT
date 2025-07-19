@@ -28,6 +28,12 @@
             <span>Manage Users</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
       </ul>
     </nav>
     
@@ -257,6 +263,18 @@
               <span class="price-label">Total Price:</span>
               <span class="price-value total-price">{{ getFormattedTotalPrice() }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Cross-field Validation Warnings -->
+        <div class="validation-warnings" *ngIf="deliveryForm.errors">
+          <div class="warning-message" *ngIf="deliveryForm.errors['senderRecipientEmailMatch']">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ deliveryForm.errors['senderRecipientEmailMatch'].message }}
+          </div>
+          <div class="warning-message" *ngIf="deliveryForm.errors['senderRecipientContactMatch']">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ deliveryForm.errors['senderRecipientContactMatch'].message }}
           </div>
         </div>
 

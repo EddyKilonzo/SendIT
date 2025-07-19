@@ -389,6 +389,18 @@
   color: #dc2626;
 }
 
+.status-delivered {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-cancelled {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
 /* Parcel Links */
 .parcel-link {
   color: #DBBB02;

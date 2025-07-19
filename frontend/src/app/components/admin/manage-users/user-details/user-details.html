@@ -15,9 +15,13 @@
         <i class="fas fa-box"></i>
         <span>Manage Parcels</span>
       </a>
-      <a routerLink="/admin-manage-users" class="nav-item active" routerLinkActive="active">
+      <a routerLink="/admin-manage-users" class="nav-item">
         <i class="fas fa-users"></i>
         <span>Manage Users</span>
+      </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
       </a>
     </nav>
     <div class="sidebar-footer">
@@ -84,8 +88,8 @@
             </button>
             <button 
               class="tab-button" 
-              [class.active]="activeTab === 'assigned-parcels'"
-              (click)="setActiveTab('assigned-parcels')"
+              [class.active]="activeTab === 'parcels'"
+              (click)="setActiveTab('parcels')"
               *ngIf="user.role === 'Driver'">
               Assigned Parcels
             </button>
@@ -223,7 +227,7 @@
         </div>
 
         <!-- Assigned Parcels Tab (Drivers Only) -->
-        <div class="tab-panel" *ngIf="activeTab === 'assigned-parcels' && user.role === 'Driver'">
+        <div class="tab-panel" *ngIf="activeTab === 'parcels' && user.role === 'Driver'">
           <div class="parcels-content">
             <h2 class="section-title">Assigned Parcels</h2>
             <div class="parcels-table-container" *ngIf="assignedParcels.length > 0">
@@ -231,10 +235,14 @@
                 <thead>
                   <tr>
                     <th>Parcel ID</th>
+                    <th>Tracking #</th>
                     <th>Status</th>
-                    <th>Destination</th>
+                    <th>Sender</th>
+                    <th>Receiver</th>
                     <th>Pickup Date</th>
-                    <th>Rating</th>
+                    <th>Delivery Date</th>
+                    <th>Weight</th>
+                    <th>Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -244,21 +252,18 @@
                         {{ parcel.id }}
                       </a>
                     </td>
+                    <td>{{ parcel.trackingNumber }}</td>
                     <td>
                       <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
                         {{ parcel.status }}
                       </span>
                     </td>
-                    <td>{{ parcel.destination }}</td>
+                    <td>{{ parcel.sender }}</td>
+                    <td>{{ parcel.receiver }}</td>
                     <td>{{ parcel.pickupDate }}</td>
-                    <td>
-                      <span class="rating-stars" *ngIf="parcel.rating">
-                        {{ getRatingStars(parcel.rating) }}
-                      </span>
-                      <span class="no-rating" *ngIf="!parcel.rating">
-                        {{ getRatingStars(parcel.rating) }}
-                      </span>
-                    </td>
+                    <td>{{ parcel.deliveryDate }}</td>
+                    <td>{{ parcel.weight }}</td>
+                    <td>{{ parcel.price }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -282,11 +287,14 @@
                 <thead>
                   <tr>
                     <th>Parcel ID</th>
-                    <th>Type</th>
+                    <th>Tracking #</th>
                     <th>Status</th>
-                    <th>Destination</th>
-                    <th>Date</th>
-                    <th>Rating</th>
+                    <th>Sender</th>
+                    <th>Receiver</th>
+                    <th>Pickup Date</th>
+                    <th>Delivery Date</th>
+                    <th>Weight</th>
+                    <th>Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -296,26 +304,18 @@
                         {{ parcel.id }}
                       </a>
                     </td>
-                    <td>
-                      <span class="type-badge" [ngClass]="parcel.type.toLowerCase()">
-                        {{ parcel.type }}
-                      </span>
-                    </td>
+                    <td>{{ parcel.trackingNumber }}</td>
                     <td>
                       <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
                         {{ parcel.status }}
                       </span>
                     </td>
-                    <td>{{ parcel.destination }}</td>
-                    <td>{{ parcel.date }}</td>
-                    <td>
-                      <span class="rating-stars" *ngIf="parcel.rating">
-                        {{ getRatingStars(parcel.rating) }}
-                      </span>
-                      <span class="no-rating" *ngIf="!parcel.rating">
-                        {{ getRatingStars(parcel.rating) }}
-                      </span>
-                    </td>
+                    <td>{{ parcel.sender }}</td>
+                    <td>{{ parcel.receiver }}</td>
+                    <td>{{ parcel.pickupDate }}</td>
+                    <td>{{ parcel.deliveryDate }}</td>
+                    <td>{{ parcel.weight }}</td>
+                    <td>{{ parcel.price }}</td>
                   </tr>
                 </tbody>
               </table>

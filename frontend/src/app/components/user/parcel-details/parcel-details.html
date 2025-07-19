@@ -1,0 +1,293 @@
+<div class="parcel-details" *ngIf="parcel">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/user-dashboard" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+      </a>
+      <a routerLink="/user-parcels" class="nav-item active" routerLinkActive="active">
+        <i class="fas fa-box"></i>
+        <span>My Parcels</span>
+      </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="breadcrumbs">
+        <span>Parcels / Parcel Details</span>
+      </div>
+      <div class="header-content">
+        <h1 class="page-title">Parcel {{ parcel.id }}</h1>
+        <div class="parcel-status">
+          <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
+            {{ parcel.status }}
+          </span>
+        </div>
+      </div>
+      <button class="back-button" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i>
+        Back to Parcels
+      </button>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      <!-- Left Column - Parcel Info & Map -->
+      <div class="left-column">
+        <!-- Parcel Information -->
+        <div class="parcel-info-section">
+          <h2 class="section-title">Parcel Information</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Tracking Number</label>
+              <span>{{ parcel.trackingNumber }}</span>
+            </div>
+            <div class="info-item">
+              <label>Weight</label>
+              <span>{{ parcel.weight }} kg</span>
+            </div>
+            <div class="info-item">
+              <label>Pickup Date</label>
+              <span>{{ parcel.scheduledPickup || 'TBD' }}</span>
+            </div>
+            <div class="info-item">
+              <label>Expected Delivery</label>
+              <span>{{ parcel.expectedDelivery }}</span>
+            </div>
+            <div class="info-item">
+              <label>Description</label>
+              <span>{{ parcel.description }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sender Information -->
+        <div class="sender-section">
+          <h2 class="section-title">Sender Information</h2>
+          <div class="contact-info">
+            <div class="info-item">
+              <label>Name</label>
+              <span>{{ parcel.senderName }}</span>
+            </div>
+            <div class="info-item">
+              <label>Address</label>
+              <span>{{ parcel.pickupAddress }}</span>
+            </div>
+            <div class="info-item">
+              <label>Contact Number</label>
+              <span>+1-555-123-4567</span>
+            </div>
+            <div class="info-item">
+              <label>Email</label>
+              <span>{{ (parcel.senderName || 'sender').toLowerCase().replace(' ', '.') }}&#64;email.com</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Receiver Information -->
+        <div class="receiver-section">
+          <h2 class="section-title">Receiver Information</h2>
+          <div class="contact-info">
+            <div class="info-item">
+              <label>Name</label>
+              <span>{{ parcel.receiverName }}</span>
+            </div>
+            <div class="info-item">
+              <label>Address</label>
+              <span>{{ parcel.deliveryAddress }}</span>
+            </div>
+            <div class="info-item">
+              <label>Contact Number</label>
+              <span>+1-555-987-6543</span>
+            </div>
+            <div class="info-item">
+              <label>Email</label>
+              <span>{{ (parcel.receiverName || 'receiver').toLowerCase().replace(' ', '.') }}&#64;email.com</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tracking Map Section -->
+        <div class="tracking-section">
+          <h2 class="section-title">Parcel Location</h2>
+          <div class="map-container">
+            <img 
+              src="images/tracking-map.jpg" 
+              alt="Tracking Map" 
+              class="tracking-map"
+            >
+            <div class="tracking-overlay">
+              <div class="tracking-info">
+                <div class="current-location">
+                  <h3>Current Location</h3>
+                  <p>{{ parcel.currentLocation }}</p>
+                </div>
+                <div class="estimated-time">
+                  <h3>Estimated Delivery</h3>
+                  <p>{{ parcel.estimatedTime }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column - Timeline & Reviews -->
+      <div class="right-column">
+        <!-- Tracking Timeline -->
+        <div class="timeline-section">
+          <h2 class="section-title">Order History</h2>
+          <div class="timeline">
+            <div 
+              class="timeline-item" 
+              *ngFor="let event of trackingEvents; let i = index"
+              [ngClass]="getTrackingEventClass(event)"
+            >
+              <div class="timeline-icon">
+                <i [class]="event.icon"></i>
+              </div>
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <h3>{{ event.status }}</h3>
+                  <span class="timeline-time">{{ event.timestamp }}</span>
+                </div>
+                <p class="timeline-location">{{ event.location }}</p>
+                <p class="timeline-description">{{ event.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review Section - Only for Delivered Parcels -->
+        <div class="review-section" *ngIf="parcel.status === 'Delivered'">
+          <div class="review-header">
+            <h2 class="section-title">Leave a Review</h2>
+            <button 
+              class="add-review-btn" 
+              (click)="openReviewModal()"
+              *ngIf="!hasUserReviewed"
+            >
+              <i class="fas fa-plus"></i>
+              Add Review
+            </button>
+          </div>
+
+          <!-- User's Review Display -->
+          <div class="user-review" *ngIf="hasUserReviewed && userReview">
+            <div class="user-review-header">
+              <h3>Your Review</h3>
+              <button 
+                class="edit-review-btn" 
+                (click)="openEditReviewModal()"
+              >
+                <i class="fas fa-edit"></i>
+                Edit Review
+              </button>
+            </div>
+            <div class="review-item">
+              <div class="review-header">
+                <div class="reviewer-info">
+                  <span class="reviewer-name">{{ userReview.userName }}</span>
+                  <span class="review-date">{{ userReview.date }}</span>
+                </div>
+                <div class="review-rating">
+                  <i 
+                    *ngFor="let star of [1,2,3,4,5]; let i = index"
+                    [class]="getStarClass(userReview.rating, i + 1)"
+                    class="star"
+                  ></i>
+                </div>
+              </div>
+              <p class="review-comment">{{ userReview.comment }}</p>
+            </div>
+          </div>
+
+          <!-- No Review Message -->
+          <div class="no-review" *ngIf="!hasUserReviewed">
+            <i class="fas fa-comment-alt"></i>
+            <p>Share your experience </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-overlay" *ngIf="showReviewModal" (click)="closeReviewModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ isEditingReview ? 'Edit Review' : 'Write a Review' }}</h2>
+      <button class="modal-close" (click)="closeReviewModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="rating-section">
+        <label class="rating-label">Rate your experience:</label>
+        <div class="stars-container">
+          <i 
+            *ngFor="let star of [1,2,3,4,5]; let i = index"
+            [class]="getStarClass(reviewRating, i + 1)"
+            (click)="reviewRating = i + 1"
+            class="modal-star"
+          ></i>
+        </div>
+        <span class="rating-text">{{ reviewRating }} out of 5 stars</span>
+      </div>
+      
+      <div class="comment-section">
+        <label class="comment-label" for="modal-review-comment">Share your experience:</label>
+        <textarea 
+          id="modal-review-comment"
+          [(ngModel)]="reviewComment"
+          placeholder="Tell us about your delivery experience..."
+          rows="5"
+          class="modal-textarea"
+        ></textarea>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <button 
+          class="modal-btn modal-btn-danger" 
+          (click)="deleteReview()"
+          *ngIf="isEditingReview"
+        >
+          <i class="fas fa-trash"></i>
+          Delete Review
+        </button>
+      </div>
+      <div class="modal-footer-right">
+        <button class="modal-btn modal-btn-secondary" (click)="closeReviewModal()">
+          Cancel
+        </button>
+        <button 
+          class="modal-btn modal-btn-primary" 
+          (click)="isEditingReview ? updateReview() : submitReview()"
+          [disabled]="!reviewRating || !reviewComment.trim()"
+        >
+          {{ isEditingReview ? 'Update Review' : 'Submit Review' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading State -->
+<div class="loading-state" *ngIf="!parcel">
+  <div class="loading-spinner">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading parcel details...</p>
+  </div>
+</div> 
