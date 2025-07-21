@@ -691,7 +691,6 @@ export class CreateDelivery implements OnInit {
   switchTab(tab: string) {
     this.activeTab = tab;
     
-    // If switching to tracking tab, ensure map is properly updated
     if (tab === 'tracking') {
       setTimeout(() => {
         this.updateMapMarkers();
@@ -702,7 +701,6 @@ export class CreateDelivery implements OnInit {
     }
   }
 
-  // Mobile menu methods
   checkMobileView(): void {
     this.isMobileView = window.innerWidth <= 768;
   }
