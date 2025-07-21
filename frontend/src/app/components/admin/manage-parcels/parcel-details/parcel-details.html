@@ -57,7 +57,7 @@
       </div>
 
       <!-- Order Information -->
-      <div class="section">
+      <div class="section" style="animation-delay: 0.1s;">
         <h2 class="section-title">Order Information</h2>
         <div class="info-grid">
           <div class="info-item">
@@ -94,7 +94,7 @@
       </div>
 
       <!-- Sender Information -->
-      <div class="section">
+      <div class="section" style="animation-delay: 0.2s;">
         <h2 class="section-title">Sender Information</h2>
         <div class="contact-info">
           <div class="info-item">
@@ -117,7 +117,7 @@
       </div>
 
       <!-- Receiver Information -->
-      <div class="section">
+      <div class="section" style="animation-delay: 0.3s;">
         <h2 class="section-title">Receiver Information</h2>
         <div class="contact-info">
           <div class="info-item">
@@ -140,7 +140,7 @@
       </div>
 
       <!-- Driver Information -->
-      <div class="section" *ngIf="parcel.driver">
+      <div class="section" *ngIf="parcel.driver" style="animation-delay: 0.4s;">
         <h2 class="section-title">Assigned Driver</h2>
         <div class="driver-info">
           <div class="driver-header">
@@ -174,7 +174,7 @@
       </div>
 
       <!-- No Driver Assigned -->
-      <div class="section" *ngIf="!parcel.driver">
+      <div class="section" *ngIf="!parcel.driver" style="animation-delay: 0.4s;">
         <h2 class="section-title">Driver Assignment</h2>
         <div class="no-driver">
           <div class="no-driver-icon">
@@ -192,7 +192,7 @@
       </div>
 
       <!-- Order History -->
-      <div class="section">
+      <div class="section" style="animation-delay: 0.5s;">
         <h2 class="section-title">Order History</h2>
         <div class="history-list">
           <div *ngFor="let item of parcel.orderHistory" class="history-item">
@@ -208,15 +208,21 @@
       </div>
 
       <!-- Parcel Location (Map) -->
-      <div class="section">
+      <div class="section" style="animation-delay: 0.6s;">
         <h2 class="section-title">Parcel Location</h2>
         <div class="map-container">
-          <img src="/images/tracking-map.jpg" alt="Tracking Map" class="tracking-map">
+                          <!-- Map will be loaded here dynamically -->
+                <div id="tracking-map" class="tracking-map-placeholder">
+                  <div class="map-loading">
+                    <i class="fas fa-map"></i>
+                    <p>Loading map...</p>
+                  </div>
+                </div>
         </div>
       </div>
 
       <!-- Activity Log -->
-      <div class="section">
+      <div class="section" style="animation-delay: 0.7s;">
         <h2 class="section-title">Activity Log</h2>
         <div class="activity-list">
           <div *ngFor="let activity of parcel.activityLog" class="activity-item">

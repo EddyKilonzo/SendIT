@@ -9,10 +9,7 @@
         <i class="fas fa-home"></i>
         <span>Dashboard</span>
       </a>
-      <a routerLink="/profile" class="nav-item">
-        <i class="fas fa-user"></i>
-        <span>Profile</span>
-      </a>
+      
       
       <!-- Admin-Only Navigation Items -->
       <a routerLink="/admin-create-delivery" class="nav-item admin-nav" *ngIf="userRole === 'ADMIN'">
@@ -26,6 +23,10 @@
       <a routerLink="/admin-manage-users" class="nav-item admin-nav" *ngIf="userRole === 'ADMIN'">
         <i class="fas fa-users"></i>
         <span>Manage Users</span>
+      </a>
+      <a routerLink="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
       </a>
     </nav>
     
@@ -47,28 +48,21 @@
       </button>
     </div>
 
-    <!-- Search Bar -->
-    <div class="search-section">
-      <div class="search-bar">
-        <i class="fas fa-search search-icon"></i>
-        <input 
-          type="text" 
-          placeholder="Search by Parcel ID, Sender, Receiver"
-          [(ngModel)]="searchTerm"
-          class="search-input"
-        >
-      </div>
-    </div>
 
-    <!-- Filter & Sort Section -->
+
+    <!-- Filter Section -->
     <div class="filter-section">
-      <h3>Filter & Sort</h3>
+      <h3>Search & Filter</h3>
       <div class="filter-controls">
-        <select [(ngModel)]="selectedFilter" class="filter-select">
-          <option value="">Parcel ID</option>
-          <option value="sender">Sender</option>
-          <option value="receiver">Receiver</option>
-        </select>
+        <div class="search-bar">
+          <i class="fas fa-search search-icon"></i>
+          <input 
+            type="text" 
+            placeholder="Search by Parcel ID, Sender, Receiver"
+            [(ngModel)]="searchTerm"
+            class="search-input"
+          >
+        </div>
         
         <select [(ngModel)]="selectedStatus" class="filter-select">
           <option value="">Status</option>
@@ -110,7 +104,7 @@
               <div class="no-data">No parcels found</div>
             </td>
           </tr>
-          <tr *ngFor="let parcel of filteredParcels">
+          <tr *ngFor="let parcel of paginatedParcels">
             <td>{{ parcel.id }}</td>
             <td>{{ parcel.sender }}</td>
             <td>{{ parcel.receiver }}</td>
@@ -133,6 +127,43 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container" *ngIf="!loading && filteredParcels.length > 0">
+      <div class="pagination-info">
+        <span>Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ endIndex }} of {{ filteredParcels.length }} parcels</span>
+      </div>
+      <div class="pagination-controls">
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === 1"
+          (click)="goToPreviousPage()"
+        >
+          <i class="fas fa-chevron-left"></i>
+          Previous
+        </button>
+        
+        <div class="page-numbers">
+          <button 
+            *ngFor="let page of pageNumbers"
+            class="page-number"
+            [class.active]="page === currentPage"
+            (click)="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === totalPages"
+          (click)="goToNextPage()"
+        >
+          Next
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
     </div>
   </div>
 </div>

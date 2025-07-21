@@ -34,7 +34,7 @@
   padding: 12px 20px;
   color: #6c757d;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 0 25px 25px 0;
   margin-right: 15px;
   margin-bottom: 5px;
@@ -128,7 +128,7 @@
   border-radius: 8px;
   font-size: 16px;
   background-color: white;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search-input:focus {
@@ -151,7 +151,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 14px;
 }
 
@@ -176,7 +176,7 @@
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
@@ -187,7 +187,7 @@
 }
 
 .filter-btn i {
-  transition: transform 0.3s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .filter-btn i.rotated {
@@ -210,7 +210,7 @@
 .filter-option {
   padding: 12px 20px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-bottom: 1px solid #f8f9fa;
 }
 
@@ -237,7 +237,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -296,7 +296,7 @@
 
 .history-table tbody tr {
   border-bottom: 1px solid #f8f9fa;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .history-table tbody tr.clickable {
@@ -431,7 +431,7 @@
   color: #495057;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 14px;
   font-weight: 500;
 }

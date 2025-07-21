@@ -34,7 +34,7 @@
   padding: 12px 20px;
   color: #6c757d;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 0 25px 25px 0;
   margin-right: 15px;
   margin-bottom: 5px;
@@ -126,7 +126,7 @@
   border-radius: 8px;
   font-size: 16px;
   background-color: white;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search-input:focus {
@@ -149,7 +149,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 14px;
 }
 
@@ -174,7 +174,7 @@
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .filter-btn:hover {
@@ -184,7 +184,7 @@
 }
 
 .filter-btn i {
-  transition: transform 0.3s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .filter-btn i.rotated {
@@ -207,7 +207,7 @@
 .filter-option {
   padding: 12px 20px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-bottom: 1px solid #f8f9fa;
 }
 
@@ -226,7 +226,7 @@
 }
 
 .clear-filters-btn {
-  background-color: #6c757d;
+  background-color: #DBBB02;
   color: white;
   border: none;
   padding: 12px 16px;
@@ -234,14 +234,14 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
 .clear-filters-btn:hover {
-  background-color: #5a6268;
+  background-color: #c4a602;
   transform: translateY(-1px);
 }
 
@@ -262,21 +262,22 @@
   background-color: white;
   border-radius: 12px;
   padding: 25px;
-  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid #e9ecef;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex: 0 0 calc(33.333% - 14px);
   max-width: calc(33.333% - 14px);
 }
 
 .parcel-card:hover {
-  transform: translateY(-2px);
-  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .parcel-card.highlighted {
   border-color: #DBBB02;
-  box-shadow: 0 0 0 3px rgba(219, 187, 2, 0.1);
+  box-shadow: 0 0 0 3px rgba(219, 187, 2, 0.1), 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .parcel-header {
@@ -383,7 +384,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -401,7 +402,7 @@
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -440,7 +441,7 @@
   background-color: white;
   padding: 40px;
   border-radius: 12px;
-  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid #e9ecef;
   max-width: 400px;
   width: 100%;
@@ -475,7 +476,7 @@
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -483,7 +484,7 @@
 
 .clear-filters-btn:hover {
   background-color: #c4a602;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 /* Responsive Design */

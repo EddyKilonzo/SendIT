@@ -11,12 +11,7 @@
             <span>Dashboard</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-          </a>
-        </li>
+        
         
         <!-- Admin-Only Navigation Items -->
         <li class="nav-item" *ngIf="userRole === 'ADMIN'">
@@ -37,6 +32,12 @@
             <span>Manage Users</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
       </ul>
     </nav>
     
@@ -48,14 +49,88 @@
     </div>
   </aside>
 
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-menu-overlay" *ngIf="isMobileView && showMobileMenu" (click)="closeMobileMenu()">
+    <div class="mobile-menu-content" (click)="$event.stopPropagation()">
+      <div class="mobile-menu-header">
+        <h3>Navigation</h3>
+        <button class="mobile-menu-close" (click)="closeMobileMenu()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <nav class="mobile-nav">
+        <ul class="mobile-nav-menu">
+          <li class="mobile-nav-item">
+            <a routerLink="/admin-dashboard" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-home"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
+            <a routerLink="/admin-create-delivery" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-plus"></i>
+              <span>Create Delivery</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
+            <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-box"></i>
+              <span>Manage Parcels</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
+            <a routerLink="/admin-manage-users" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-users"></i>
+              <span>Manage Users</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item">
+            <a routerLink="/profile" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-user"></i>
+              <span>Profile</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item">
+            <a routerLink="/login" class="mobile-nav-link logout-link" (click)="closeMobileMenu()">
+              <i class="fas fa-arrow-left"></i>
+              <span>Logout</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
   <!-- Main Content -->
   <main class="main-content">
     <div class="content-header">
       <h1 class="page-title">Create Delivery</h1>
+      <!-- Mobile Menu Toggle -->
+      <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" *ngIf="isMobileView">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button class="tab-button" [class.active]="activeTab === 'delivery'" (click)="switchTab('delivery')">
+        <i class="fas fa-user"></i>
+        Sender & Recipient
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 'tracking'" (click)="switchTab('tracking')">
+        <i class="fas fa-map-marker-alt"></i>
+        Location & Route
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 'preview'" (click)="switchTab('preview')">
+        <i class="fas fa-eye"></i>
+        Review & Submit
+      </button>
     </div>
 
     <div class="delivery-content">
-      <form [formGroup]="deliveryForm" (ngSubmit)="onSubmit()" class="delivery-form">
+      <!-- Delivery Details Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'delivery'">
+        <form [formGroup]="deliveryForm" (ngSubmit)="onSubmit()" class="delivery-form">
         
         <!-- Sender Details Section -->
         <div class="form-section">
@@ -181,71 +256,42 @@
           </div>
         </div>
 
-        <!-- Location Details Section -->
+        <!-- Parcel Details Section -->
         <div class="form-section">
-          <h2 class="section-title">Location Details</h2>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="pickupLocation">Pickup Location</label>
-              <input 
-                type="text" 
-                id="pickupLocation" 
-                formControlName="pickupLocation"
-                placeholder="pickup location"
-                [class.error]="isFieldInvalid('pickupLocation')"
-              >
-              <div class="error-message" *ngIf="getFieldError('pickupLocation')">
-                {{ getFieldError('pickupLocation') }}
-              </div>
+          <h2 class="section-title">Parcel Details</h2>
+          
+          <div class="form-group">
+            <label for="parcelWeight">Parcel Weight (kg)</label>
+            <input 
+              type="number" 
+              id="parcelWeight" 
+              formControlName="parcelWeight"
+              placeholder="Enter parcel weight"
+              step="0.1"
+              min="0.1"
+              [class.error]="isFieldInvalid('parcelWeight')"
+            >
+            <div class="error-message" *ngIf="getFieldError('parcelWeight')">
+              {{ getFieldError('parcelWeight') }}
             </div>
-            
-            <div class="form-group">
-              <label for="destination">Destination</label>
-              <input 
-                type="text" 
-                id="destination" 
-                formControlName="destination"
-                placeholder="Destination"
-                [class.error]="isFieldInvalid('destination')"
-              >
-              <div class="error-message" *ngIf="getFieldError('destination')">
-                {{ getFieldError('destination') }}
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="parcelWeight">Parcel Weight (kg)</label>
+          </div>
+          
+          <div class="form-group">
+            <label for="pricePerKg">Price per Kilogram</label>
+            <div class="input-with-icon">
               <input 
                 type="number" 
-                id="parcelWeight" 
-                formControlName="parcelWeight"
-                placeholder="Enter parcel weight"
-                step="0.1"
-                min="0.1"
-                [class.error]="isFieldInvalid('parcelWeight')"
+                id="pricePerKg" 
+                formControlName="pricePerKg"
+                placeholder="100.00"
+                step="0.01"
+                min="0.01"
+                [class.error]="isFieldInvalid('pricePerKg')"
               >
-              <div class="error-message" *ngIf="getFieldError('parcelWeight')">
-                {{ getFieldError('parcelWeight') }}
-              </div>
+              <span class="currency-symbol">KSH</span>
             </div>
-            
-            <div class="form-group">
-              <label for="pricePerKg">Price per Kilogram</label>
-              <div class="input-with-icon">
-                <input 
-                  type="number" 
-                  id="pricePerKg" 
-                  formControlName="pricePerKg"
-                  placeholder="100.00"
-                  step="0.01"
-                  min="0.01"
-                  [class.error]="isFieldInvalid('pricePerKg')"
-                >
-                <span class="currency-symbol">KSH</span>
-              </div>
-              <div class="error-message" *ngIf="getFieldError('pricePerKg')">
-                {{ getFieldError('pricePerKg') }}
-              </div>
+            <div class="error-message" *ngIf="getFieldError('pricePerKg')">
+              {{ getFieldError('pricePerKg') }}
             </div>
           </div>
         </div>
@@ -281,24 +327,193 @@
           </div>
         </div>
 
-        <!-- Map Section -->
-        <div class="map-section">
-          <div class="map-container">
-            <div class="tracking-map">
-              <img src="/images/tracking-map.jpg" alt="Delivery Tracking Map" class="tracking-map-image">
+        <!-- Map Section - Now handled by the map component in location details -->
+
+      </form>
+      </div>
+
+      <!-- Location & Route Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'tracking'">
+        <div class="location-content">
+          <h2>Location & Route Setup</h2>
+          
+          <!-- Location Input Section -->
+          <div class="form-section" [formGroup]="deliveryForm">
+            <h3 class="section-title">Location Details</h3>
+            
+            <div class="location-grid">
+                          <div class="form-group address-input-group">
+              <label for="pickupLocation">Pickup Location</label>
+              <div class="address-input-container">
+                <input 
+                  type="text" 
+                  id="pickupLocation" 
+                  formControlName="pickupLocation"
+                  placeholder="Enter pickup address..."
+                  [class.error]="isFieldInvalid('pickupLocation')"
+                  (input)="searchAddresses($any($event.target).value, true)"
+                  (focus)="showPickupSuggestions = pickupSuggestions.length > 0"
+                >
+                
+
+                  <i class="fas fa-map-marker-alt location-icon pickup-icon"></i>
+                  
+                  <!-- Address Suggestions -->
+                  <div class="address-suggestions" *ngIf="showPickupSuggestions && pickupSuggestions.length > 0">
+                    <div class="suggestion-item" 
+                         *ngFor="let suggestion of pickupSuggestions"
+                         (click)="selectAddress(suggestion, true)">
+                      <i class="fas fa-map-marker-alt"></i>
+                      <div class="suggestion-text">
+                        <div class="suggestion-name">{{ suggestion.name || (suggestion.display_name ? suggestion.display_name.split(',')[0] : '') }}</div>
+                        <div class="suggestion-address">{{ suggestion.display_name }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="error-message" *ngIf="getFieldError('pickupLocation')">
+                  {{ getFieldError('pickupLocation') }}
+                </div>
+              </div>
+              
+              <div class="form-group address-input-group">
+                <label for="destination">Destination</label>
+                <div class="address-input-container">
+                  <input 
+                    type="text" 
+                    id="destination" 
+                    formControlName="destination"
+                    placeholder="Enter destination address..."
+                    [class.error]="isFieldInvalid('destination')"
+                    (input)="searchAddresses($any($event.target).value, false)"
+                    (focus)="showDestinationSuggestions = destinationSuggestions.length > 0"
+                  >
+                  <i class="fas fa-flag-checkered location-icon destination-icon"></i>
+                  
+                  <!-- Address Suggestions -->
+                  <div class="address-suggestions" *ngIf="showDestinationSuggestions && destinationSuggestions.length > 0">
+                    <div class="suggestion-item" 
+                         *ngFor="let suggestion of destinationSuggestions"
+                         (click)="selectAddress(suggestion, false)">
+                      <i class="fas fa-flag-checkered"></i>
+                      <div class="suggestion-text">
+                        <div class="suggestion-name">{{ suggestion.name || (suggestion.display_name ? suggestion.display_name.split(',')[0] : '') }}</div>
+                        <div class="suggestion-address">{{ suggestion.display_name }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="error-message" *ngIf="getFieldError('destination')">
+                  {{ getFieldError('destination') }}
+                </div>
+              </div>
+            </div>
+
+
+          </div>
+
+          <!-- Route Information -->
+          <div class="route-summary" *ngIf="routeDistance > 0">
+            <div class="route-card">
+              <div class="route-header">
+                <i class="fas fa-route"></i>
+                <h3>Route Information</h3>
+              </div>
+              <div class="route-details">
+                <div class="route-stat">
+                  <span class="stat-label">Distance:</span>
+                  <span class="stat-value">{{ routeDistance }} km</span>
+                </div>
+                <div class="route-stat">
+                  <span class="stat-label">Estimated Time:</span>
+                  <span class="stat-value">{{ routeEstimatedTime }} minutes</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Submit Button -->
-        <div class="form-actions">
-          <button type="submit" class="submit-btn" [disabled]="deliveryForm.invalid">
-            {{ getSubmitButtonText() }}
-          </button>
+          <!-- Map View -->
+          <div class="map-section">
+            <div class="map-header">
+              <h3>Delivery Route Preview</h3>
+              <div class="map-controls">
+                <button type="button" class="btn-secondary" (click)="fitMapToMarkers()">
+                  <i class="fas fa-expand-arrows-alt"></i>
+                  Fit to Markers
+                </button>
+                <button type="button" class="btn-secondary" (click)="toggleRouteDisplay()">
+                  <i class="fas fa-route"></i>
+                  {{ showRoute ? 'Hide Route' : 'Show Route' }}
+                </button>
+              </div>
+            </div>
+            
+            <app-map
+              #trackingMapComponent
+              [height]="'500px'"
+              [markers]="mapMarkers"
+              [center]="mapCenter"
+              [showRoute]="showRoute && mapMarkers.length >= 2"
+              [zoom]="mapMarkers.length > 1 ? 10 : 13"
+              (mapReady)="onMapReady($event)"
+              (markerClick)="onMarkerClick($event)"
+              (mapClick)="onMapClick($event)"
+              (mapErrorEvent)="onMapError($event)"
+              (routeUpdated)="onRouteUpdated($event)">
+            </app-map>
+          </div>
+
+          <!-- No locations message -->
+          <div class="no-locations" *ngIf="mapMarkers.length === 0">
+            <i class="fas fa-map-marked-alt"></i>
+            <h3>No Locations Set</h3>
+            <p>Please enter pickup and destination addresses to see the route on the map.</p>
+          </div>
         </div>
-      </form>
+      </div>
+
+      <!-- Preview Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'preview'">
+        <div class="preview-content">
+          <h2>Delivery Preview</h2>
+          <div class="preview-card">
+            <div class="preview-section">
+              <h3>Sender Information</h3>
+              <div class="preview-details">
+                <p><strong>Name:</strong> {{ deliveryForm.get('senderName')?.value || 'Not specified' }}</p>
+                <p><strong>Contact:</strong> {{ deliveryForm.get('senderContact')?.value || 'Not specified' }}</p>
+                <p><strong>Email:</strong> {{ deliveryForm.get('senderEmail')?.value || 'Not specified' }}</p>
+                <p><strong>Address:</strong> {{ deliveryForm.get('senderAddress')?.value || 'Not specified' }}</p>
+              </div>
+            </div>
+            <div class="preview-section">
+              <h3>Recipient Information</h3>
+              <div class="preview-details">
+                <p><strong>Name:</strong> {{ deliveryForm.get('recipientName')?.value || 'Not specified' }}</p>
+                <p><strong>Contact:</strong> {{ deliveryForm.get('recipientContact')?.value || 'Not specified' }}</p>
+                <p><strong>Email:</strong> {{ deliveryForm.get('recipientEmail')?.value || 'Not specified' }}</p>
+                <p><strong>Address:</strong> {{ deliveryForm.get('recipientAddress')?.value || 'Not specified' }}</p>
+              </div>
+            </div>
+            <div class="preview-section">
+              <h3>Delivery Details</h3>
+              <div class="preview-details">
+                <p><strong>Pickup:</strong> {{ deliveryForm.get('pickupLocation')?.value || 'Not specified' }}</p>
+                <p><strong>Destination:</strong> {{ deliveryForm.get('destination')?.value || 'Not specified' }}</p>
+                <p><strong>Weight:</strong> {{ deliveryForm.get('parcelWeight')?.value || 0 }} kg</p>
+                <p><strong>Price per kg:</strong> {{ getFormattedPricePerKg() }}</p>
+                <p><strong>Total Price:</strong> {{ getFormattedTotalPrice() }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Add Create Delivery button here -->
+          <div class="form-actions preview-actions">
+            <button type="button" class="submit-btn" (click)="onSubmit()" [disabled]="deliveryForm.invalid">
+              {{ getSubmitButtonText() }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-
-
   </main>
 </div>

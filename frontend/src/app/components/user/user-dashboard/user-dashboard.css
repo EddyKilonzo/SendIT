@@ -5,6 +5,7 @@
   min-height: 100vh;
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow-x: hidden;
 }
 
 /* Sidebar Styles */
@@ -16,6 +17,7 @@
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-nav {
@@ -30,7 +32,6 @@
   padding: 15px 25px;
   color: #6c757d;
   text-decoration: none;
-  transition: all 0.3s ease;
   border-radius: 0 25px 25px 0;
   margin-right: 15px;
   border-left: 3px solid transparent;
@@ -61,6 +62,7 @@
 .main-content {
   padding: 30px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Header Section */
@@ -94,6 +96,7 @@
   margin-bottom: 25px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid #e9ecef;
+  overflow: hidden;
 }
 
 .section-title {
@@ -110,6 +113,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: hidden;
 }
 
 .activity-item {
@@ -119,15 +123,12 @@
   padding: 12px;
   border-radius: 8px;
   background-color: #f8f9fa;
-  transition: all 0.3s ease;
   border: 1px solid #e9ecef;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
 .activity-item:hover {
   background-color: #fef7e0;
-  transform: translateX(3px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .activity-icon {
@@ -201,6 +202,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
+  overflow: hidden;
 }
 
 .summary-card {
@@ -210,15 +212,12 @@
   padding: 20px;
   border-radius: 10px;
   background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  transition: all 0.3s ease;
   border: 1px solid #e9ecef;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .summary-card:hover {
   background: linear-gradient(135deg, #fef7e0 0%, #fff8e1 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .card-icon {
@@ -283,7 +282,6 @@
   font-weight: 500;
   color: #6c757d;
   cursor: pointer;
-  transition: all 0.3s ease;
   font-size: 0.85rem;
   min-width: 80px;
 }
@@ -303,6 +301,7 @@
 /* Parcels Table */
 .parcels-table-container {
   overflow-x: auto;
+  overflow-y: hidden;
   border-radius: 8px;
   border: 1px solid #e9ecef;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -398,6 +397,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow: hidden;
 }
 
 .stats-content {
@@ -410,6 +410,7 @@
   padding: 25px;
   border: 1px solid #e9ecef;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .stats-summary {
@@ -459,6 +460,7 @@
   display: flex;
   flex-direction: column;
   gap: 15px;
+  overflow: hidden;
 }
 
 .chart-line {
@@ -467,6 +469,7 @@
   gap: 20px;
   flex: 1;
   height: 100%;
+  overflow: hidden;
 }
 
 .line-segment {
@@ -474,14 +477,11 @@
   background: linear-gradient(to top, #DBBB02, #f0c800);
   border-radius: 4px 4px 0 0;
   min-height: 20px;
-  transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(219, 187, 2, 0.3);
 }
 
 .line-segment:hover {
   background: linear-gradient(to top, #c4a902, #DBBB02);
-  transform: scaleY(1.1);
-  box-shadow: 0 4px 8px rgba(219, 187, 2, 0.4);
 }
 
 .chart-labels {

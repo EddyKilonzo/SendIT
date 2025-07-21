@@ -218,8 +218,7 @@ export class UserDetails implements OnInit {
   }
 
   loadAssignedParcels(userId: string) {
-    // In a real application, this would fetch parcels assigned to the specific user/driver
-    // For now, we'll show mock data for drivers
+    
     const user = this.mockUsers.find(u => u.id === userId);
     if (user?.role === 'Driver') {
       this.assignedParcels = this.mockParcels;

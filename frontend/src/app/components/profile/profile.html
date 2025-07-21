@@ -216,13 +216,23 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="currentPassword">Current Password</label>
-              <input 
-                type="password" 
-                id="currentPassword" 
-                formControlName="currentPassword"
-                placeholder="Enter current password"
-                [class.error]="isFieldInvalid(passwordForm, 'currentPassword')"
-              >
+              <div class="password-input-container">
+                <input 
+                  [type]="showCurrentPassword ? 'text' : 'password'" 
+                  id="currentPassword" 
+                  formControlName="currentPassword"
+                  placeholder="Enter current password"
+                  [class.error]="isFieldInvalid(passwordForm, 'currentPassword')"
+                >
+                <button 
+                  type="button" 
+                  class="password-toggle-btn"
+                  (click)="toggleCurrentPasswordVisibility()"
+                  [attr.aria-label]="showCurrentPassword ? 'Hide password' : 'Show password'"
+                >
+                  <i [class]="showCurrentPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                </button>
+              </div>
               <div class="error-message" *ngIf="getFieldError(passwordForm, 'currentPassword')">
                 {{ getFieldError(passwordForm, 'currentPassword') }}
               </div>
@@ -230,13 +240,23 @@
             
             <div class="form-group">
               <label for="newPassword">New Password</label>
-              <input 
-                type="password" 
-                id="newPassword" 
-                formControlName="newPassword"
-                placeholder="Enter new password"
-                [class.error]="isFieldInvalid(passwordForm, 'newPassword')"
-              >
+              <div class="password-input-container">
+                <input 
+                  [type]="showNewPassword ? 'text' : 'password'" 
+                  id="newPassword" 
+                  formControlName="newPassword"
+                  placeholder="Enter new password"
+                  [class.error]="isFieldInvalid(passwordForm, 'newPassword')"
+                >
+                <button 
+                  type="button" 
+                  class="password-toggle-btn"
+                  (click)="toggleNewPasswordVisibility()"
+                  [attr.aria-label]="showNewPassword ? 'Hide password' : 'Show password'"
+                >
+                  <i [class]="showNewPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                </button>
+              </div>
               <div class="error-message" *ngIf="getFieldError(passwordForm, 'newPassword')">
                 {{ getFieldError(passwordForm, 'newPassword') }}
               </div>
@@ -244,13 +264,23 @@
             
             <div class="form-group">
               <label for="confirmPassword">Confirm New Password</label>
-              <input 
-                type="password" 
-                id="confirmPassword" 
-                formControlName="confirmPassword"
-                placeholder="Confirm new password"
-                [class.error]="isFieldInvalid(passwordForm, 'confirmPassword')"
-              >
+              <div class="password-input-container">
+                <input 
+                  [type]="showConfirmPassword ? 'text' : 'password'" 
+                  id="confirmPassword" 
+                  formControlName="confirmPassword"
+                  placeholder="Confirm new password"
+                  [class.error]="isFieldInvalid(passwordForm, 'confirmPassword')"
+                >
+                <button 
+                  type="button" 
+                  class="password-toggle-btn"
+                  (click)="toggleConfirmPasswordVisibility()"
+                  [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'"
+                >
+                  <i [class]="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                </button>
+              </div>
               <div class="error-message" *ngIf="getFieldError(passwordForm, 'confirmPassword')">
                 {{ getFieldError(passwordForm, 'confirmPassword') }}
               </div>
@@ -264,6 +294,115 @@
             </button>
           </div>
         </form>
+      </div>
+
+      <!-- Driver Application Section -->
+      <div class="profile-section driver-application" *ngIf="userProfile.role === 'CUSTOMER'">
+        <h2 class="section-title">Become a Driver</h2>
+        
+        <!-- Application Status Display -->
+        <div class="application-status" *ngIf="driverApplicationStatus">
+          <div class="status-card" [ngClass]="getStatusClass(driverApplicationStatus)">
+            <div class="status-icon">
+              <i [class]="getStatusIcon(driverApplicationStatus)"></i>
+            </div>
+            <div class="status-content">
+              <h3>Application Status: {{ getStatusText(driverApplicationStatus) }}</h3>
+              <p *ngIf="driverApplicationStatus === 'PENDING'">
+                Your driver application is under review. We'll notify you once a decision is made.
+              </p>
+              <p *ngIf="driverApplicationStatus === 'APPROVED'">
+                Congratulations! Your application has been approved. You can now start accepting delivery assignments.
+              </p>
+              <p *ngIf="driverApplicationStatus === 'REJECTED'">
+                Your application was not approved. Reason: {{ driverRejectionReason || 'No reason provided' }}
+              </p>
+              <div class="application-details" *ngIf="driverApplication">
+                <p><strong>Applied on:</strong> {{ driverApplication.applicationDate | date:'medium' }}</p>
+                <p *ngIf="driverApplication.approvalDate"><strong>Processed on:</strong> {{ driverApplication.approvalDate | date:'medium' }}</p>
+                <p *ngIf="driverRejectionReason"><strong>Rejection Reason:</strong> {{ driverRejectionReason }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Application Form -->
+        <div class="application-form" *ngIf="!driverApplicationStatus || driverApplicationStatus === 'REJECTED'">
+          <p class="form-description">
+            Join our delivery team and start earning by delivering packages. Fill out the application below and we'll review your information.
+          </p>
+          
+          <form [formGroup]="driverApplicationForm" (ngSubmit)="submitDriverApplication()" class="driver-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="licenseNumber">Driver's License Number *</label>
+                <input 
+                  type="text" 
+                  id="licenseNumber" 
+                  formControlName="licenseNumber"
+                  placeholder="Enter your driver's license number"
+                  [class.error]="isFieldInvalid(driverApplicationForm, 'licenseNumber')"
+                >
+                <div class="error-message" *ngIf="getFieldError(driverApplicationForm, 'licenseNumber')">
+                  {{ getFieldError(driverApplicationForm, 'licenseNumber') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="vehicleNumber">Vehicle Registration Number</label>
+                <input 
+                  type="text" 
+                  id="vehicleNumber" 
+                  formControlName="vehicleNumber"
+                  placeholder="Enter your vehicle registration number"
+                  [class.error]="isFieldInvalid(driverApplicationForm, 'vehicleNumber')"
+                >
+                <div class="error-message" *ngIf="getFieldError(driverApplicationForm, 'vehicleNumber')">
+                  {{ getFieldError(driverApplicationForm, 'vehicleNumber') }}
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="vehicleType">Vehicle Type</label>
+                <select 
+                  id="vehicleType" 
+                  formControlName="vehicleType"
+                  [class.error]="isFieldInvalid(driverApplicationForm, 'vehicleType')"
+                >
+                  <option value="">Select vehicle type</option>
+                  <option value="MOTORCYCLE">Motorcycle</option>
+                  <option value="CAR">Car</option>
+                  <option value="VAN">Van</option>
+                  <option value="TRUCK">Truck</option>
+                </select>
+                <div class="error-message" *ngIf="getFieldError(driverApplicationForm, 'vehicleType')">
+                  {{ getFieldError(driverApplicationForm, 'vehicleType') }}
+                </div>
+              </div>
+              
+              <div class="form-group full-width">
+                <label for="reason">Why do you want to become a driver?</label>
+                <textarea 
+                  id="reason" 
+                  formControlName="reason"
+                  placeholder="Tell us why you'd like to join our delivery team..."
+                  rows="4"
+                  [class.error]="isFieldInvalid(driverApplicationForm, 'reason')"
+                ></textarea>
+                <div class="error-message" *ngIf="getFieldError(driverApplicationForm, 'reason')">
+                  {{ getFieldError(driverApplicationForm, 'reason') }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="btn-submit-application" [disabled]="isLoading || !driverApplicationForm.valid">
+                <i class="fas fa-paper-plane"></i>
+                Submit Application
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       <!-- Account Management Section -->

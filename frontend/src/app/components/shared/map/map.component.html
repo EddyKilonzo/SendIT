@@ -1,0 +1,43 @@
+<div class="map-container" [class.fullscreen]="isFullscreen">
+  <div #mapContainer 
+       [id]="mapId" 
+       class="map"
+       [style.height]="height"
+       [style.width]="width">
+  </div>
+  
+  <div *ngIf="showControls" class="map-controls">
+    <button (click)="toggleFullscreen()" 
+            class="control-btn"
+            title="Toggle fullscreen">
+      <i class="fas" [class.fa-expand]="!isFullscreen" [class.fa-compress]="isFullscreen"></i>
+    </button>
+    <button *ngIf="showRoute && markers.length >= 2" 
+            (click)="toggleRoute()" 
+            class="control-btn"
+            title="Toggle route display">
+      <i class="fas fa-route"></i>
+    </button>
+  </div>
+
+  <!-- Loading overlay -->
+  <div *ngIf="isLoading" class="map-loading-overlay">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading map...</p>
+    </div>
+  </div>
+
+  <!-- Error overlay -->
+  <div *ngIf="mapError" class="map-error-overlay">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h4>Map Error</h4>
+      <p>{{ mapError.message }}</p>
+      <button (click)="retryMapLoad()" class="retry-btn">
+        <i class="fas fa-redo"></i>
+        Retry
+      </button>
+    </div>
+  </div>
+</div> 

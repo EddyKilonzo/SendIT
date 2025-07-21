@@ -20,18 +20,13 @@
       </a>
     </nav>
     
-    <div class="sidebar-footer">
-      <a routerLink="/help" class="nav-item help-link">
-        <i class="fas fa-question-circle"></i>
-        <span>Help</span>
-      </a>
-    </div>
+    
   </aside>
 
   <!-- Main Content -->
   <main class="main-content">
     <!-- Header -->
-    <div class="content-header">
+    <div class="content-header animate-fade-in-up">
       <div class="breadcrumb">
         <a routerLink="/driver-my-parcels" class="breadcrumb-link">My Parcels</a>
         <span class="breadcrumb-separator">/</span>
@@ -41,7 +36,7 @@
     </div>
 
     <!-- Parcel Information Section -->
-    <div class="parcel-info-section">
+    <div class="parcel-info-section animate-fade-in-up">
       <h2 class="section-title">Parcel Information</h2>
       <div class="info-grid">
         <div class="info-column">
@@ -85,7 +80,7 @@
     </div>
 
     <!-- Status Section -->
-    <div class="status-section">
+    <div class="status-section animate-fade-in-up">
       <h2 class="section-title">Status</h2>
       <div class="status-content">
         <div class="status-input-group">
@@ -104,23 +99,47 @@
     </div>
 
     <!-- Map View -->
-    <div class="map-section" *ngIf="showMapView">
-      <h2 class="section-title">Tracking Map</h2>
+    <div class="map-section animate-fade-in" *ngIf="showMapView">
+      <div class="map-header">
+        <h2 class="section-title">Tracking Map</h2>
+        <div class="map-controls">
+          <button class="btn-secondary" (click)="fitMapToMarkers()">
+            <i class="fas fa-expand-arrows-alt"></i>
+            Fit to Route
+          </button>
+          <button class="btn-secondary" (click)="refreshMapMarkers()">
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
       <div class="map-container">
-        <img src="/images/tracking-map.jpg" alt="Tracking Map" class="tracking-map">
+        <app-map
+          [height]="'400px'"
+          [markers]="mapMarkers"
+          [center]="mapCenter"
+          [showRoute]="mapMarkers.length >= 2"
+          [zoom]="mapMarkers.length > 1 ? 11 : 13"
+          [showControls]="true"
+          (mapReady)="onMapReady($event)"
+          (markerClick)="onMarkerClick($event)"
+          (mapClick)="onMapClick($event)"
+          (mapErrorEvent)="onMapError($event)"
+          (routeUpdated)="onRouteUpdated($event)">
+        </app-map>
         <div class="map-overlay">
           <div class="map-legend">
             <div class="legend-item">
               <div class="legend-pin blue"></div>
-              <span>Current Location</span>
+              <span>Your Location</span>
             </div>
             <div class="legend-item">
               <div class="legend-pin orange"></div>
-              <span>Pickup Points</span>
+              <span>Pickup Location</span>
             </div>
             <div class="legend-item">
               <div class="legend-pin green"></div>
-              <span>Delivery Points</span>
+              <span>Delivery Location</span>
             </div>
           </div>
         </div>
@@ -128,7 +147,7 @@
     </div>
 
     <!-- Delivery Instructions Section -->
-    <div class="instructions-section" *ngIf="!showMapView">
+    <div class="instructions-section animate-fade-in" *ngIf="!showMapView">
       <h2 class="section-title">Delivery Instructions</h2>
       <div class="instructions-list">
         <div class="instruction-item" *ngFor="let instruction of deliveryInstructions; let i = index">
@@ -149,7 +168,7 @@
     </div>
 
     <!-- Bottom Action Buttons -->
-    <div class="bottom-actions">
+    <div class="bottom-actions animate-fade-in-up">
       <button 
         class="btn-primary" 
         (click)="markAsCompleted()"

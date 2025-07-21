@@ -23,9 +23,12 @@ export class ManageParcels implements OnInit {
   // User role for role-based access control
   userRole: string = 'ADMIN'; // Default role for admin component, will be set from auth service later
   
+
+  
   searchTerm = '';
   selectedStatus = '';
-  selectedFilter = '';
+  currentPage = 1;
+  itemsPerPage = 10;
   parcels: Parcel[] = [
     { id: '#12345', sender: 'Olivia Bennett', receiver: 'Ethan Carter', status: 'Pending', expectedDelivery: '2024-07-20', driver: 'Unassigned' },
     { id: '#12346', sender: 'Noah Foster', receiver: 'Sophia Green', status: 'In Transit', expectedDelivery: '2024-07-21', driver: 'John Smith' },
@@ -41,8 +44,7 @@ export class ManageParcels implements OnInit {
   ];
   loading = false;
 
-  constructor(private router: Router) {} // Removed ApiService injection
-
+  constructor(private router: Router) {} 
   ngOnInit() {
     this.loadParcels();
   }
@@ -90,7 +92,7 @@ export class ManageParcels implements OnInit {
   clearFilters() {
     this.searchTerm = '';
     this.selectedStatus = '';
-    this.selectedFilter = '';
+    this.currentPage = 1;
   }
 
   // Filter parcels based on search term and status
@@ -112,4 +114,56 @@ export class ManageParcels implements OnInit {
 
     return filtered;
   }
+
+  // Get paginated parcels
+  get paginatedParcels(): Parcel[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredParcels.slice(startIndex, endIndex);
+  }
+
+  // Get total pages
+  get totalPages(): number {
+    return Math.ceil(this.filteredParcels.length / this.itemsPerPage);
+  }
+
+  // Get page numbers to display
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxPagesToShow = 5;
+    const startPage = Math.max(1, this.currentPage - Math.floor(maxPagesToShow / 2));
+    const endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
+  }
+
+  // Navigation methods
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+    }
+  }
+
+  goToPreviousPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+    }
+  }
+
+  goToNextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+    }
+  }
+
+  // Helper method for template
+  get endIndex(): number {
+    return Math.min(this.currentPage * this.itemsPerPage, this.filteredParcels.length);
+  }
+
+
 }

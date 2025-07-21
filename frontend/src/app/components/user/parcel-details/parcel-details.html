@@ -137,23 +137,70 @@
 
         <!-- Tracking Map Section -->
         <div class="tracking-section">
-          <h2 class="section-title">Parcel Location</h2>
-          <div class="map-container">
-            <img 
-              src="images/tracking-map.jpg" 
-              alt="Tracking Map" 
-              class="tracking-map"
-            >
-            <div class="tracking-overlay">
-              <div class="tracking-info">
-                <div class="current-location">
-                  <h3>Current Location</h3>
-                  <p>{{ parcel.currentLocation }}</p>
+          <div class="map-header">
+            <h2 class="section-title">Parcel Location</h2>
+            <div class="map-controls">
+              <button class="btn-secondary" (click)="toggleMapView()">
+                <i class="fas fa-eye"></i>
+                {{ showMapView ? 'Hide Map' : 'Show Map' }}
+              </button>
+              <button class="btn-secondary" (click)="fitMapToMarkers()" *ngIf="showMapView">
+                <i class="fas fa-expand-arrows-alt"></i>
+                Fit to Route
+              </button>
+              <button class="btn-secondary" (click)="refreshMapMarkers()" *ngIf="showMapView">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+              </button>
+            </div>
+          </div>
+          
+          <!-- Map View -->
+          <div class="map-container" *ngIf="showMapView">
+            <app-map
+              [height]="'400px'"
+              [markers]="mapMarkers"
+              [markerTypes]="mapMarkerTypes"
+              [center]="mapCenter"
+              [showRoute]="mapMarkers.length >= 2"
+              [zoom]="mapMarkers.length > 1 ? 11 : 13"
+              [showControls]="true"
+              (mapReady)="onMapReady($event)"
+              (markerClick)="onMarkerClick($event)"
+              (mapClick)="onMapClick($event)"
+              (mapErrorEvent)="onMapError($event)"
+              (routeUpdated)="onRouteUpdated($event)">
+            </app-map>
+            
+            <!-- Map Legend -->
+            <div class="map-overlay">
+              <div class="map-legend">
+                <div class="legend-item">
+                  <div class="legend-pin pickup"></div>
+                  <span>Pickup Location</span>
                 </div>
-                <div class="estimated-time">
-                  <h3>Estimated Delivery</h3>
-                  <p>{{ parcel.estimatedTime }}</p>
+                <div class="legend-item">
+                  <div class="legend-pin delivery"></div>
+                  <span>Delivery Location</span>
                 </div>
+                <div class="legend-item" *ngIf="parcel.status === 'In Transit'">
+                  <div class="legend-pin current"></div>
+                  <span>Current Location</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tracking Info (when map is hidden) -->
+          <div class="tracking-info-section" *ngIf="!showMapView">
+            <div class="tracking-info">
+              <div class="current-location">
+                <h3>Current Location</h3>
+                <p>{{ parcel.currentLocation }}</p>
+              </div>
+              <div class="estimated-time">
+                <h3>Estimated Delivery</h3>
+                <p>{{ parcel.estimatedTime }}</p>
               </div>
             </div>
           </div>

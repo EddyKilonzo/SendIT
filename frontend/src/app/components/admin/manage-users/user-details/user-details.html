@@ -390,21 +390,21 @@
             <input type="radio" name="status" value="Active" [(ngModel)]="selectedStatus">
             <span class="status-option-label">
               <span class="status-badge active">✓ Active</span>
-              <span class="status-description">User can access the system normally and perform all allowed actions. This status allows full access to all features and functionalities available to their role.</span>
+              <span class="status-description">User can access the system normally.</span>
             </span>
           </label>
           <label class="status-option">
             <input type="radio" name="status" value="Inactive" [(ngModel)]="selectedStatus">
             <span class="status-option-label">
               <span class="status-badge inactive">✗ Inactive</span>
-              <span class="status-description">User account is permanently disabled and cannot access the system. This status is typically used for accounts that are no longer needed or have been terminated.</span>
+              <span class="status-description">Account permanently disabled. User cannot access the system.</span>
             </span>
           </label>
           <label class="status-option">
             <input type="radio" name="status" value="Suspended" [(ngModel)]="selectedStatus">
             <span class="status-option-label">
               <span class="status-badge suspended">⚠ Suspended</span>
-              <span class="status-description">User account is temporarily suspended and will be reviewed. This status is used when there are concerns about account activity that need investigation.</span>
+              <span class="status-description">Account temporarily suspended for review.</span>
             </span>
           </label>
         </div>
@@ -427,17 +427,7 @@
           </div>
         </div>
 
-        <div class="status-notes">
-          <h4>Important Notes</h4>
-          <ul>
-            <li>Status changes are immediate and will affect the user's access immediately</li>
-            <li>Suspended accounts can be reactivated after review</li>
-            <li>Inactive accounts require admin approval to reactivate</li>
-            <li>All status changes are logged for audit purposes</li>
-            <li>Users will be notified of status changes via email</li>
-            <li>Active drivers will be removed from available driver pool if status changes</li>
-          </ul>
-        </div>
+
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeStatusModal()">

@@ -34,7 +34,7 @@
   padding: 12px 20px;
   color: #6c757d;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   border-radius: 0 25px 25px 0;
   margin-right: 15px;
   margin-bottom: 5px;
@@ -64,7 +64,7 @@
 
 .help-link {
   color: #6c757d;
-  transition: color 0.3s ease;
+  transition: color 0.15s ease;
 }
 
 .help-link:hover {
@@ -96,7 +96,7 @@
 .breadcrumb-link {
   color: #6c757d;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color 0.15s ease;
 }
 
 .breadcrumb-link:hover {
@@ -131,6 +131,9 @@
   margin: 0 30px 20px 30px;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
   border: 1px solid #e9ecef;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  will-change: transform, box-shadow;
 }
 
 .section-title {
@@ -218,11 +221,13 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s ease;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   text-decoration: none;
+  transform: translateY(0);
+  will-change: transform, box-shadow;
 }
 
 .btn-primary {
@@ -232,7 +237,8 @@
 
 .btn-primary:hover {
   background-color: #c4a602;
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(219, 187, 2, 0.3);
 }
 
 .btn-secondary {
@@ -242,7 +248,8 @@
 
 .btn-secondary:hover {
   background-color: #5a6268;
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
 }
 
 .btn-secondary.active {
@@ -269,6 +276,8 @@
   background-color: #f8f9fa;
   border-radius: 8px;
   border: 1px solid #e9ecef;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
 }
 
 .instruction-checkbox {
@@ -276,11 +285,14 @@
   height: 18px;
   margin-top: 2px;
   accent-color: #DBBB02;
+  transition: transform 0.15s ease;
+  cursor: pointer;
 }
 
 .instruction-checkbox:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: scale(0.95);
 }
 
 .instruction-label {
@@ -305,6 +317,8 @@
 .instruction-item.completed {
   background-color: #d4edda;
   border-color: #c3e6cb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
 }
 
 .instruction-item.completed .instruction-text {
@@ -313,6 +327,34 @@
 }
 
 /* Map Section */
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.map-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.map-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.map-controls .btn-secondary {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
 .map-container {
   position: relative;
   border-radius: 8px;
@@ -464,5 +506,4 @@
     right: auto;
     margin-top: 15px;
   }
-}
 } 

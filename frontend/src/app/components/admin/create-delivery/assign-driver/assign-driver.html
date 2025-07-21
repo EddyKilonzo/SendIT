@@ -1,27 +1,44 @@
 <div class="assign-driver">
   <!-- Left Sidebar -->
   <aside class="sidebar">
+    
+    
     <nav class="sidebar-nav">
-      <a routerLink="/admin-dashboard" class="nav-item">
-        <i class="fas fa-home"></i>
-        <span>Dashboard</span>
-      </a>
-      <a routerLink="/admin-create-delivery" class="nav-item">
-        <i class="fas fa-plus"></i>
-        <span>Create Delivery</span>
-      </a>
-      <a routerLink="/admin-manage-parcels" class="nav-item">
-        <i class="fas fa-box"></i>
-        <span>Manage Parcels</span>
-      </a>
-      <a routerLink="/admin-manage-users" class="nav-item">
-        <i class="fas fa-users"></i>
-        <span>Manage Users</span>
-      </a>
-      <a routerLink="/profile" class="nav-item">
-        <i class="fas fa-user"></i>
-        <span>Profile</span>
-      </a>
+      <ul class="nav-menu">
+        <!-- Common Navigation Items -->
+        <li class="nav-item">
+          <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        
+        <!-- Admin-Only Navigation Items -->
+        <li class="nav-item">
+          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link admin-nav">
+            <i class="fas fa-plus"></i>
+            <span>Create Delivery</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link admin-nav">
+            <i class="fas fa-box"></i>
+            <span>Manage Parcels</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link admin-nav">
+            <i class="fas fa-users"></i>
+            <span>Manage Users</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
+      </ul>
     </nav>
     
     <div class="sidebar-footer">
@@ -35,7 +52,13 @@
   <!-- Main Content -->
   <main class="main-content">
     <div class="assign-driver-header">
-      <h1 class="page-title">Assign Driver to Parcel</h1>
+      <div class="header-content">
+        <button class="back-btn" (click)="goBack()">
+          <i class="fas fa-arrow-left"></i>
+          Back to Parcels
+        </button>
+        <h1 class="page-title">Assign Driver to Parcel</h1>
+      </div>
     </div>
 
     <div class="assign-driver-content">
@@ -139,7 +162,13 @@
       <div class="map-section">
         <div class="map-container">
           <div class="tracking-map">
-            <img src="/images/tracking-map.jpg" alt="Delivery Tracking Map" class="tracking-map-image">
+            <!-- Map will be loaded here dynamically -->
+        <div id="assign-driver-map" class="tracking-map-placeholder">
+          <div class="map-loading">
+            <i class="fas fa-map"></i>
+            <p>Loading map...</p>
+          </div>
+        </div>
           </div>
         </div>
       </div>

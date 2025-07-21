@@ -12,12 +12,7 @@
             <span>Dashboard</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-          </a>
-        </li>
+        
         
         <!-- Admin-Only Navigation Items -->
         <li class="nav-item" *ngIf="userRole === 'ADMIN'">
@@ -38,6 +33,12 @@
             <span>Manage Users</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
       </ul>
     </nav>
     
@@ -49,6 +50,58 @@
     </div>
   </aside>
 
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-menu-overlay" *ngIf="isMobileView && showMobileMenu" (click)="closeMobileMenu()">
+    <div class="mobile-menu-content" (click)="$event.stopPropagation()">
+      <div class="mobile-menu-header">
+        <h3>Navigation</h3>
+        <button class="mobile-menu-close" (click)="closeMobileMenu()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <nav class="mobile-nav">
+        <ul class="mobile-nav-menu">
+          <li class="mobile-nav-item">
+            <a routerLink="/admin-dashboard" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-home"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
+            <a routerLink="/admin-create-delivery" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-plus"></i>
+              <span>Create Delivery</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
+            <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-box"></i>
+              <span>Manage Parcels</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
+            <a routerLink="/admin-manage-users" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-users"></i>
+              <span>Manage Users</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item">
+            <a routerLink="/profile" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
+              <i class="fas fa-user"></i>
+              <span>Profile</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item">
+            <a routerLink="/login" class="mobile-nav-link logout-link" (click)="closeMobileMenu()">
+              <i class="fas fa-arrow-left"></i>
+              <span>Logout</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
   <!-- Main Content -->
   <main class="main-content">
     <!-- Access Control - Only Admin Users -->
@@ -57,26 +110,45 @@
         <div class="header-left">
           <h1 class="dashboard-title">Admin Dashboard</h1>
         </div>
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" *ngIf="isMobileView">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+      
+
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <button class="tab-button" [class.active]="activeTab === 'overview'" (click)="switchTab('overview')">
+          <i class="fas fa-chart-line"></i>
+          Overview
+        </button>
+        <button class="tab-button" [class.active]="activeTab === 'analytics'" (click)="switchTab('analytics')">
+          <i class="fas fa-chart-bar"></i>
+          Analytics
+        </button>
       </div>
 
       <!-- Dashboard Content -->
       <div class="dashboard-content">
         
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-          <div class="summary-card">
-            <h3>Total parcels</h3>
-            <p class="card-value">1200</p>
+        <!-- Overview Tab Content -->
+        <div class="tab-content" *ngIf="activeTab === 'overview'">
+          <!-- Summary Cards -->
+          <div class="summary-cards">
+            <div class="summary-card">
+              <h3>Total parcels</h3>
+              <p class="card-value">1200</p>
+            </div>
+            <div class="summary-card">
+              <h3>Deliveries in Progress</h3>
+              <p class="card-value">30</p>
+            </div>
+            <div class="summary-card">
+              <h3>Revenue</h3>
+              <p class="card-value">KSH 57,544.00</p>
+            </div>
           </div>
-          <div class="summary-card">
-            <h3>Deliveries in Progress</h3>
-            <p class="card-value">30</p>
-          </div>
-          <div class="summary-card">
-            <h3>Revenue</h3>
-            <p class="card-value">KSH 57,544.00</p>
-          </div>
-        </div>
 
         <!-- Quick Actions -->
         <div class="quick-actions">
@@ -146,6 +218,119 @@
             </div>
           </div>
         </div>
+        </div>
+
+        <!-- Analytics Tab Content -->
+        <div class="tab-content" *ngIf="activeTab === 'analytics'">
+          <div class="analytics-content improved-analytics-layout">
+            <h2>Analytics Dashboard</h2>
+            <div class="analytics-sections-grid">
+              <!-- Revenue Trends Section -->
+              <div class="analytics-section">
+                <h3>Revenue Trends</h3>
+                <div class="revenue-overview">
+                  <div class="revenue-stats">
+                    <div class="revenue-stat">
+                      <span class="stat-label">Current Month</span>
+                      <span class="stat-value">{{ formatCurrency(analyticsData.revenueTrends.currentMonth) }}</span>
+                    </div>
+                    <div class="revenue-stat">
+                      <span class="stat-label">Previous Month</span>
+                      <span class="stat-value">{{ formatCurrency(analyticsData.revenueTrends.previousMonth) }}</span>
+                    </div>
+                    <div class="revenue-stat">
+                      <span class="stat-label">Growth</span>
+                      <span class="stat-value growth">{{ analyticsData.revenueTrends.growth }}</span>
+                    </div>
+                  </div>
+                  <div class="revenue-chart">
+                    <h4>Monthly Revenue Trend</h4>
+                    <div class="chart-container">
+                      <div class="chart-bars">
+                        <div 
+                          *ngFor="let data of analyticsData.revenueTrends.monthlyData" 
+                          class="chart-bar"
+                          [style.height]="(data.revenue / 60000 * 200) + 'px'"
+                          [title]="data.month + ': ' + formatCurrency(data.revenue)"
+                        >
+                          <span class="bar-value">{{ formatCurrency(data.revenue) }}</span>
+                        </div>
+                      </div>
+                      <div class="chart-labels">
+                        <span *ngFor="let data of analyticsData.revenueTrends.monthlyData">{{ data.month }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Customer Reviews Section -->
+              <div class="analytics-section">
+                <h3>Customer Reviews & Satisfaction</h3>
+                <div class="reviews-overview">
+                  <div class="overall-rating">
+                    <div class="rating-summary">
+                      <span class="rating-value" [style.color]="getRatingColor(analyticsData.customerReviews.overallRating)">
+                        {{ analyticsData.customerReviews.overallRating }}
+                      </span>
+                      <span class="rating-stars" [style.color]="getRatingColor(analyticsData.customerReviews.overallRating)">
+                        {{ getRatingStars(round(analyticsData.customerReviews.overallRating)) }}
+                      </span>
+                      <span class="total-reviews">{{ analyticsData.customerReviews.totalReviews }} reviews</span>
+                    </div>
+                  </div>
+                  
+                  <div class="reviews-content">
+                    <div class="recent-reviews">
+                      <h4>Recent Reviews</h4>
+                      <div class="reviews-list">
+                        <div 
+                          *ngFor="let review of analyticsData.customerReviews.recentReviews.slice(0, 3)" 
+                          class="review-item"
+                        >
+                          <div class="review-header">
+                            <span class="customer-name">{{ review.customerName }}</span>
+                            <span class="review-date">{{ review.date | date:'shortDate' }}</span>
+                          </div>
+                          <div class="review-rating" [style.color]="getRatingColor(review.rating)">
+                            {{ getRatingStars(review.rating) }}
+                          </div>
+                          <p class="review-comment">{{ review.comment }}</p>
+                          <span class="driver-name">Driver: {{ review.driverName }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Drivers Section at Bottom -->
+            <div class="analytics-section drivers-section-bottom">
+              <h3>Top Performing Drivers</h3>
+              <div class="drivers-overview">
+                <div class="driver-list">
+                  <div 
+                    *ngFor="let driver of analyticsData.deliveryPerformance.performanceByDriver" 
+                    class="driver-item"
+                  >
+                    <div class="driver-info">
+                      <span class="driver-name">{{ driver.name }}</span>
+                      <span class="driver-deliveries">{{ driver.deliveries }} deliveries</span>
+                    </div>
+                    <div class="driver-metrics">
+                      <span class="driver-rating" [style.color]="getRatingColor(driver.rating)">
+                        {{ getRatingStars(driver.rating) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
       </div>
     </div>
 

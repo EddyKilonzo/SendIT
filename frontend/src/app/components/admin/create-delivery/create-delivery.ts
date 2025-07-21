@@ -1,8 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ToastService } from '../../shared/toast/toast.service';
+import { MapComponent } from '../../shared/map/map.component';
+import { MapService } from '../../../services/map.service';
+import { MapLocation, MapCoordinates, MapError, AddressSuggestion } from '../../../types/map.types';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 // Custom validators
 function phoneNumberValidator(control: AbstractControl): ValidationErrors | null {
@@ -76,24 +80,50 @@ interface OrderDetails {
 @Component({
   selector: 'app-create-delivery',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, MapComponent],
   templateUrl: './create-delivery.html',
   styleUrls: ['./create-delivery.css']
 })
 export class CreateDelivery implements OnInit {
-  // User role for role-based access control
-  userRole: string = 'ADMIN'; // Default role for admin component, will be set from auth service later
+  @ViewChild('mapComponent') mapComponent!: MapComponent;
+  @ViewChild('trackingMapComponent') trackingMapComponent!: MapComponent;
+  
+  userRole: string = 'ADMIN';
+  
+  activeTab = 'delivery';
   
   deliveryForm: FormGroup;
-  pricePerKg: number = 100; // Fixed price per kg in KSH
+  pricePerKg: number = 100;
   totalPrice: number = 0;
   isEditMode: boolean = false;
   originalOrderDetails: OrderDetails | null = null;
+  
+  // Map-related properties
+  mapMarkers: MapLocation[] = [];
+  mapCenter: MapCoordinates = { lat: -1.2921, lng: 36.8219 };
+  showMap: boolean = false;
+  showRoute: boolean = true;
+  pickupCoordinates: MapCoordinates | null = null;
+  destinationCoordinates: MapCoordinates | null = null;
+
+  
+  // Address suggestions
+  pickupSuggestions: AddressSuggestion[] = [];
+  destinationSuggestions: AddressSuggestion[] = [];
+  showPickupSuggestions: boolean = false;
+  showDestinationSuggestions: boolean = false;
+  
+  routeDistance: number = 0;
+  routeEstimatedTime: number = 0;
+  
+  isMobileView: boolean = false;
+  showMobileMenu: boolean = false;
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private mapService: MapService
   ) {
     this.deliveryForm = this.fb.group({
       // Sender Details
@@ -130,10 +160,12 @@ export class CreateDelivery implements OnInit {
     this.deliveryForm.valueChanges.subscribe(() => {
       this.checkSenderRecipientValidation();
     });
+
+    // Setup address geocoding listeners
+    this.setupAddressGeocodingListeners();
   }
 
   ngOnInit() {
-    // Check if we're in edit mode
     const navigation = this.router.getCurrentNavigation();
     if (navigation?.extras.state) {
       const state = navigation.extras.state as any;
@@ -144,6 +176,210 @@ export class CreateDelivery implements OnInit {
         this.toastService.showInfo('Order loaded for editing');
       }
     }
+    
+    this.checkMobileView();
+    
+    window.addEventListener('resize', () => {
+      this.checkMobileView();
+    });
+    
+    this.showMap = true;
+    console.log('Create delivery component initialized, showMap:', this.showMap);
+  }
+
+  private setupAddressGeocodingListeners(): void {
+    this.deliveryForm.get('pickupLocation')?.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged()
+      )
+      .subscribe(async (address) => {
+        if (address && address.length >= 3) {
+          await this.geocodePickupAddress(address);
+        } else {
+          this.clearPickupMarker();
+        }
+      });
+
+    this.deliveryForm.get('destination')?.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged()
+      )
+      .subscribe(async (address) => {
+        if (address && address.length >= 3) {
+          await this.geocodeDestinationAddress(address);
+        } else {
+          this.clearDestinationMarker();
+        }
+      });
+  }
+
+  private async geocodePickupAddress(address: string): Promise<void> {
+    try {
+      console.log('Geocoding pickup address:', address);
+      const result = await this.mapService.geocodeAddress(address);
+      console.log('Geocoding result:', result);
+      if (result.success && result.location) {
+        this.pickupCoordinates = { lat: result.location.lat, lng: result.location.lng };
+        console.log('Pickup coordinates set:', this.pickupCoordinates);
+        this.updateMapMarkers();
+        this.showMap = true;
+      }
+    } catch (error) {
+      console.error('Error geocoding pickup address:', error);
+    }
+  }
+
+  private async geocodeDestinationAddress(address: string): Promise<void> {
+    try {
+      const result = await this.mapService.geocodeAddress(address);
+      if (result.success && result.location) {
+        this.destinationCoordinates = { lat: result.location.lat, lng: result.location.lng };
+        this.updateMapMarkers();
+        this.showMap = true;
+      }
+    } catch (error) {
+      console.error('Error geocoding destination address:', error);
+    }
+  }
+
+  private updateMapMarkers(): void {
+    console.log('Updating map markers...');
+    this.mapMarkers = [];
+
+    if (this.pickupCoordinates) {
+      this.mapMarkers.push({
+        lat: this.pickupCoordinates.lat,
+        lng: this.pickupCoordinates.lng,
+        description: `<strong>Pickup Location</strong><br>${this.deliveryForm.get('pickupLocation')?.value}`,
+        address: this.deliveryForm.get('pickupLocation')?.value
+      });
+      console.log('Added pickup marker');
+    }
+
+    if (this.destinationCoordinates) {
+      this.mapMarkers.push({
+        lat: this.destinationCoordinates.lat,
+        lng: this.destinationCoordinates.lng,
+        description: `<strong>Destination</strong><br>${this.deliveryForm.get('destination')?.value}`,
+        address: this.deliveryForm.get('destination')?.value
+      });
+      console.log('Added destination marker');
+    }
+
+
+
+    if (this.mapMarkers.length > 0) {
+      if (this.mapMarkers.length === 1) {
+        this.mapCenter = { lat: this.mapMarkers[0].lat, lng: this.mapMarkers[0].lng };
+        setTimeout(() => {
+          this.fitMapToMarkers();
+        }, 100);
+      } else {
+        const centerLat = (this.mapMarkers[0].lat + this.mapMarkers[1].lat) / 2;
+        const centerLng = (this.mapMarkers[0].lng + this.mapMarkers[1].lng) / 2;
+        this.mapCenter = { lat: centerLat, lng: centerLng };
+        
+        setTimeout(() => {
+          this.fitMapToMarkers();
+        }, 100);
+      }
+      console.log('Updated map center:', this.mapCenter);
+    }
+    
+    console.log('Final map markers:', this.mapMarkers);
+  }
+
+  private clearPickupMarker(): void {
+    this.pickupCoordinates = null;
+    this.updateMapMarkers();
+  }
+
+  private clearDestinationMarker(): void {
+    this.destinationCoordinates = null;
+    this.updateMapMarkers();
+  }
+
+  async searchAddresses(query: string, isPickup: boolean = true): Promise<void> {
+    if (query.length < 2) {
+      if (isPickup) {
+        this.pickupSuggestions = [];
+        this.showPickupSuggestions = false;
+      } else {
+        this.destinationSuggestions = [];
+        this.showDestinationSuggestions = false;
+      }
+      return;
+    }
+
+    try {
+      const result = await this.mapService.getAddressSuggestions(query);
+      
+      if (result.isValid && result.suggestions && result.suggestions.length > 0) {
+        if (isPickup) {
+          this.pickupSuggestions = result.suggestions;
+          this.showPickupSuggestions = true;
+        } else {
+          this.destinationSuggestions = result.suggestions;
+          this.showDestinationSuggestions = true;
+        }
+        
+        if (result.error) {
+          this.toastService.showInfo('Using fallback location suggestions');
+        }
+      } else {
+        if (isPickup) {
+          this.pickupSuggestions = [];
+          this.showPickupSuggestions = false;
+        } else {
+          this.destinationSuggestions = [];
+          this.showDestinationSuggestions = false;
+        }
+        
+        if (query.length >= 3) {
+          this.toastService.showWarning('No locations found. Try a different search term.');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching address suggestions:', error);
+      
+      this.toastService.showError('Unable to fetch location suggestions. Please try again.');
+      
+      if (isPickup) {
+        this.pickupSuggestions = [];
+        this.showPickupSuggestions = false;
+      } else {
+        this.destinationSuggestions = [];
+        this.showDestinationSuggestions = false;
+      }
+    }
+  }
+
+  selectAddress(suggestion: AddressSuggestion, isPickup: boolean = true): void {
+    const address = suggestion.display_name;
+    const lat = parseFloat(suggestion.lat);
+    const lng = parseFloat(suggestion.lon);
+
+    if (isPickup) {
+      this.deliveryForm.patchValue({ pickupLocation: address });
+      this.pickupCoordinates = { lat, lng };
+      this.showPickupSuggestions = false;
+      console.log('Set pickup coordinates:', this.pickupCoordinates);
+    } else {
+      this.deliveryForm.patchValue({ destination: address });
+      this.destinationCoordinates = { lat, lng };
+      this.showDestinationSuggestions = false;
+      console.log('Set destination coordinates:', this.destinationCoordinates);
+    }
+
+    this.updateMapMarkers();
+    this.showMap = true;
+    
+    // Ensure map fits to show all markers with appropriate zoom
+    setTimeout(() => {
+      this.fitMapToMarkers();
+    }, 200);
   }
 
   populateFormWithOrderDetails(orderDetails: OrderDetails) {
@@ -175,18 +411,15 @@ export class CreateDelivery implements OnInit {
     }
   }
 
-  // Get formatted total price for display
   getFormattedTotalPrice(): string {
     return this.totalPrice > 0 ? `KSH ${this.totalPrice.toFixed(2)}` : 'KSH 0.00';
   }
 
-  // Get formatted price per kg for display
   getFormattedPricePerKg(): string {
     const price = this.deliveryForm.get('pricePerKg')?.value || this.pricePerKg;
     return `KSH ${price.toFixed(2)}`;
   }
 
-  // Get submit button text
   getSubmitButtonText(): string {
     return this.isEditMode ? 'Update Delivery' : 'Create Delivery';
   }
@@ -196,7 +429,15 @@ export class CreateDelivery implements OnInit {
       const formData = this.deliveryForm.value;
       formData.totalPrice = this.totalPrice; // Adding calculated total price to form data
       
-      console.log('Delivery form submitted:', formData);
+      // Add coordinates to form data
+      formData.pickupCoordinates = this.pickupCoordinates;
+      formData.destinationCoordinates = this.destinationCoordinates;
+      
+      // Add route information
+      formData.estimatedDistance = this.routeDistance;
+      formData.estimatedDeliveryTime = this.routeEstimatedTime;
+      
+      console.log('Enhanced delivery form submitted:', formData);
       
       // Create parcel details for driver assignment
       const parcelDetails = {
@@ -204,7 +445,13 @@ export class CreateDelivery implements OnInit {
         pickupAddress: formData.pickupLocation,
         deliveryAddress: formData.destination,
         weight: formData.parcelWeight,
-        price: this.totalPrice
+        price: this.totalPrice,
+        pickupLat: this.pickupCoordinates?.lat,
+        pickupLng: this.pickupCoordinates?.lng,
+        deliveryLat: this.destinationCoordinates?.lat,
+        deliveryLng: this.destinationCoordinates?.lng,
+        estimatedDistance: this.routeDistance,
+        estimatedDeliveryTime: this.routeEstimatedTime
       };
       
       // Navigate to order confirmation with parcel details
@@ -337,5 +584,148 @@ export class CreateDelivery implements OnInit {
   isFieldInvalid(fieldName: string): boolean {
     const field = this.deliveryForm.get(fieldName);
     return !!(field?.invalid && field?.touched);
+  }
+
+  // Map event handlers
+  onMapReady(map: L.Map): void {
+    console.log('Map is ready for create delivery', map);
+    console.log('Current map markers:', this.mapMarkers);
+    console.log('Map center:', this.mapCenter);
+  }
+
+  onMarkerClick(location: MapLocation): void {
+    console.log('Marker clicked:', location);
+  }
+
+  onMapClick(coordinates: MapCoordinates): void {
+    console.log('Map clicked at:', coordinates);
+    // Allow users to select locations by clicking on map
+    if (!this.pickupCoordinates) {
+      this.setPickupFromMap(coordinates);
+    } else if (!this.destinationCoordinates) {
+      this.setDestinationFromMap(coordinates);
+    } else {
+      // Both locations set, ask user which one to update
+      this.showLocationSelectionDialog(coordinates);
+    }
+  }
+
+  onMapError(error: MapError): void {
+    console.error('Map error:', error);
+    this.toastService.showError(`Map error: ${error.message}`);
+  }
+
+  onRouteUpdated(routeInfo: { distance: number; estimatedTime: number }): void {
+    this.routeDistance = routeInfo.distance;
+    this.routeEstimatedTime = routeInfo.estimatedTime;
+    console.log('Route updated:', routeInfo);
+  }
+
+  /**
+   * Fit map to show all markers with appropriate zoom
+   */
+  public fitMapToMarkers(): void {
+    if (this.mapMarkers.length > 0) {
+      // Fit the main map component (delivery tab)
+      if (this.mapComponent) {
+        this.mapComponent.fitToMarkers();
+      }
+      
+      // Also fit the tracking map component if it exists
+      if (this.trackingMapComponent) {
+        this.trackingMapComponent.fitToMarkers();
+      }
+    }
+  }
+
+
+
+  /**
+   * Toggle route display on map
+   */
+  toggleRouteDisplay(): void {
+    this.showRoute = !this.showRoute;
+  }
+
+  private async setPickupFromMap(coordinates: MapCoordinates): Promise<void> {
+    try {
+      const result = await this.mapService.reverseGeocode(coordinates.lat, coordinates.lng);
+      if (result.success && result.address) {
+        this.deliveryForm.patchValue({ pickupLocation: result.address });
+        this.pickupCoordinates = coordinates;
+        this.updateMapMarkers();
+        this.toastService.showSuccess('Pickup location set from map');
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding:', error);
+      this.toastService.showError('Unable to get address for selected location');
+    }
+  }
+
+  private async setDestinationFromMap(coordinates: MapCoordinates): Promise<void> {
+    try {
+      const result = await this.mapService.reverseGeocode(coordinates.lat, coordinates.lng);
+      if (result.success && result.address) {
+        this.deliveryForm.patchValue({ destination: result.address });
+        this.destinationCoordinates = coordinates;
+        this.updateMapMarkers();
+        this.toastService.showSuccess('Destination set from map');
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding:', error);
+      this.toastService.showError('Unable to get address for selected location');
+    }
+  }
+
+  private showLocationSelectionDialog(coordinates: MapCoordinates): void {
+    const choice = confirm('Both pickup and destination are set. Click OK to update pickup location, or Cancel to update destination.');
+    if (choice) {
+      this.setPickupFromMap(coordinates);
+    } else {
+      this.setDestinationFromMap(coordinates);
+    }
+  }
+
+
+
+  switchTab(tab: string) {
+    this.activeTab = tab;
+    
+    // If switching to tracking tab, ensure map is properly updated
+    if (tab === 'tracking') {
+      setTimeout(() => {
+        this.updateMapMarkers();
+        if (this.trackingMapComponent) {
+          this.trackingMapComponent.fitToMarkers();
+        }
+      }, 200);
+    }
+  }
+
+  // Mobile menu methods
+  checkMobileView(): void {
+    this.isMobileView = window.innerWidth <= 768;
+  }
+
+  toggleMobileMenu(): void {
+    this.showMobileMenu = !this.showMobileMenu;
+    // Prevent body scroll when menu is open
+    if (this.showMobileMenu) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
+
+  closeMobileMenu(): void {
+    this.showMobileMenu = false;
+    document.body.style.overflow = '';
+  }
+
+  ngOnDestroy(): void {
+    // Clean up event listeners
+    window.removeEventListener('resize', () => {
+      this.checkMobileView();
+    });
   }
 }

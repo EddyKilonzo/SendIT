@@ -57,6 +57,22 @@ interface UserProfile {
   role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   profileImage?: string;
   isActive: boolean;
+  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: Date;
+  driverApprovalDate?: Date;
+  driverRejectionReason?: string;
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+}
+
+interface DriverApplication {
+  licenseNumber: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  reason?: string;
+  applicationDate?: Date;
+  approvalDate?: Date;
 }
 
 @Component({
@@ -69,6 +85,7 @@ interface UserProfile {
 export class Profile implements OnInit {
   profileForm: FormGroup;
   passwordForm: FormGroup;
+  driverApplicationForm: FormGroup;
   userProfile: UserProfile;
   selectedImage: File | null = null;
   imagePreview: string | null = null;
@@ -77,6 +94,14 @@ export class Profile implements OnInit {
   isLoading = false;
   initialProfileData: any;
   initialPasswordData: any;
+  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverRejectionReason?: string;
+  driverApplication?: DriverApplication;
+
+  // Password visibility states
+  showCurrentPassword = false;
+  showNewPassword = false;
+  showConfirmPassword = false;
 
   constructor(
     private fb: FormBuilder,
@@ -114,6 +139,13 @@ export class Profile implements OnInit {
       confirmPassword: ['', [Validators.required]]
     }, { validators: this.passwordMatchValidator });
 
+    this.driverApplicationForm = this.fb.group({
+      licenseNumber: ['', [Validators.required, Validators.minLength(5)]],
+      vehicleNumber: [''],
+      vehicleType: ['', [Validators.required]],
+      reason: ['', [Validators.required, Validators.minLength(5)]]
+    });
+
     // Store initial form values
     this.initialProfileData = this.profileForm.value;
     this.initialPasswordData = this.passwordForm.value;
@@ -121,12 +153,64 @@ export class Profile implements OnInit {
 
   ngOnInit() {
     this.loadUserProfile();
+    
+    // Simulate status updates (in a real app, this would be from WebSocket or polling)
+    this.simulateStatusUpdates();
+  }
+
+  // Simulate status updates for demonstration
+  private simulateStatusUpdates() {
+    // Simulate an approval after 10 seconds (for demo purposes)
+    setTimeout(() => {
+      if (this.driverApplicationStatus === 'PENDING') {
+        // Randomly approve or reject for demo
+        const shouldApprove = Math.random() > 0.5;
+        
+        if (shouldApprove) {
+          this.driverApplicationStatus = 'APPROVED';
+          this.userProfile.driverApplicationStatus = 'APPROVED';
+          this.userProfile.driverApprovalDate = new Date();
+          this.driverApplication!.approvalDate = new Date();
+          
+          this.toastService.showSuccess(
+            '🎉 Congratulations! Your driver application has been approved!\n\n' +
+            'You can now start accepting delivery assignments. Welcome to the team!'
+          );
+        } else {
+          this.driverApplicationStatus = 'REJECTED';
+          this.userProfile.driverApplicationStatus = 'REJECTED';
+          this.driverRejectionReason = 'Vehicle registration documentation incomplete';
+          this.userProfile.driverRejectionReason = this.driverRejectionReason;
+          
+          this.toastService.showError(
+            '❌ Your driver application was not approved.\n\n' +
+            'Reason: Vehicle registration documentation incomplete\n\n' +
+            'You can reapply with updated documentation.'
+          );
+        }
+      }
+    }, 10000); // 10 seconds delay for demo
   }
 
   loadUserProfile() {
     // Since we're using dummy data, no need for loading simulation
     // In a real app, this would fetch from API
     this.isLoading = false;
+    
+    // Load driver application status if exists
+    this.driverApplicationStatus = this.userProfile.driverApplicationStatus;
+    this.driverRejectionReason = this.userProfile.driverRejectionReason;
+    
+    if (this.userProfile.driverApplicationStatus) {
+      this.driverApplication = {
+        licenseNumber: this.userProfile.licenseNumber || '',
+        vehicleNumber: this.userProfile.vehicleNumber,
+        vehicleType: this.userProfile.vehicleType,
+        reason: '',
+        applicationDate: this.userProfile.driverApplicationDate,
+        approvalDate: this.userProfile.driverApprovalDate
+      };
+    }
   }
 
   passwordMatchValidator(group: AbstractControl): ValidationErrors | null {
@@ -341,5 +425,95 @@ export class Profile implements OnInit {
       const control = form.get(key);
       control?.markAsTouched();
     });
+  }
+
+  // Driver Application Methods
+  submitDriverApplication() {
+    if (this.driverApplicationForm.valid) {
+      this.isLoading = true;
+      
+      // Show initial feedback
+      this.toastService.showInfo('Submitting your driver application...');
+      
+      // Simulate API call
+      setTimeout(() => {
+        const formData = this.driverApplicationForm.value;
+        this.driverApplicationStatus = 'PENDING';
+        this.driverApplication = {
+          ...formData,
+          applicationDate: new Date()
+        };
+        
+        // Update user profile with application data
+        this.userProfile.driverApplicationStatus = 'PENDING';
+        this.userProfile.driverApplicationDate = new Date();
+        this.userProfile.licenseNumber = formData.licenseNumber;
+        this.userProfile.vehicleNumber = formData.vehicleNumber;
+        this.userProfile.vehicleType = formData.vehicleType;
+        
+        this.isLoading = false;
+        
+        // Show success message
+        this.toastService.showSuccess('Driver application submitted successfully!');
+        
+        // Reset form
+        this.driverApplicationForm.reset();
+      }, 2000);
+    } else {
+      this.markFormGroupTouched(this.driverApplicationForm);
+      this.toastService.showError('Please fill in all required fields correctly');
+    }
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'PENDING':
+        return 'status-pending';
+      case 'APPROVED':
+        return 'status-approved';
+      case 'REJECTED':
+        return 'status-rejected';
+      default:
+        return '';
+    }
+  }
+
+  getStatusIcon(status: string): string {
+    switch (status) {
+      case 'PENDING':
+        return 'fas fa-clock';
+      case 'APPROVED':
+        return 'fas fa-check-circle';
+      case 'REJECTED':
+        return 'fas fa-times-circle';
+      default:
+        return 'fas fa-info-circle';
+    }
+  }
+
+  getStatusText(status: string): string {
+    switch (status) {
+      case 'PENDING':
+        return 'Under Review';
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  // Password visibility toggle methods
+  toggleCurrentPasswordVisibility() {
+    this.showCurrentPassword = !this.showCurrentPassword;
+  }
+
+  toggleNewPasswordVisibility() {
+    this.showNewPassword = !this.showNewPassword;
+  }
+
+  toggleConfirmPasswordVisibility() {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 }

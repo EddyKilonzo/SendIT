@@ -194,6 +194,17 @@ export class AssignDriver implements OnInit {
     });
 
     this.toastService.showSuccess(`Driver ${this.selectedDriver.name} assigned to parcel #${this.parcelDetails.id}`);
+    
+    // Redirect to a parcel that already has a driver assigned
+    setTimeout(() => {
+      // Redirect to a parcel that already has a driver (e.g., #12346 which has John Smith)
+      this.router.navigate(['/admin-parcel-details', '#12346'], {
+        state: { 
+          assignedDriverId: this.selectedDriver?.id,
+          newlyAssigned: true
+        }
+      });
+    }, 1000); // Wait 1 second for the success message to be visible
   }
 
   getDriverStatusClass(availability: string): string {
@@ -215,5 +226,9 @@ export class AssignDriver implements OnInit {
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
     
     return '★'.repeat(fullStars) + (hasHalfStar ? '☆' : '') + '☆'.repeat(emptyStars);
+  }
+
+  goBack() {
+    this.router.navigate(['/admin-manage-parcels']);
   }
 } 

@@ -2,6 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { MapComponent } from '../../shared/map/map.component';
+import { MapService } from '../../../services/map.service';
+import { MapLocation, MapCoordinates, MapError } from '../../../types/map.types';
+import * as L from 'leaflet';
 
 interface Parcel {
   id: string;
@@ -26,7 +30,7 @@ interface DeliveryInstruction {
 @Component({
   selector: 'app-driver-parcel-details',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, MapComponent],
   templateUrl: './parcel-details.html',
   styleUrls: ['./parcel-details.css']
 })
@@ -35,8 +39,16 @@ export class DriverParcelDetails implements OnInit {
   deliveryInstructions: DeliveryInstruction[] = [];
   userRole: string = 'DRIVER';
   showMapView: boolean = false;
+  
+  // Map-related properties
+  mapMarkers: MapLocation[] = [];
+  mapCenter: MapCoordinates = { lat: -1.2921, lng: 36.8219 }; // Nairobi
+  currentLocation: MapLocation | null = null;
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(
+    private route: ActivatedRoute,
+    private mapService: MapService
+  ) {}
 
   ngOnInit() {
     // Get parcel ID from route parameters
@@ -82,6 +94,74 @@ export class DriverParcelDetails implements OnInit {
         completed: false
       }
     ];
+
+    // Setup map markers
+    this.setupMapMarkers();
+  }
+
+  private async setupMapMarkers(): Promise<void> {
+    if (!this.parcel) return;
+
+    try {
+      this.mapMarkers = [];
+
+      // Add current location marker (driver's location)
+      // Using a default location for now - in real app, this would get actual driver location
+      this.currentLocation = {
+        lat: -1.2921,
+        lng: 36.8219,
+        description: 'Your Current Location',
+        address: 'Current Location'
+      };
+      this.mapMarkers.push({
+        ...this.currentLocation,
+        description: `<strong>Your Current Location</strong><br>Driver Position`,
+        address: 'Current Location'
+      });
+
+      // Geocode pickup address
+      const pickupResult = await this.mapService.geocodeAddress(this.parcel.pickupAddress);
+      if (pickupResult.success && pickupResult.location) {
+        this.mapMarkers.push({
+          ...pickupResult.location,
+          description: `<strong>Pickup Location</strong><br>${this.parcel.pickupAddress}`,
+          address: this.parcel.pickupAddress
+        });
+      }
+
+      // Geocode delivery address
+      const deliveryResult = await this.mapService.geocodeAddress(this.parcel.deliveryAddress);
+      if (deliveryResult.success && deliveryResult.location) {
+        this.mapMarkers.push({
+          ...deliveryResult.location,
+          description: `<strong>Delivery Location</strong><br>${this.parcel.deliveryAddress}`,
+          address: this.parcel.deliveryAddress
+        });
+      }
+
+      // Update map center to show all markers
+      this.updateMapCenter();
+    } catch (error) {
+      console.error('Error setting up map markers:', error);
+    }
+  }
+
+  private updateMapCenter(): void {
+    if (this.mapMarkers.length === 0) return;
+
+    if (this.mapMarkers.length === 1) {
+      // Single marker - center on it
+      this.mapCenter = { lat: this.mapMarkers[0].lat, lng: this.mapMarkers[0].lng };
+    } else {
+      // Multiple markers - center between them
+      const lats = this.mapMarkers.map(marker => marker.lat);
+      const lngs = this.mapMarkers.map(marker => marker.lng);
+      
+      const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+      const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+      
+      this.mapCenter = { lat: centerLat, lng: centerLng };
+    }
   }
 
   toggleInstruction(index: number) {
@@ -135,6 +215,50 @@ export class DriverParcelDetails implements OnInit {
 
   toggleView() {
     this.showMapView = !this.showMapView;
+  }
+
+  onMapReady(map: L.Map): void {
+    console.log('Map is ready for driver parcel details');
+    
+    // Fit map to show all markers after a short delay to ensure they're loaded
+    setTimeout(() => {
+      if (this.mapMarkers.length > 1) {
+        // Fit map to show all markers with some padding
+        const bounds = L.latLngBounds(
+          this.mapMarkers.map(marker => [marker.lat, marker.lng])
+        );
+        map.fitBounds(bounds, { padding: [20, 20] });
+      }
+    }, 500);
+  }
+
+  onMarkerClick(location: MapLocation): void {
+    console.log('Marker clicked:', location);
+  }
+
+  onMapClick(coordinates: MapCoordinates): void {
+    console.log('Map clicked at:', coordinates);
+  }
+
+  onMapError(error: MapError): void {
+    console.error('Map error:', error);
+  }
+
+  onRouteUpdated(routeInfo: { distance: number; estimatedTime: number }): void {
+    console.log('Route updated:', routeInfo);
+    // You can display route information here if needed
+  }
+
+  fitMapToMarkers(): void {
+    if (this.mapMarkers.length > 1) {
+      // This will be called by the map component's fitToMarkers method
+      console.log('Fitting map to show all markers');
+    }
+  }
+
+  refreshMapMarkers(): void {
+    // Re-setup map markers (useful for refreshing location data)
+    this.setupMapMarkers();
   }
 
   markAsCompleted() {

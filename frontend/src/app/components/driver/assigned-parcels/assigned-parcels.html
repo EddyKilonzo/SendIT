@@ -20,23 +20,18 @@
       </a>
     </nav>
     
-    <div class="sidebar-footer">
-      <a routerLink="/help" class="nav-item help-link">
-        <i class="fas fa-question-circle"></i>
-        <span>Help</span>
-      </a>
-    </div>
+    
   </aside>
 
   <!-- Main Content -->
   <main class="main-content">
       <!-- Header -->
-      <div class="content-header">
+      <div class="content-header animate-fade-in-up">
         <h1 class="page-title">Parcels Assigned</h1>
       </div>
 
     <!-- Search and Filter Section -->
-    <div class="search-filter-section">
+    <div class="search-filter-section animate-fade-in-up">
       <div class="search-container">
         <div class="search-bar">
           <i class="fas fa-search search-icon"></i>
@@ -89,11 +84,11 @@
     </div>
 
     <!-- Parcels List -->
-    <div class="parcels-container">
+    <div class="parcels-container animate-fade-in-up">
       <div class="parcels-list">
         <div 
-          class="parcel-card" 
-          *ngFor="let parcel of filteredParcels"
+          class="parcel-card hover-lift" 
+          *ngFor="let parcel of filteredParcels; let i = index"
           [class.highlighted]="parcel.id === selectedParcelId"
           (click)="viewParcelDetails(parcel.id)"
           style="cursor: pointer;"
@@ -159,7 +154,7 @@
       </div>
       
       <!-- No Parcels Message -->
-      <div class="no-parcels" *ngIf="filteredParcels.length === 0">
+      <div class="no-parcels animate-fade-in" *ngIf="filteredParcels.length === 0">
         <div class="no-parcels-content">
           <i class="fas fa-box-open no-parcels-icon"></i>
           <h3>No Parcels Found</h3>

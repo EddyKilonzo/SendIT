@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 
 interface ParcelDetailsData {
   id: string;
@@ -57,13 +57,23 @@ export class ParcelDetails implements OnInit {
   parcel: ParcelDetailsData | null = null;
   loading = false;
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit() {
     this.route.params.subscribe(params => {
       this.parcelId = params['id'];
       this.loadParcelDetails();
     });
+
+    // Check if redirected from assign driver with newly assigned driver
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state) {
+      const state = navigation.extras.state as any;
+      if (state.newlyAssigned && state.assignedDriverId) {
+        // Update the parcel with the newly assigned driver
+        this.updateParcelWithNewDriver(state.assignedDriverId);
+      }
+    }
   }
 
   loadParcelDetails() {
@@ -384,5 +394,58 @@ export class ParcelDetails implements OnInit {
 
   goBack() {
     window.history.back();
+  }
+
+  private updateParcelWithNewDriver(driverId: string) {
+    if (this.parcel) {
+      // Get driver name from ID
+      const driverName = this.getDriverNameById(driverId);
+      
+      // Update parcel status and driver
+      this.parcel.status = 'In Transit';
+      this.parcel.driver = this.getDriverInfo(driverName);
+      
+      // Add new activity log entry
+      this.parcel.activityLog.unshift({
+        action: 'Driver Assigned',
+        date: new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }),
+        time: new Date().toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        user: 'Admin',
+        icon: 'fas fa-user-plus'
+      });
+
+      // Add to order history
+      this.parcel.orderHistory.push({
+        status: 'Driver Assigned',
+        date: new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }),
+        time: new Date().toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        icon: 'fas fa-user-plus'
+      });
+    }
+  }
+
+  private getDriverNameById(driverId: string): string {
+    const driverNames: { [key: string]: string } = {
+      '1': 'Ethan Carter',
+      '2': 'Liam Harper', 
+      '3': 'Noah Bennett',
+      '4': 'Oliver Wilson',
+      '5': 'William Davis'
+    };
+    return driverNames[driverId] || 'Unknown Driver';
   }
 } 

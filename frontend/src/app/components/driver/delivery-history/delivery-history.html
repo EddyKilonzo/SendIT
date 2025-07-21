@@ -12,7 +12,7 @@
       </a>
       <a routerLink="/driver-history" class="nav-item active" routerLinkActive="active">
         <i class="fas fa-history"></i>
-        <span>Delivery History</span>
+        <span style="font-size: 15px;">Delivery History</span>
       </a>
       <a routerLink="/profile" class="nav-item">
         <i class="fas fa-user"></i>
@@ -20,23 +20,18 @@
       </a>
     </nav>
     
-    <div class="sidebar-footer">
-      <a routerLink="/help" class="nav-item help-link">
-        <i class="fas fa-question-circle"></i>
-        <span>Help</span>
-      </a>
-    </div>
+    
   </aside>
 
   <!-- Main Content -->
   <main class="main-content">
     <!-- Header -->
-    <div class="content-header">
+    <div class="content-header animate-fade-in-up">
       <h1 class="page-title">Delivery History</h1>
     </div>
 
     <!-- Search and Filter Section -->
-    <div class="search-filter-section">
+    <div class="search-filter-section animate-fade-in-up">
       <div class="search-container">
         <div class="search-bar">
           <i class="fas fa-search search-icon"></i>
@@ -117,7 +112,7 @@
     </div>
 
     <!-- Delivery History Table -->
-    <div class="table-container">
+    <div class="table-container animate-fade-in-up">
       <table class="history-table">
         <thead>
           <tr>
@@ -142,7 +137,7 @@
           <tr 
             *ngFor="let delivery of paginatedHistory"
             (click)="viewParcelDetails(delivery.id)"
-            class="table-row clickable"
+            class="table-row clickable hover-lift"
           >
             <td class="parcel-id">{{ delivery.parcelId }}</td>
             <td class="delivery-date">{{ delivery.deliveryDate }}</td>
@@ -166,7 +161,7 @@
       </table>
       
       <!-- No Results Message -->
-      <div class="no-results" *ngIf="filteredHistory.length === 0">
+      <div class="no-results animate-fade-in" *ngIf="filteredHistory.length === 0">
         <div class="no-results-content">
           <i class="fas fa-search no-results-icon"></i>
           <h3>No Deliveries Found</h3>
@@ -180,7 +175,7 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination-container" *ngIf="totalPages > 1">
+    <div class="pagination-container animate-fade-in-up" *ngIf="totalPages > 1">
       <div class="pagination">
         <button 
           class="pagination-btn" 
