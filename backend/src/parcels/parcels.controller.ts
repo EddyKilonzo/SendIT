@@ -6,97 +6,129 @@ import {
   Patch,
   Param,
   Delete,
-  HttpCode,
-  HttpStatus,
   Query,
+  Request,
 } from '@nestjs/common';
 import { ParcelsService } from './parcels.service';
 import {
   CreateParcelDto,
   UpdateParcelDto,
-  UpdateParcelStatusDto,
-  UpdateParcelLocationDto,
-  ParcelsQueryDto,
+  ParcelQueryDto,
+  ParcelStatusUpdateDto,
+  DeliveryConfirmationDto,
 } from './dto';
-import { IdParamDto, TrackingParamDto, UserIdParamDto } from '../common/dto';
+// TODO: Import guards and decorators when they are created
+// import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+// import { RolesGuard } from '../common/guards/roles.guard';
+// import { Roles } from '../common/decorators/roles.decorator';
+
+interface AuthenticatedRequest {
+  user: {
+    id: string;
+    role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  };
+}
 
 @Controller('parcels')
+// @UseGuards(JwtAuthGuard, RolesGuard)
 export class ParcelsController {
   constructor(private readonly parcelsService: ParcelsService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(@Body() createParcelDto: CreateParcelDto) {
-    return { message: 'Create parcel endpoint', data: createParcelDto };
+  // @Roles('CUSTOMER', 'ADMIN')
+  async create(
+    @Body() createParcelDto: CreateParcelDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.parcelsService.create(createParcelDto, req.user.id);
   }
 
   @Get()
-  findAll(@Query() query: ParcelsQueryDto) {
-    return { message: 'Get all parcels endpoint', query };
-  }
-
-  @Get(':id')
-  findOne(@Param() params: IdParamDto) {
-    return { message: `Get parcel with id ${params.id} endpoint` };
-  }
-
-  @Get('user/:userId')
-  findByUser(@Param() params: UserIdParamDto) {
-    return { message: `Get parcels for user ${params.userId} endpoint` };
+  async findAll(
+    @Query() query: ParcelQueryDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.parcelsService.findAll(query, req.user.id, req.user.role);
   }
 
   @Get('tracking/:trackingNumber')
-  findByTrackingNumber(@Param() params: TrackingParamDto) {
-    return {
-      message: `Get parcel with tracking number ${params.trackingNumber} endpoint`,
-    };
+  async findByTrackingNumber(@Param('trackingNumber') trackingNumber: string) {
+    return this.parcelsService.findByTrackingNumber(trackingNumber);
+  }
+
+  @Get('my-parcels')
+  // @Roles('CUSTOMER')
+  async getMyParcels(
+    @Query('type') type: 'sent' | 'received' = 'sent',
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.parcelsService.getUserParcels(req.user.id, type);
+  }
+
+  @Get('assigned')
+  // @Roles('DRIVER')
+  async getAssignedParcels(
+    @Request() req: AuthenticatedRequest,
+    @Query('status') status?: string,
+  ) {
+    return this.parcelsService.getDriverParcels(req.user.id, status);
+  }
+
+  @Get('status-history/:id')
+  async getStatusHistory(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.parcelsService.getStatusHistory(id, req.user.id, req.user.role);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.parcelsService.findOne(id, req.user.id, req.user.role);
   }
 
   @Patch(':id')
-  @HttpCode(HttpStatus.OK)
-  update(
-    @Param() params: IdParamDto,
+  // @Roles('CUSTOMER', 'ADMIN')
+  async update(
+    @Param('id') id: string,
     @Body() updateParcelDto: UpdateParcelDto,
+    @Request() req: AuthenticatedRequest,
   ) {
-    return {
-      message: `Update parcel with id ${params.id} endpoint`,
-      data: updateParcelDto,
-    };
+    return this.parcelsService.update(
+      id,
+      updateParcelDto,
+      req.user.id,
+      req.user.role,
+    );
   }
 
   @Patch(':id/status')
-  @HttpCode(HttpStatus.OK)
-  updateStatus(
-    @Param() params: IdParamDto,
-    @Body() statusDto: UpdateParcelStatusDto,
+  // @Roles('DRIVER')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() statusUpdateDto: ParcelStatusUpdateDto,
+    @Request() req: AuthenticatedRequest,
   ) {
-    return {
-      message: `Update status for parcel with id ${params.id} endpoint`,
-      data: statusDto,
-    };
+    return this.parcelsService.updateStatus(id, statusUpdateDto, req.user.id);
   }
 
-  @Patch(':id/location')
-  @HttpCode(HttpStatus.OK)
-  updateLocation(
-    @Param() params: IdParamDto,
-    @Body() locationDto: UpdateParcelLocationDto,
+  @Patch(':id/confirm-delivery')
+  // @Roles('CUSTOMER')
+  async confirmDelivery(
+    @Param('id') id: string,
+    @Body() confirmationDto: DeliveryConfirmationDto,
+    @Request() req: AuthenticatedRequest,
   ) {
-    return {
-      message: `Update location for parcel with id ${params.id} endpoint`,
-      data: locationDto,
-    };
+    return this.parcelsService.confirmDelivery(
+      id,
+      confirmationDto,
+      req.user.id,
+    );
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param() params: IdParamDto) {
-    return { message: `Delete parcel with id ${params.id} endpoint` };
-  }
-
-  @Post(':id/cancel')
-  @HttpCode(HttpStatus.OK)
-  cancel(@Param() params: IdParamDto) {
-    return { message: `Cancel parcel with id ${params.id} endpoint` };
+  // @Roles('CUSTOMER', 'ADMIN')
+  async remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.parcelsService.cancel(id, req.user.id, req.user.role);
   }
 }

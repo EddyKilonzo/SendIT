@@ -30,21 +30,23 @@ export class UsersController {
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(createJoiValidationPipe(registerSchema))
   create(@Body() createUserDto: CreateUserDto) {
-    return { message: 'Create user endpoint', data: createUserDto };
+    return this.usersService.create(createUserDto);
   }
 
   @Get()
   findAll(@Query() query: UsersQueryDto) {
-    return { message: 'Get all users endpoint', query };
+    return this.usersService.findAll(query);
   }
 
   @Get(':id')
   findOne(@Param() params: IdParamDto) {
-    return { message: `Get user with id ${params.id} endpoint` };
+    return this.usersService.findOne(params.id);
   }
 
   @Get('profile/me')
   getProfile() {
+    // This would typically get the user ID from the JWT token
+    // For now, returning a placeholder
     return { message: 'Get current user profile endpoint' };
   }
 
@@ -52,16 +54,13 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   @UsePipes(createJoiValidationPipe(updateUserSchema))
   update(@Param() params: IdParamDto, @Body() updateUserDto: UpdateUserDto) {
-    return {
-      message: `Update user with id ${params.id} endpoint`,
-      data: updateUserDto,
-    };
+    return this.usersService.update(params.id, updateUserDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param() params: IdParamDto) {
-    return { message: `Delete user with id ${params.id} endpoint` };
+    return this.usersService.remove(params.id);
   }
 
   @Patch(':id/change-password')
@@ -70,9 +69,6 @@ export class UsersController {
     @Param() params: IdParamDto,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    return {
-      message: `Change password for user with id ${params.id} endpoint`,
-      data: changePasswordDto,
-    };
+    return this.usersService.changePassword(params.id, changePasswordDto);
   }
 }

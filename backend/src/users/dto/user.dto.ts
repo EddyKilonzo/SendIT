@@ -1,4 +1,4 @@
-// User DTOs
+// Enhanced User DTOs
 export interface CreateUserDto {
   email: string;
   password: string;
@@ -38,64 +38,12 @@ export interface ChangePasswordDto {
 export interface UpdateLocationDto {
   currentLat: number;
   currentLng: number;
+  address?: string;
 }
 
 export interface UpdateAvailabilityDto {
   isAvailable: boolean;
-}
-
-export interface UserResponseDto {
-  id: string;
-  email: string;
-  name: string;
-  phone?: string;
-  address?: string;
-  role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
-  isActive: boolean;
-
-  // Driver-specific fields (only for DRIVER role)
-  licenseNumber?: string;
-  vehicleNumber?: string;
-  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  isAvailable?: boolean;
-  currentLat?: number;
-  currentLng?: number;
-
-  // Driver application fields
-  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
-  driverApplicationDate?: Date;
-  driverApprovalDate?: Date;
-  driverRejectionReason?: string;
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface UsersQueryDto {
-  page?: number;
-  limit?: number;
-  search?: string;
-  role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
-  isActive?: boolean;
-  isAvailable?: boolean;
-  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
-  sortBy?: 'name' | 'email' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
-}
-
-export interface AssignParcelDto {
-  driverId: string;
-  parcelId: string;
-  assignmentNotes?: string;
-}
-
-export interface UpdateParcelStatusDto {
-  status: 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
-  currentLocation?: string;
-  latitude?: number;
-  longitude?: number;
-  notes?: string;
+  reason?: string;
 }
 
 export interface DriverApplicationDto {
@@ -116,4 +64,98 @@ export interface DriverApplicationResponseDto {
   licenseNumber?: string;
   vehicleNumber?: string;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+}
+
+export interface UserResponseDto {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  isActive: boolean;
+
+  // Driver-specific fields (only for DRIVER role)
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  isAvailable?: boolean;
+  currentLat?: number;
+  currentLng?: number;
+
+  // Performance metrics (NEW)
+  averageRating?: number;
+  totalRatings: number;
+  totalDeliveries: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  averageDeliveryTime?: number; // in minutes
+  onTimeDeliveryRate?: number; // percentage
+  lastActiveAt?: Date;
+  totalEarnings?: number;
+
+  // Customer metrics (NEW)
+  totalParcelsEverSent: number;
+  totalParcelsReceived: number;
+  preferredPaymentMethod?: string;
+
+  // Driver application fields
+  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: Date;
+  driverApprovalDate?: Date;
+  driverRejectionReason?: string;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserPerformanceMetricsDto {
+  totalDeliveries: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  averageDeliveryTime?: number;
+  onTimeDeliveryRate: number;
+  averageRating: number;
+  totalRatings: number;
+  totalEarnings: number;
+  recentActivity: Array<{
+    date: Date;
+    action: string;
+    details: string;
+  }>;
+}
+
+export interface UsersQueryDto {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  isActive?: boolean;
+  isAvailable?: boolean;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  sortBy?: 'name' | 'email' | 'createdAt' | 'averageRating' | 'totalDeliveries';
+  sortOrder?: 'asc' | 'desc';
+  minimumRating?: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+    radius: number; // in kilometers
+  };
+}
+
+export interface AssignParcelDto {
+  driverId: string;
+  parcelId: string;
+  assignmentNotes?: string;
+  estimatedPickupTime?: Date;
+  estimatedDeliveryTime?: Date;
+}
+
+export interface UpdateParcelStatusDto {
+  status: 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  currentLocation?: string;
+  latitude?: number;
+  longitude?: number;
+  notes?: string;
 }

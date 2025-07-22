@@ -1,84 +1,151 @@
 // Parcel DTOs
 export interface CreateParcelDto {
-  // Sender info (if current user is sender, these are optional)
-  senderName?: string;
-  senderEmail?: string;
-  senderPhone?: string;
-  senderId?: string; // Optional: if sender is a registered user
-
-  // Recipient info
+  senderName: string;
+  senderEmail: string;
+  senderPhone: string;
   recipientName: string;
   recipientEmail: string;
   recipientPhone: string;
-  recipientId?: string; // Optional: if recipient is a registered user
-
   pickupAddress: string;
   deliveryAddress: string;
   weight: number;
   description?: string;
   value?: number;
   deliveryInstructions?: string;
+  priority?: 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT';
 }
 
 export interface UpdateParcelDto {
-  recipientName?: string;
-  recipientEmail?: string;
-  recipientPhone?: string;
-  pickupAddress?: string;
-  deliveryAddress?: string;
-  weight?: number;
   description?: string;
   value?: number;
   deliveryInstructions?: string;
-}
-
-export interface UpdateParcelStatusDto {
-  status: 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
   notes?: string;
 }
 
-export interface UpdateParcelLocationDto {
-  currentLocation: string;
+export interface ParcelQueryDto {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?:
+    | 'pending'
+    | 'assigned'
+    | 'picked_up'
+    | 'in_transit'
+    | 'delivered_to_recipient'
+    | 'delivered'
+    | 'cancelled';
+  priority?: 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT';
+  dateFrom?: string;
+  dateTo?: string;
+  assignedToMe?: boolean;
+}
+
+export interface ParcelStatusUpdateDto {
+  status:
+    | 'pending'
+    | 'assigned'
+    | 'picked_up'
+    | 'in_transit'
+    | 'delivered_to_recipient'
+    | 'delivered'
+    | 'cancelled';
+  currentLocation?: string;
   latitude?: number;
   longitude?: number;
   notes?: string;
 }
 
+export interface DeliveryConfirmationDto {
+  customerSignature?: string;
+  customerNotes?: string;
+}
+
 export interface ParcelResponseDto {
   id: string;
   trackingNumber: string;
-
-  // Sender info
   senderId?: string;
   senderName: string;
   senderEmail: string;
   senderPhone: string;
-
-  // Recipient info
   recipientId?: string;
   recipientName: string;
   recipientEmail: string;
   recipientPhone: string;
-
+  driverId?: string;
+  assignedAt?: Date;
   pickupAddress: string;
   deliveryAddress: string;
-  currentLocation: string;
-  status: 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  currentLocation?: string;
+  status:
+    | 'pending'
+    | 'assigned'
+    | 'picked_up'
+    | 'in_transit'
+    | 'delivered_to_recipient'
+    | 'delivered'
+    | 'cancelled';
   weight: number;
   description?: string;
   value?: number;
   deliveryInstructions?: string;
+  notes?: string;
+  latitude?: number;
+  longitude?: number;
+  estimatedPickupTime?: Date;
+  actualPickupTime?: Date;
+  estimatedDeliveryTime?: Date;
+  actualDeliveryTime?: Date;
+  totalDeliveryTime?: number;
+  deliveryAttempts: number;
+  priority: 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT';
+  deliveryFee?: number;
+  paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+  deliveredToRecipient: boolean;
+  deliveryConfirmedAt?: Date;
+  deliveryConfirmedBy?: string;
+  customerSignature?: string;
+  customerNotes?: string;
   createdAt: Date;
   updatedAt: Date;
+  sender?: UserResponseDto;
+  recipient?: UserResponseDto;
+  driver?: UserResponseDto;
+  statusHistory?: any[];
+  reviews?: any[];
+  deliveryProof?: any;
 }
 
-export interface ParcelsQueryDto {
-  page?: number;
-  limit?: number;
-  status?: 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
-  search?: string;
-  sortBy?: 'createdAt' | 'status' | 'weight';
-  sortOrder?: 'asc' | 'desc';
-  dateFrom?: string;
-  dateTo?: string;
+// Import UserResponseDto interface
+export interface UserResponseDto {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  isActive: boolean;
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  isAvailable?: boolean;
+  currentLat?: number;
+  currentLng?: number;
+  averageRating?: number;
+  totalRatings?: number;
+  totalDeliveries?: number;
+  completedDeliveries?: number;
+  cancelledDeliveries?: number;
+  averageDeliveryTime?: number;
+  onTimeDeliveryRate?: number;
+  lastActiveAt?: Date;
+  totalEarnings?: number;
+  totalParcelsEverSent?: number;
+  totalParcelsReceived?: number;
+  preferredPaymentMethod?: string;
+  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: Date;
+  driverApprovalDate?: Date;
+  driverRejectionReason?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

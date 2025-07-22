@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { ParcelsModule } from './parcels/parcels.module';
 import { AdminModule } from './admin/admin.module';
 import { DriversModule } from './drivers/drivers.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { CommonModule } from './common/common.module';
 import { DatabaseModule } from './database/database.module';
 
@@ -17,6 +18,7 @@ import { DatabaseModule } from './database/database.module';
     ParcelsModule,
     AdminModule,
     DriversModule,
+    ReviewsModule,
     CommonModule,
   ],
   controllers: [AppController],

@@ -1,131 +1,159 @@
-import { VehicleType } from '@prisma/client';
-
-export class CreateDriverDto {
-  email: string;
-  password: string;
-  name: string;
-  phone: string;
-  licenseNumber: string;
-  vehicleNumber?: string;
-  vehicleType?: VehicleType;
-}
-
-export class UpdateDriverDto {
-  name?: string;
-  phone?: string;
-  vehicleNumber?: string;
-  vehicleType?: VehicleType;
-  isActive?: boolean;
-  isAvailable?: boolean;
-  currentLat?: number;
-  currentLng?: number;
-}
-
-export class UpdateLocationDto {
-  currentLat: number;
-  currentLng: number;
-}
-
-export class UpdateAvailabilityDto {
+// Driver-specific DTOs
+export interface DriverAvailabilityDto {
   isAvailable: boolean;
+  reason?: string;
 }
 
-export class DriverProfileDto {
+export interface DriverLocationUpdateDto {
+  latitude: number;
+  longitude: number;
+  address?: string;
+  heading?: number; // direction in degrees
+  speed?: number; // speed in km/h
+}
+
+export interface DriverApplicationApprovalDto {
+  approved: boolean;
+  reason?: string;
+  approvedBy: string;
+}
+
+export interface DriverResponseDto {
   id: string;
-  name: string;
   email: string;
+  name: string;
   phone?: string;
+  address?: string;
+  role: 'DRIVER';
+  isActive: boolean;
+
+  // Driver-specific fields
   licenseNumber?: string;
   vehicleNumber?: string;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  isAvailable: boolean;
+  isAvailable?: boolean;
   currentLat?: number;
   currentLng?: number;
-  isActive: boolean;
+
+  // Performance metrics
+  averageRating?: number;
+  totalRatings: number;
+  totalDeliveries: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  averageDeliveryTime?: number;
+  onTimeDeliveryRate?: number;
+  lastActiveAt?: Date;
+  totalEarnings?: number;
+
+  // Real-time data
+  distance?: number; // distance from a reference point in km
+  estimatedArrival?: Date;
+  currentDeliveries?: number;
+  capacityRemaining?: number;
+  lastLocationUpdate?: Date;
+  heading?: number;
+  speed?: number;
+
+  // Driver application fields
+  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: Date;
+  driverApprovalDate?: Date;
+  driverRejectionReason?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
 
-export class UpdateDriverProfileDto {
-  name?: string;
-  phone?: string;
-  vehicleNumber?: string;
-  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-}
-
-export class ChangePasswordDto {
-  currentPassword: string;
-  newPassword: string;
-}
-
-export class UpdateParcelStatusDto {
-  status: 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
-  currentLocation?: string;
-  latitude?: number;
-  longitude?: number;
-  notes?: string;
-}
-
-export class DriverParcelDto {
-  id: string;
-  trackingNumber: string;
-  senderName: string;
-  senderPhone: string;
-  recipientName: string;
-  recipientPhone: string;
-  pickupAddress: string;
-  deliveryAddress: string;
-  status:
-    | 'pending'
-    | 'assigned'
-    | 'picked_up'
-    | 'in_transit'
-    | 'delivered'
-    | 'cancelled';
-  weight: number;
-  description?: string;
-  deliveryInstructions?: string;
-  assignedAt?: Date;
-  createdAt: Date;
-}
-
-export class DriverStatsDto {
-  totalAssignedParcels: number;
-  completedDeliveries: number;
-  pendingDeliveries: number;
-  inTransitDeliveries: number;
-  averageDeliveryTime: number; // in hours
-  totalEarnings: number;
-  currentLocation?: {
-    lat: number;
-    lng: number;
-  };
-}
-
-export class DriverQueryDto {
-  page?: number = 1;
-  limit?: number = 10;
-  status?:
-    | 'pending'
-    | 'assigned'
-    | 'picked_up'
-    | 'in_transit'
-    | 'delivered'
-    | 'cancelled';
-  dateFrom?: string;
-  dateTo?: string;
-}
-
-export class AssignParcelDto {
+export interface DriverPerformanceDto {
   driverId: string;
-  parcelId: string;
+  driverName: string;
+
+  // Delivery metrics
+  totalDeliveries: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  averageDeliveryTime: number; // in minutes
+  onTimeDeliveryRate: number; // percentage
+
+  // Rating metrics
+  averageRating: number;
+  totalRatings: number;
+  ratingTrend: Array<{
+    month: string;
+    averageRating: number;
+  }>;
+
+  // Financial metrics
+  totalEarnings: number;
+  averageEarningsPerDelivery: number;
+
+  // Efficiency metrics
+  fuelEfficiency?: number;
+  routeOptimizationScore?: number;
+  customerSatisfactionScore: number;
+
+  // Activity metrics
+  hoursWorked: number;
+  deliveriesPerHour: number;
+  lastActiveAt: Date;
 }
 
-export class DriversQueryDto {
-  page?: number = 1;
-  limit?: number = 10;
-  search?: string;
-  isActive?: boolean;
+export interface NearbyDriverDto {
+  drivers: DriverResponseDto[];
+  searchRadius: number;
+  searchCenter: {
+    latitude: number;
+    longitude: number;
+  };
+  availableCount: number;
+  averageDistance: number;
+}
+
+export interface DriverAssignmentCriteriaDto {
+  parcelId: string;
+  pickupLocation: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  deliveryLocation: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  weight: number;
+  priority: 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT';
+  maxDistance?: number; // in km
+  requiredVehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  minimumRating?: number;
+}
+
+export interface DriverAssignmentResponseDto {
+  recommendedDrivers: Array<{
+    driver: DriverResponseDto;
+    score: number;
+    estimatedPickupTime: Date;
+    estimatedDeliveryTime: Date;
+    distance: number;
+    reasoning: string[];
+  }>;
+  assignmentCriteria: DriverAssignmentCriteriaDto;
+}
+
+export interface DriversQueryDto {
+  page?: number;
+  limit?: number;
   isAvailable?: boolean;
-  vehicleType?: VehicleType;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  location?: {
+    latitude: number;
+    longitude: number;
+    radius: number; // in kilometers
+  };
+  minimumRating?: number;
+  maxCurrentDeliveries?: number;
+  onlineOnly?: boolean;
+  sortBy?: 'distance' | 'rating' | 'lastActiveAt' | 'totalDeliveries';
+  sortOrder?: 'asc' | 'desc';
 }

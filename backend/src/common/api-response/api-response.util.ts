@@ -26,7 +26,7 @@ export class ApiResponse {
   }
 
   static paginated<T>(
-    data: T,
+    data: T[],
     pagination: PaginationDto,
     message = 'Data retrieved successfully',
   ): PaginatedResponseDto<T> {
