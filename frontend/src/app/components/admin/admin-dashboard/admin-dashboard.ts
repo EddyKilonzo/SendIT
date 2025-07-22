@@ -53,7 +53,13 @@ export class AdminDashboard implements OnInit, OnDestroy {
         { month: 'Mar', revenue: 48000 },
         { month: 'Apr', revenue: 52000 },
         { month: 'May', revenue: 49000 },
-        { month: 'Jun', revenue: 57544 }
+        { month: 'Jun', revenue: 57544 },
+        { month: 'Jul', revenue: 52000 },
+        { month: 'Aug', revenue: 55000 },
+        { month: 'Sep', revenue: 58000 },
+        { month: 'Oct', revenue: 62000 },
+        { month: 'Nov', revenue: 65000 },
+        { month: 'Dec', revenue: 68000 }
       ],
       dailyData: [
         { day: 'Mon', revenue: 8200 },
@@ -77,7 +83,7 @@ export class AdminDashboard implements OnInit, OnDestroy {
       performanceByDriver: [
         { name: 'John Doe', deliveries: 45, onTimeRate: 95.6, rating: 4.8 },
         { name: 'Jane Smith', deliveries: 38, onTimeRate: 92.1, rating: 4.6 },
-        { name: 'Mike Johnson', deliveries: 42, onTimeRate: 88.1, rating: 4.4 },
+        { name: 'Mike Johnson', deliveries: 42, onTimeRate: 88.1, rating: 4.6 },
         { name: 'Sarah Wilson', deliveries: 35, onTimeRate: 94.3, rating: 4.7 },
         { name: 'David Brown', deliveries: 40, onTimeRate: 90.0, rating: 4.5 }
       ],
@@ -118,7 +124,7 @@ export class AdminDashboard implements OnInit, OnDestroy {
         {
           id: 2,
           customerName: 'Bob Wilson',
-          rating: 4,
+          rating: 4.5,
           comment: 'Good delivery service. Driver was professional and courteous.',
           date: '2024-01-14',
           driverName: 'Jane Smith'

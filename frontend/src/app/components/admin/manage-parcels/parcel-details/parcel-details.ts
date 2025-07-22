@@ -2,6 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { MapComponent } from '../../../shared/map/map.component';
+import { MapService } from '../../../../services/map.service';
+import { MapLocation, MapCoordinates, MapError, MapMarkerType } from '../../../../types/map.types';
+import { ToastService } from '../../../shared/toast/toast.service';
+import * as L from 'leaflet';
 
 interface ParcelDetailsData {
   id: string;
@@ -48,7 +53,7 @@ interface ParcelDetailsData {
 
 @Component({
   selector: 'app-parcel-details',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, MapComponent],
   templateUrl: './parcel-details.html',
   styleUrl: './parcel-details.css'
 })
@@ -57,7 +62,18 @@ export class ParcelDetails implements OnInit {
   parcel: ParcelDetailsData | null = null;
   loading = false;
 
-  constructor(private route: ActivatedRoute, private router: Router) {}
+  // Map-related properties
+  mapMarkers: MapLocation[] = [];
+  mapCenter: MapCoordinates = { lat: -1.2921, lng: 36.8219 }; // Nairobi
+  showMapView: boolean = true;
+  mapMarkerTypes: MapMarkerType[] = [];
+
+  constructor(
+    private route: ActivatedRoute, 
+    private router: Router,
+    private mapService: MapService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -168,6 +184,11 @@ export class ParcelDetails implements OnInit {
           }
         ]
       };
+    }
+    
+    // Setup map markers after parcel is loaded
+    if (this.parcel) {
+      this.setupMapMarkers();
     }
     
     this.loading = false;
@@ -447,5 +468,147 @@ export class ParcelDetails implements OnInit {
       '5': 'William Davis'
     };
     return driverNames[driverId] || 'Unknown Driver';
+  }
+
+  // Map-related methods
+  private async setupMapMarkers(): Promise<void> {
+    if (!this.parcel) return;
+
+    try {
+      this.mapMarkers = [];
+      this.mapMarkerTypes = [];
+
+      // Geocode sender address (pickup location)
+      const pickupResult = await this.mapService.geocodeAddress(this.parcel.sender.address);
+      if (pickupResult.success && pickupResult.location) {
+        this.mapMarkers.push({
+          ...pickupResult.location,
+          description: `<strong>Pickup Location</strong><br>${this.parcel.sender.address}`,
+          address: this.parcel.sender.address
+        });
+        this.mapMarkerTypes.push(MapMarkerType.PICKUP);
+      } else {
+        console.warn('Failed to geocode pickup address:', this.parcel.sender.address);
+      }
+
+      // Geocode receiver address (delivery location)
+      const deliveryResult = await this.mapService.geocodeAddress(this.parcel.receiver.address);
+      if (deliveryResult.success && deliveryResult.location) {
+        this.mapMarkers.push({
+          ...deliveryResult.location,
+          description: `<strong>Delivery Location</strong><br>${this.parcel.receiver.address}`,
+          address: this.parcel.receiver.address
+        });
+        this.mapMarkerTypes.push(MapMarkerType.DELIVERY);
+      } else {
+        console.warn('Failed to geocode delivery address:', this.parcel.receiver.address);
+      }
+
+      // Add driver location marker if parcel is in transit and has a driver
+      if (this.parcel.status === 'In Transit' && this.parcel.driver) {
+        // For demo purposes, we'll add a marker near the pickup location
+        const driverLocation = {
+          lat: this.mapMarkers[0]?.lat ? this.mapMarkers[0].lat + 0.01 : -1.2921,
+          lng: this.mapMarkers[0]?.lng ? this.mapMarkers[0].lng + 0.01 : 36.8219
+        };
+        
+        this.mapMarkers.push({
+          ...driverLocation,
+          description: `<strong>Driver Location</strong><br>${this.parcel.driver.name} - ${this.parcel.driver.vehicleNumber}`,
+          address: `Driver: ${this.parcel.driver.name}`
+        });
+        this.mapMarkerTypes.push(MapMarkerType.DRIVER);
+      }
+
+      // Update map center to show all markers
+      this.updateMapCenter();
+      
+      // Show success message if markers were loaded
+      if (this.mapMarkers.length > 0) {
+        this.toastService.showSuccess(`Loaded ${this.mapMarkers.length} location(s) on map`);
+      }
+    } catch (error) {
+      console.error('Error setting up map markers:', error);
+      this.toastService.showError('Failed to load map markers');
+    }
+  }
+
+  private updateMapCenter(): void {
+    if (this.mapMarkers.length === 0) return;
+
+    if (this.mapMarkers.length === 1) {
+      // Single marker - center on it
+      this.mapCenter = { lat: this.mapMarkers[0].lat, lng: this.mapMarkers[0].lng };
+    } else {
+      // Multiple markers - center between them
+      const lats = this.mapMarkers.map(marker => marker.lat);
+      const lngs = this.mapMarkers.map(marker => marker.lng);
+      
+      const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+      const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+      
+      this.mapCenter = { lat: centerLat, lng: centerLng };
+    }
+  }
+
+  toggleMapView(): void {
+    this.showMapView = !this.showMapView;
+  }
+
+  onMapReady(map: L.Map): void {
+    console.log('Map is ready for admin parcel details');
+    
+    // Fit map to show all markers after a short delay to ensure they're loaded
+    setTimeout(() => {
+      if (this.mapMarkers.length > 1) {
+        // Fit map to show all markers with some padding
+        const bounds = L.latLngBounds(
+          this.mapMarkers.map(marker => [marker.lat, marker.lng])
+        );
+        map.fitBounds(bounds, { padding: [20, 20] });
+      }
+    }, 500);
+  }
+
+  onMarkerClick(location: MapLocation): void {
+    console.log('Marker clicked:', location);
+    
+    // Show toast notification with location details
+    if (location.description) {
+      // Extract the location type from the description
+      const locationType = location.description.includes('Pickup') ? 'Pickup' : 
+                          location.description.includes('Delivery') ? 'Delivery' : 
+                          location.description.includes('Driver') ? 'Driver' : 'Location';
+      
+      this.toastService.showInfo(`${locationType} Location: ${location.address || 'Address not available'}`);
+    }
+  }
+
+  onMapClick(coordinates: MapCoordinates): void {
+    console.log('Map clicked at:', coordinates);
+  }
+
+  onMapError(error: MapError): void {
+    console.error('Map error:', error);
+  }
+
+  onRouteUpdated(routeInfo: { distance: number; estimatedTime: number }): void {
+    console.log('Route updated:', routeInfo);
+  }
+
+  fitMapToMarkers(): void {
+    if (this.mapMarkers.length > 1) {
+      console.log('Fitting map to show all markers');
+      this.toastService.showInfo('Map adjusted to show all locations');
+    } else if (this.mapMarkers.length === 1) {
+      this.toastService.showInfo('Map centered on location');
+    } else {
+      this.toastService.showWarning('No markers to fit');
+    }
+  }
+
+  refreshMapMarkers(): void {
+    this.setupMapMarkers();
+    this.toastService.showSuccess('Map markers refreshed!');
   }
 } 

@@ -16,7 +16,7 @@ function phoneNumberValidator(control: AbstractControl): ValidationErrors | null
   
   return null;
 }
-
+// Email format validator
 function emailValidator(control: AbstractControl): ValidationErrors | null {
   if (!control.value) return null;
   
@@ -28,7 +28,7 @@ function emailValidator(control: AbstractControl): ValidationErrors | null {
   
   return null;
 }
-
+// Password strength validator
 function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
   if (!control.value) return null;
   
@@ -172,32 +172,28 @@ export class Profile implements OnInit {
           this.userProfile.driverApprovalDate = new Date();
           this.driverApplication!.approvalDate = new Date();
           
-          this.toastService.showSuccess(
-            '🎉 Congratulations! Your driver application has been approved!\n\n' +
-            'You can now start accepting delivery assignments. Welcome to the team!'
-          );
+            this.toastService.showSuccess(
+            'Your driver application has been approved. You can now accept deliveries.'
+            );
         } else {
           this.driverApplicationStatus = 'REJECTED';
           this.userProfile.driverApplicationStatus = 'REJECTED';
           this.driverRejectionReason = 'Vehicle registration documentation incomplete';
           this.userProfile.driverRejectionReason = this.driverRejectionReason;
           
-          this.toastService.showError(
-            '❌ Your driver application was not approved.\n\n' +
-            'Reason: Vehicle registration documentation incomplete\n\n' +
-            'You can reapply with updated documentation.'
-          );
+            this.toastService.showError(
+              'Driver application rejected. Please check your documents and try again.'
+            );
         }
       }
-    }, 10000); // 10 seconds delay for demo
+    }, 3000); // 3 seconds delay for demo
   }
 
   loadUserProfile() {
-    // Since we're using dummy data, no need for loading simulation
-    // In a real app, this would fetch from API
+    
     this.isLoading = false;
     
-    // Load driver application status if exists
+    // Load driver application 
     this.driverApplicationStatus = this.userProfile.driverApplicationStatus;
     this.driverRejectionReason = this.userProfile.driverRejectionReason;
     
@@ -212,7 +208,7 @@ export class Profile implements OnInit {
       };
     }
   }
-
+  // Custom password match validator
   passwordMatchValidator(group: AbstractControl): ValidationErrors | null {
     const newPassword = group.get('newPassword')?.value;
     const confirmPassword = group.get('confirmPassword')?.value;
@@ -223,7 +219,7 @@ export class Profile implements OnInit {
     
     return null;
   }
-
+  // Handle image selection and preview
   onImageSelected(event: any) {
     const file = event.target.files[0];
     if (file) {
@@ -247,7 +243,7 @@ export class Profile implements OnInit {
       reader.readAsDataURL(file);
     }
   }
-
+  // Upload profile image
   uploadProfileImage() {
     if (!this.selectedImage) {
       this.toastService.showError('Please select an image first');

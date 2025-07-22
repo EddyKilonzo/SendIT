@@ -229,22 +229,23 @@
               <div class="analytics-section">
                 <h3>Revenue Trends</h3>
                 <div class="revenue-overview">
-                  <div class="revenue-stats">
-                    <div class="revenue-stat">
-                      <span class="stat-label">Current Month</span>
-                      <span class="stat-value">{{ formatCurrency(analyticsData.revenueTrends.currentMonth) }}</span>
-                    </div>
-                    <div class="revenue-stat">
-                      <span class="stat-label">Previous Month</span>
-                      <span class="stat-value">{{ formatCurrency(analyticsData.revenueTrends.previousMonth) }}</span>
-                    </div>
-                    <div class="revenue-stat">
-                      <span class="stat-label">Growth</span>
-                      <span class="stat-value growth">{{ analyticsData.revenueTrends.growth }}</span>
-                    </div>
-                  </div>
                   <div class="revenue-chart">
                     <h4>Monthly Revenue Trend</h4>
+                    <!-- Revenue Stats at Top of Chart -->
+                    <div class="revenue-stats-top">
+                      <div class="revenue-stat">
+                        <span class="stat-label">Current Month</span>
+                        <span class="stat-value">{{ formatCurrency(analyticsData.revenueTrends.currentMonth) }}</span>
+                      </div>
+                      <div class="revenue-stat">
+                        <span class="stat-label">Previous Month</span>
+                        <span class="stat-value">{{ formatCurrency(analyticsData.revenueTrends.previousMonth) }}</span>
+                      </div>
+                      <div class="revenue-stat">
+                        <span class="stat-label">Growth</span>
+                        <span class="stat-value growth">{{ analyticsData.revenueTrends.growth }}</span>
+                      </div>
+                    </div>
                     <div class="chart-container">
                       <div class="chart-bars">
                         <div 

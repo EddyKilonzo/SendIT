@@ -87,7 +87,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
   ngOnDestroy(): void {
     this.destroyMap();
   }
-
+  // Initialize the map with provided configuration
   private async initializeMap(): Promise<void> {
     try {
       this.isLoading = true;
@@ -128,7 +128,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
       this.isLoading = false;
     }
   }
-
+  // Add markers to the map
   private addMarkers(): void {
     if (!this.map) return;
 
@@ -161,7 +161,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
       this.handleMapError('MARKER_ADDITION_FAILED', 'Failed to add markers to map', error);
     }
   }
-
+  // Get marker type based on index or provided types
   private getMarkerType(index: number): MapMarkerType {
     // Use provided marker types if available, otherwise fall back to default logic
     if (this.markerTypes && this.markerTypes[index]) {
@@ -173,7 +173,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
     }
     return MapMarkerType.CURRENT;
   }
-
+  // Create a route based on the markers
   private createRoute(): void {
     if (!this.map || this.markers.length < 2) return;
 
@@ -198,19 +198,19 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
       this.handleMapError('ROUTE_CREATION_FAILED', 'Failed to create route', error);
     }
   }
-
+  // Update markers based on input changes
   private updateMarkers(): void {
     if (this.isMapInitialized) {
       this.addMarkers();
     }
   }
-
+  // Update map view based on center and zoom
   private updateMapView(): void {
     if (this.map) {
       this.map.setView([this.center.lat, this.center.lng], this.zoom);
     }
   }
-
+  // Update route if showRoute is enabled and markers are sufficient  
   private updateRoute(): void {
     if (this.showRoute && this.markers.length >= 2) {
       this.createRoute();
@@ -227,10 +227,10 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
     }
   }
 
-
-
-
-
+  /**
+   * Toggle fullscreen mode for the map.
+   * This will also trigger a resize to ensure the map displays correctly.
+   */
   public toggleFullscreen(): void {
     this.isFullscreen = !this.isFullscreen;
     
@@ -241,7 +241,10 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
       }
     }, 300);
   }
-
+  /**
+   * Toggle the visibility of the route polyline on the map.
+   * If the route is already displayed, it will be removed; otherwise, it will be added.
+   */
   public toggleRoute(): void {
     if (this.routePolyline && this.map) {
       if (this.map.hasLayer(this.routePolyline)) {
@@ -251,12 +254,19 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
       }
     }
   }
-
+  /**
+   * Retry loading the map in case of an error.
+   * This will reset the error state and reinitialize the map.
+   */
   public retryMapLoad(): void {
     this.mapError = null;
     this.initializeMap();
   }
-
+  /**
+   * Add a custom marker to the map at the specified location.
+   * This can be used to add markers dynamically after the map has been initialized.
+   * @param location The location where the marker should be added.
+   */
   public addMarker(location: MapLocation): void {
     if (this.map) {
       try {
@@ -272,7 +282,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
       }
     }
   }
-
+  // Update the list of markers displayed on the map.
   public updateMarkersList(newMarkers: MapLocation[]): void {
     this.markers = newMarkers;
     this.updateMarkers();
@@ -281,13 +291,22 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
   public getMap(): L.Map | null {
     return this.map;
   }
-
+  /**
+   * Fit the map view to the current markers.
+   * This will adjust the map's bounds to ensure all markers are visible.
+   */
   public fitToMarkers(): void {
     if (this.map && this.mapMarkers.length > 0) {
       this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
     }
   }
-
+  /**
+   * Handle errors that occur during map operations.
+   * This will emit an error event and log the error to the console.
+   * @param code Error code for identification
+   * @param message User-friendly error message
+   * @param error Optional detailed error object
+   */
   private handleMapError(code: string, message: string, error?: unknown): void {
     this.mapError = {
       code,

@@ -1,8 +1,11 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ToastService } from '../../../shared/toast/toast.service';
+import { MapService } from '../../../../services/map.service';
+import { MapMarkerType } from '../../../../types/map.types';
+import * as L from 'leaflet';
 
 interface Driver {
   id: string;
@@ -29,7 +32,7 @@ interface ParcelDetails {
   templateUrl: './assign-driver.html',
   styleUrls: ['./assign-driver.css']
 })
-export class AssignDriver implements OnInit {
+export class AssignDriver implements OnInit, OnDestroy {
   @Input() parcelDetails: ParcelDetails | null = null;
   @Output() driverAssigned = new EventEmitter<{ parcelId: string, driverId: string }>();
 
@@ -43,10 +46,18 @@ export class AssignDriver implements OnInit {
   availabilityOptions = ['All', 'Available', 'Busy', 'Offline'];
   ratingOptions = ['All', '4.5+', '4.0+', '3.5+'];
 
+  // Map properties
+  private map: L.Map | null = null;
+  private pickupMarker: L.Marker | null = null;
+  private deliveryMarker: L.Marker | null = null;
+  private routeLine: L.Polyline | null = null;
+  private markers: L.Marker[] = [];
+
   constructor(
     private fb: FormBuilder,
     private toastService: ToastService,
-    private router: Router
+    private router: Router,
+    private mapService: MapService
   ) {
     this.assignForm = this.fb.group({
       vehicleType: ['All'],
@@ -80,6 +91,11 @@ export class AssignDriver implements OnInit {
       };
       console.log('Using placeholder parcel details:', this.parcelDetails);
     }
+
+    // Initialize map after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      this.initializeMap();
+    }, 100);
   }
 
   loadAvailableDrivers() {
@@ -230,5 +246,170 @@ export class AssignDriver implements OnInit {
 
   goBack() {
     this.router.navigate(['/admin-manage-parcels']);
+  }
+
+  // Map Methods
+  private async initializeMap(): Promise<void> {
+    try {
+      // Create map instance
+      this.map = this.mapService.createMap('assign-driver-map');
+      
+      // Add markers for pickup and delivery locations
+      await this.addLocationMarkers();
+      
+      // Draw route between pickup and delivery
+      await this.drawRoute();
+      
+      // Fit map to show all markers
+      this.fitMapToMarkers();
+      
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      this.toastService.showError('Failed to load map. Please refresh the page.');
+    }
+  }
+
+  private async addLocationMarkers(): Promise<void> {
+    if (!this.map || !this.parcelDetails) return;
+
+    try {
+      // Geocode pickup location
+      const pickupResult = await this.mapService.geocodeAddress(this.parcelDetails.pickupAddress);
+      
+      // Geocode delivery location
+      const deliveryResult = await this.mapService.geocodeAddress(this.parcelDetails.deliveryAddress);
+
+      // Add pickup marker if geocoding was successful
+      if (pickupResult.success && pickupResult.location) {
+        this.pickupMarker = this.mapService.createCustomMarker({
+          location: pickupResult.location,
+          type: MapMarkerType.PICKUP,
+          popupContent: `<strong>Pickup:</strong><br>${this.parcelDetails.pickupAddress}<br><strong>Parcel ID:</strong> #${this.parcelDetails.id}`
+        });
+                if (this.pickupMarker) {
+            this.pickupMarker.addTo(this.map);
+            this.markers.push(this.pickupMarker);
+          }
+        }
+
+      // Add delivery marker if geocoding was successful
+      if (deliveryResult.success && deliveryResult.location) {
+        this.deliveryMarker = this.mapService.createCustomMarker({
+          location: deliveryResult.location,
+          type: MapMarkerType.DELIVERY,
+          popupContent: `<strong>Delivery:</strong><br>${this.parcelDetails.deliveryAddress}<br><strong>Parcel ID:</strong> #${this.parcelDetails.id}`
+        });
+        if (this.deliveryMarker) {
+          this.deliveryMarker.addTo(this.map);
+          this.markers.push(this.deliveryMarker);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error adding markers:', error);
+      // Fallback to default coordinates if geocoding fails
+      this.addFallbackMarkers();
+    }
+  }
+
+  private addFallbackMarkers(): void {
+    if (!this.map || !this.parcelDetails) return;
+
+    // Default coordinates (Nairobi and Mombasa)
+    const pickupCoords = { lat: -1.2921, lng: 36.8219 }; // Nairobi
+    const deliveryCoords = { lat: -4.0435, lng: 39.6682 }; // Mombasa
+
+    // Add pickup marker
+    this.pickupMarker = this.mapService.createCustomMarker({
+      location: pickupCoords,
+      type: MapMarkerType.PICKUP,
+      popupContent: `<strong>Pickup:</strong><br>${this.parcelDetails.pickupAddress}<br><strong>Parcel ID:</strong> #${this.parcelDetails.id}`
+    });
+    if (this.pickupMarker) {
+      this.pickupMarker.addTo(this.map);
+      this.markers.push(this.pickupMarker);
+    }
+
+    // Add delivery marker
+    this.deliveryMarker = this.mapService.createCustomMarker({
+      location: deliveryCoords,
+      type: MapMarkerType.DELIVERY,
+      popupContent: `<strong>Delivery:</strong><br>${this.parcelDetails.deliveryAddress}<br><strong>Parcel ID:</strong> #${this.parcelDetails.id}`
+    });
+    if (this.deliveryMarker) {
+      this.deliveryMarker.addTo(this.map);
+      this.markers.push(this.deliveryMarker);
+    }
+  }
+
+  private async drawRoute(): Promise<void> {
+    if (!this.map || !this.pickupMarker || !this.deliveryMarker) return;
+
+    try {
+      const pickupPos = this.pickupMarker.getLatLng();
+      const deliveryPos = this.deliveryMarker.getLatLng();
+
+      const waypoints = [
+        { lat: pickupPos.lat, lng: pickupPos.lng },
+        { lat: deliveryPos.lat, lng: deliveryPos.lng }
+      ];
+
+      // Create route line
+      this.routeLine = this.mapService.createRoute(this.map, waypoints, {
+        color: '#007bff',
+        weight: 4
+      });
+
+      // Calculate and display route info
+      const routeInfo = this.mapService.calculateRouteInfo(waypoints);
+      console.log('Route distance:', routeInfo.distance, 'km');
+      console.log('Estimated time:', routeInfo.estimatedTime, 'hours');
+
+    } catch (error) {
+      console.error('Error drawing route:', error);
+    }
+  }
+
+  private fitMapToMarkers(): void {
+    if (!this.map || this.markers.length === 0) return;
+
+    try {
+      this.mapService.fitMapToMarkers(this.map, this.markers);
+    } catch (error) {
+      console.error('Error fitting map to markers:', error);
+    }
+  }
+
+  // Update map when parcel details change
+  private async updateMap(): Promise<void> {
+    if (!this.map) return;
+
+    // Clear existing markers and route
+    this.mapService.clearMarkers(this.map, this.markers);
+    this.markers = [];
+    this.pickupMarker = null;
+    this.deliveryMarker = null;
+
+    if (this.routeLine) {
+      this.map.removeLayer(this.routeLine);
+      this.routeLine = null;
+    }
+
+    // Re-add markers and route
+    await this.addLocationMarkers();
+    await this.drawRoute();
+    this.fitMapToMarkers();
+  }
+
+  ngOnDestroy(): void {
+    // Clean up map resources
+    if (this.map) {
+      this.map.remove();
+      this.map = null;
+    }
+    this.markers = [];
+    this.pickupMarker = null;
+    this.deliveryMarker = null;
+    this.routeLine = null;
   }
 } 

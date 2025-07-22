@@ -581,6 +581,17 @@
   gap: 20px;
 }
 
+.revenue-stats-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
 .revenue-stat {
   background-color: #f8f9fa;
   padding: 20px;
@@ -588,18 +599,25 @@
   border-left: 4px solid #DBBB02;
 }
 
+.revenue-stats-top .revenue-stat {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+  padding: 12px 8px;
+}
+
 .stat-label {
   display: block;
   color: #6c757d;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .stat-value {
   display: block;
   color: #2c3e50;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
 }
 
@@ -609,39 +627,46 @@
 
 .revenue-chart {
   background-color: #f8f9fa;
-  padding: 20px;
+  padding: 15px;
   border-radius: 8px;
+  width: 100%;
+  min-height: 380px;
 }
 
 .revenue-chart h4 {
   color: #2c3e50;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   text-align: center;
 }
 
 .chart-container {
   position: relative;
-  height: 250px;
+  height: 280px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  width: 100%;
+  overflow: hidden;
 }
 
 .chart-bars {
   display: flex;
   align-items: flex-end;
-  justify-content: space-around;
-  height: 200px;
-  gap: 10px;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  height: 220px;
+  gap: 4px;
+  margin-bottom: 15px;
+  padding: 0 5px;
 }
 
 .chart-bar {
   background: linear-gradient(135deg, #DBBB02, #c4a602);
   border-radius: 4px 4px 0 0;
-  min-width: 40px;
+  min-width: 25px;
+  max-width: 45px;
+  flex: 1;
   position: relative;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -659,13 +684,14 @@
   transform: translateX(-50%);
   background-color: #2c3e50;
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 9px;
   font-weight: 500;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.3s ease;
+  z-index: 10;
 }
 
 .chart-bar:hover .bar-value {
@@ -674,16 +700,20 @@
 
 .chart-labels {
   display: flex;
-  justify-content: space-around;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 5px;
 }
 
 .chart-labels span {
   color: #6c757d;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   text-align: center;
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Delivery Performance Styles */
@@ -962,8 +992,12 @@
 .review-comment {
   color: #495057;
   font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 10px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .review-item .driver-name {
@@ -1124,11 +1158,95 @@
   }
   
   .chart-bars {
-    gap: 5px;
+    gap: 2px;
+    height: 180px;
   }
   
   .chart-bar {
-    min-width: 30px;
+    min-width: 18px;
+    max-width: 30px;
+  }
+  
+  .chart-labels span {
+    font-size: 9px;
+  }
+  
+  .bar-value {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+  
+  .chart-container {
+    height: 220px;
+  }
+  
+  .revenue-chart {
+    min-height: 320px;
+    padding: 12px;
+  }
+  
+  .revenue-chart h4 {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  
+  .review-comment {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-bars {
+    gap: 1px;
+    height: 160px;
+  }
+  
+  .chart-bar {
+    min-width: 15px;
+    max-width: 25px;
+  }
+  
+  .chart-labels span {
+    font-size: 8px;
+  }
+  
+  .bar-value {
+    font-size: 7px;
+    padding: 1px 3px;
+    top: -25px;
+  }
+  
+  .chart-container {
+    height: 180px;
+  }
+  
+  .revenue-chart {
+    min-height: 260px;
+    padding: 8px;
+  }
+  
+  .revenue-chart h4 {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  
+  .revenue-stats-top {
+    padding: 6px;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  
+  .revenue-stats-top .revenue-stat {
+    padding: 6px 3px;
+  }
+  
+  .stat-label {
+    font-size: 10px;
+    margin-bottom: 3px;
+  }
+  
+  .stat-value {
+    font-size: 14px;
   }
   
   .driver-item {

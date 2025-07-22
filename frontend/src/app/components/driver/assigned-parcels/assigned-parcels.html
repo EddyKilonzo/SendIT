@@ -19,134 +19,108 @@
         <span>Profile</span>
       </a>
     </nav>
-    
-    
   </aside>
 
   <!-- Main Content -->
   <main class="main-content">
-      <!-- Header -->
-      <div class="content-header animate-fade-in-up">
-        <h1 class="page-title">Parcels Assigned</h1>
-      </div>
+    <!-- Header -->
+    <div class="content-header">
+      <h1 class="page-title">Parcels Assigned</h1>
+    </div>
 
     <!-- Search and Filter Section -->
-    <div class="search-filter-section animate-fade-in-up">
+    <div class="search-filter-section">
       <div class="search-container">
         <div class="search-bar">
           <i class="fas fa-search search-icon"></i>
           <input 
             type="text" 
-            placeholder="Search for parcel..." 
+            placeholder="Search parcels..." 
             [(ngModel)]="searchTerm"
             class="search-input"
           >
-          <button 
-            class="clear-search-btn" 
-            (click)="clearSearch()"
-            type="button"
-          >
-            <i class="fas fa-times"></i>
-          </button>
         </div>
       </div>
       
       <div class="filter-container">
         <button class="filter-btn" (click)="toggleFilterDropdown()">
-          <span>Delivery Status</span>
+          <span>{{ selectedFilter === 'all' ? 'All Status' : selectedFilter | titlecase }}</span>
           <i class="fas fa-chevron-down" [class.rotated]="showFilterDropdown"></i>
         </button>
         
         <!-- Filter Dropdown -->
         <div class="filter-dropdown" *ngIf="showFilterDropdown">
-          <div class="filter-option" (click)="selectFilter('all')">
-            <span>All Parcels</span>
-          </div>
-          <div class="filter-option" (click)="selectFilter('pending')">
-            <span>Pending</span>
-          </div>
-          <div class="filter-option" (click)="selectFilter('in-transit')">
-            <span>In Transit</span>
-          </div>
-          <div class="filter-option" (click)="selectFilter('delivered')">
-            <span>Delivered</span>
-          </div>
+          <div class="filter-option" (click)="selectFilter('all')">All Parcels</div>
+          <div class="filter-option" (click)="selectFilter('pending')">Pending</div>
+          <div class="filter-option" (click)="selectFilter('in-transit')">In Transit</div>
         </div>
       </div>
 
-      <!-- Clear Filters Button -->
-      <div class="clear-filters-container">
-        <button class="clear-filters-btn" (click)="clearFilters()">
-          <i class="fas fa-times"></i>
-          Clear Filters
-        </button>
-      </div>
+      <button 
+        class="clear-filters-btn" 
+        (click)="clearFilters()"
+      >
+        Clear
+      </button>
     </div>
 
     <!-- Parcels List -->
-    <div class="parcels-container animate-fade-in-up">
+    <div class="parcels-container">
       <div class="parcels-list">
         <div 
-          class="parcel-card hover-lift" 
-          *ngFor="let parcel of filteredParcels; let i = index"
-          [class.highlighted]="parcel.id === selectedParcelId"
-          (click)="viewParcelDetails(parcel.id)"
-          style="cursor: pointer;"
+          class="parcel-card" 
+          *ngFor="let parcel of filteredParcels"
         >
+          <!-- Card Header -->
           <div class="parcel-header">
-            <h3 class="parcel-id">Parcel ID: {{ parcel.parcelId }}</h3>
+            <div class="parcel-id">{{ parcel.parcelId }}</div>
             <span class="parcel-status" [ngClass]="getStatusClass(parcel.status)">
               {{ parcel.status }}
             </span>
           </div>
           
-          <div class="parcel-details">
-            <div class="address-section">
-              <div class="pickup-address">
-                <span class="label">Pickup:</span>
-                <span class="address"><strong>{{ parcel.pickupAddress }}</strong></span>
+          <!-- Card Content -->
+          <div class="parcel-content">
+            <div class="address-row">
+              <div class="address pickup">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ parcel.pickupAddress }}</span>
               </div>
-              <div class="delivery-address">
-                <span class="label">Delivery:</span>
-                <span class="address">{{ parcel.deliveryAddress }}</span>
+              <div class="address delivery">
+                <i class="fas fa-flag-checkered"></i>
+                <span>{{ parcel.deliveryAddress }}</span>
               </div>
             </div>
             
-            <div class="parcel-meta">
-              <div class="meta-item" *ngIf="parcel.scheduledTime">
+            <div class="parcel-info">
+              <div class="info-item" *ngIf="parcel.scheduledTime">
                 <i class="fas fa-clock"></i>
                 <span>{{ parcel.scheduledTime }}</span>
               </div>
-              <div class="meta-item" *ngIf="parcel.customerName">
+              <div class="info-item" *ngIf="parcel.customerName">
                 <i class="fas fa-user"></i>
                 <span>{{ parcel.customerName }}</span>
-              </div>
-              <div class="meta-item" *ngIf="parcel.weight">
-                <i class="fas fa-weight-hanging"></i>
-                <span>{{ parcel.weight }} kg</span>
               </div>
             </div>
           </div>
           
+          <!-- Card Actions -->
           <div class="parcel-actions">
-            <button class="view-details-btn" (click)="viewParcelDetails(parcel.id); $event.stopPropagation()">
-              <i class="fas fa-eye"></i>
-              View Details
+            <button class="btn btn-outline" (click)="viewParcelDetails(parcel.id)">
+              Details
             </button>
             <button 
-              class="action-btn start-btn" 
+              class="btn btn-primary" 
               *ngIf="parcel.status === 'Pending'"
-              (click)="startDelivery(parcel.id); $event.stopPropagation()"
+              (click)="startDelivery(parcel.id)"
             >
-              <i class="fas fa-play"></i>
-              Start Delivery
+              Start
             </button>
             <button 
-              class="action-btn complete-btn" 
+              class="btn btn-success" 
               *ngIf="parcel.status === 'In Transit'"
-              (click)="completeDelivery(parcel.id); $event.stopPropagation()"
+              (click)="completeDelivery(parcel.id)"
             >
-              <i class="fas fa-check"></i>
               Complete
             </button>
           </div>
@@ -154,14 +128,13 @@
       </div>
       
       <!-- No Parcels Message -->
-      <div class="no-parcels animate-fade-in" *ngIf="filteredParcels.length === 0">
+      <div class="no-parcels" *ngIf="filteredParcels.length === 0">
         <div class="no-parcels-content">
-          <i class="fas fa-box-open no-parcels-icon"></i>
+          <i class="fas fa-box-open"></i>
           <h3>No Parcels Found</h3>
-          <p>No parcels match your current search criteria or filters.</p>
-          <button class="clear-filters-btn" (click)="clearFilters()">
-            <i class="fas fa-times"></i>
-            Clear All Filters
+          <p>No parcels match your search criteria.</p>
+          <button class="btn btn-primary" (click)="clearFilters()">
+            Clear Filters
           </button>
         </div>
       </div>

@@ -10,7 +10,7 @@ export class ToastService {
   public toast$ = this.toastSubject.asObservable();
 
   private nextId = 1;
-
+  //success messag
   showSuccess(message: string, duration: number = 2000) {
     this.showToast({
       id: this.nextId++,
@@ -19,7 +19,7 @@ export class ToastService {
       duration
     });
   }
-
+  //error message
   showError(message: string, duration: number = 2000) {
     this.showToast({
       id: this.nextId++,
@@ -28,8 +28,8 @@ export class ToastService {
       duration
     });
   }
-
-  showWarning(message: string, duration: number = 3000) {
+  //warning message
+  showWarning(message: string, duration: number = 2000) {
     this.showToast({
       id: this.nextId++,
       type: 'warning',
@@ -37,8 +37,8 @@ export class ToastService {
       duration
     });
   }
-
-  showInfo(message: string, duration: number = 5000) {
+  //info message
+  showInfo(message: string, duration: number = 2000) {
     this.showToast({
       id: this.nextId++,
       type: 'info',
@@ -46,7 +46,10 @@ export class ToastService {
       duration
     });
   }
-
+  /**
+   * Show a toast message.
+   * @param toast 
+   */
   private showToast(toast: ToastMessage) {
     this.toastSubject.next(toast);
     
@@ -57,7 +60,9 @@ export class ToastService {
       }, toast.duration);
     }
   }
-
+  /**
+   * Hide the currently displayed toast message.
+   */
   hideToast() {
     this.toastSubject.next(null);
   }

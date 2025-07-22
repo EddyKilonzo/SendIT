@@ -19,18 +19,12 @@ import {
 export class MapService {
   private readonly DEFAULT_CENTER: MapCoordinates = { lat: -1.2921, lng: 36.8219 }; // Nairobi
   private readonly DEFAULT_ZOOM = 13;
-  private readonly GEOCODING_TIMEOUT = 10000; // 10 seconds
-  private readonly MAX_GEOCODING_RETRIES = 3;
 
   constructor() {
     this.initializeLeafletIcons();
   }
 
-  /**
-   * Initialize Leaflet default icons to fix marker display issues
-   */
   private initializeLeafletIcons(): void {
-    // Fix for default markers in Leaflet
     const iconRetinaUrl = 'assets/marker-icon-2x.png';
     const iconUrl = 'assets/marker-icon.png';
     const shadowUrl = 'assets/marker-shadow.png';
@@ -47,127 +41,55 @@ export class MapService {
     });
     
     L.Marker.prototype.options.icon = iconDefault;
-    
-    // Also set up fallback icons for different marker types
-    this.setupCustomIcons();
   }
-
-  private customIcons: { [key: string]: L.Icon | L.DivIcon } = {};
-
-  private setupCustomIcons(): void {
-    // Create custom icons for different marker types
-    const createCustomIcon = (color: string) => {
-      return L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
-    };
-
-    // Store custom icons for different types
-    this.customIcons = {
-      pickup: createCustomIcon('#28a745'),
-      delivery: createCustomIcon('#dc3545'),
-      current: createCustomIcon('#007bff'),
-      driver: createCustomIcon('#ffc107')
-    };
-  }
-
   /**
-   * Create a basic map instance with error handling
+   * Creates a Leaflet map instance.
+   * @param containerId The ID of the HTML element to contain the map.
+   * @param center The initial center coordinates of the map.
+   * @param zoom The initial zoom level of the map.
+   * @returns The created Leaflet map instance.
    */
   createMap(containerId: string, center?: MapCoordinates, zoom?: number): L.Map {
-    try {
-      const mapCenter = center || this.DEFAULT_CENTER;
-      const mapZoom = zoom || this.DEFAULT_ZOOM;
-      
-      const map = L.map(containerId).setView([mapCenter.lat, mapCenter.lng], mapZoom);
-      
-      // Add OpenStreetMap tiles with error handling
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 18,
-        minZoom: 1
-      }).addTo(map);
+    const mapCenter = center || this.DEFAULT_CENTER;
+    const mapZoom = zoom || this.DEFAULT_ZOOM;
+    
+    const map = L.map(containerId).setView([mapCenter.lat, mapCenter.lng], mapZoom);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 18,
+      minZoom: 1
+    }).addTo(map);
 
-      return map;
-    } catch (error) {
-      throw this.createMapError('MAP_CREATION_FAILED', 'Failed to create map instance', error);
-    }
+    return map;
   }
-
   /**
-   * Add a marker to the map with proper error handling
-   */
-  addMarker(map: L.Map, location: MapLocation, options?: L.MarkerOptions): L.Marker {
-    try {
-      if (!this.isValidCoordinates(location)) {
-        throw new Error('Invalid coordinates provided');
-      }
-
-      const marker = L.marker([location.lat, location.lng], options).addTo(map);
-      
-      if (location.description) {
-        marker.bindPopup(location.description);
-      }
-      
-      return marker;
-    } catch (error) {
-      throw this.createMapError('MARKER_ADDITION_FAILED', 'Failed to add marker to map', error);
-    }
-  }
-
-  /**
-   * Add multiple markers to the map
-   */
-  addMarkers(map: L.Map, locations: MapLocation[]): L.Marker[] {
-    try {
-      return locations.map(location => this.addMarker(map, location));
-    } catch (error) {
-      throw this.createMapError('MULTIPLE_MARKERS_FAILED', 'Failed to add multiple markers', error);
-    }
-  }
-
-  /**
-   * Create a custom marker with specific styling
+   * Creates a custom marker with a colored icon based on the type.
+   * @param config Configuration for the marker including type, location, and optional popup content.
+   * @returns A Leaflet marker with the custom icon.
    */
   createCustomMarker(config: MapMarkerConfig): L.Marker {
-    try {
-      if (!this.isValidCoordinates(config.location)) {
-        throw new Error('Invalid coordinates provided');
-      }
-
-      // Use custom icon if available, otherwise fall back to default
-      let icon: L.Icon | L.DivIcon;
-      
-      if (this.customIcons[config.type]) {
-        icon = this.customIcons[config.type];
-      } else {
-        icon = this.createCustomIcon(config);
-      }
-
-      const marker = L.marker([config.location.lat, config.location.lng], { icon });
-      
-      if (config.popupContent) {
-        marker.bindPopup(config.popupContent);
-      }
-      
-      return marker;
-    } catch (error) {
-      throw this.createMapError('CUSTOM_MARKER_FAILED', 'Failed to create custom marker', error);
+    // Create custom colored marker based on type
+    const icon = this.createCustomIcon(config);
+    const marker = L.marker([config.location.lat, config.location.lng], { icon });
+    
+    if (config.popupContent) {
+      marker.bindPopup(config.popupContent);
     }
+    
+    return marker;
   }
-
   /**
-   * Create custom icon for different marker types
+   * Creates a custom icon for the marker based on the type and optional color.
+   * @param config Configuration for the marker including type and optional color.
+   * @returns A Leaflet icon with custom styles.
    */
   private createCustomIcon(config: MapMarkerConfig): L.Icon {
     const colors = {
-      [MapMarkerType.PICKUP]: '#28a745',
-      [MapMarkerType.DELIVERY]: '#dc3545',
-      [MapMarkerType.CURRENT]: '#007bff',
-      [MapMarkerType.DRIVER]: '#ffc107'
+      [MapMarkerType.PICKUP]: '#28a745',    // Green for pickup
+      [MapMarkerType.DELIVERY]: '#dc3545',  // Red for delivery
+      [MapMarkerType.CURRENT]: '#007bff',   // Blue for current location
+      [MapMarkerType.DRIVER]: '#ffc107'     // Yellow for driver
     };
 
     const color = config.color || colors[config.type] || '#007bff';
@@ -176,6 +98,7 @@ export class MapService {
     // Create marker element
     const markerElement = document.createElement('div');
     markerElement.className = 'custom-marker-element';
+    markerElement.setAttribute('data-type', config.type);
     markerElement.textContent = iconText;
     markerElement.style.cssText = `
       background-color: ${color};
@@ -212,7 +135,11 @@ export class MapService {
       iconAnchor: [12, 12]
     }) as L.Icon;
   }
-
+  /**
+   * Returns a single character text representation for the marker type.
+   * @param type The type of the marker.
+   * @returns A single character string representing the marker type.
+   */
   private getMarkerText(type: MapMarkerType): string {
     switch (type) {
       case MapMarkerType.PICKUP: return 'P';
@@ -222,28 +149,23 @@ export class MapService {
       default: return '•';
     }
   }
-
   /**
-   * Geocode an address to coordinates with retry logic and error handling
+   *  Geocodes an address to get its latitude and longitude.
+   * @param address The address to geocode.
+   * @returns A promise that resolves to the geocoding result.
    */
-  async geocodeAddress(address: string, retryCount = 0): Promise<GeocodingResult> {
+  async geocodeAddress(address: string): Promise<GeocodingResult> {
     try {
       if (!address || address.trim().length < 3) {
         return {
           success: false,
-          error: this.createMapError('INVALID_ADDRESS', 'Address must be at least 3 characters long')
+          error: { code: 'INVALID_ADDRESS', message: 'Address must be at least 3 characters long' }
         };
       }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.GEOCODING_TIMEOUT);
-
+      // Use Nominatim API for geocoding
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address.trim())}&limit=1&countrycodes=ke`,
-        { signal: controller.signal }
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address.trim())}&limit=1&countrycodes=ke`
       );
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -265,52 +187,27 @@ export class MapService {
 
       return {
         success: false,
-        error: this.createMapError('ADDRESS_NOT_FOUND', `No coordinates found for address: ${address}`)
+        error: { code: 'ADDRESS_NOT_FOUND', message: `No coordinates found for address: ${address}` }
       };
 
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return {
-          success: false,
-          error: this.createMapError('GEOCODING_TIMEOUT', 'Geocoding request timed out')
-        };
-      }
-
-      if (retryCount < this.MAX_GEOCODING_RETRIES) {
-        // Retry with exponential backoff
-        await this.delay(Math.pow(2, retryCount) * 1000);
-        return this.geocodeAddress(address, retryCount + 1);
-      }
-
       return {
         success: false,
-        error: this.createMapError('GEOCODING_FAILED', 'Failed to geocode address', error)
+        error: { code: 'GEOCODING_FAILED', message: 'Failed to geocode address', details: error }
       };
     }
   }
-
   /**
-   * Reverse geocode coordinates to address with improved precision
+   * Reverse geocodes coordinates to get the address.
+   * @param lat Latitude of the location.
+   * @param lng Longitude of the location.
+   * @returns A promise that resolves to the reverse geocoding result.
    */
   async reverseGeocode(lat: number, lng: number): Promise<ReverseGeocodingResult> {
     try {
-      if (!this.isValidCoordinates({ lat, lng })) {
-        return {
-          success: false,
-          error: this.createMapError('INVALID_COORDINATES', 'Invalid coordinates provided')
-        };
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.GEOCODING_TIMEOUT);
-
-      // Use more detailed reverse geocoding parameters
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&extratags=1`,
-        { signal: controller.signal }
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
       );
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -327,26 +224,20 @@ export class MapService {
 
       return {
         success: false,
-        error: this.createMapError('REVERSE_GEOCODING_FAILED', 'No address found for coordinates')
+        error: { code: 'REVERSE_GEOCODING_FAILED', message: 'No address found for coordinates' }
       };
 
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return {
-          success: false,
-          error: this.createMapError('REVERSE_GEOCODING_TIMEOUT', 'Reverse geocoding request timed out')
-        };
-      }
-
       return {
         success: false,
-        error: this.createMapError('REVERSE_GEOCODING_FAILED', 'Failed to reverse geocode coordinates', error)
+        error: { code: 'REVERSE_GEOCODING_FAILED', message: 'Failed to reverse geocode coordinates', details: error }
       };
     }
   }
-
   /**
-   * Get address suggestions for autocomplete
+   * Gets address suggestions based on a query.
+   * @param query The search query for address suggestions.
+   * @returns A promise that resolves to the address validation result with suggestions.
    */
   async getAddressSuggestions(query: string): Promise<AddressValidationResult> {
     try {
@@ -356,23 +247,10 @@ export class MapService {
           suggestions: []
         };
       }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.GEOCODING_TIMEOUT);
-
-      // Add headers to prevent CORS issues and specify user agent
+      // API call to get address suggestions
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query.trim())}&limit=5&countrycodes=ke&addressdetails=1`,
-        { 
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'SendIT-Delivery-App/1.0'
-          }
-        }
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query.trim())}&limit=5&countrycodes=ke&addressdetails=1`
       );
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -380,7 +258,6 @@ export class MapService {
 
       const suggestions: AddressSuggestion[] = await response.json();
 
-      // Filter and enhance suggestions
       const enhancedSuggestions = suggestions
         .filter(suggestion => suggestion.display_name && suggestion.lat && suggestion.lon)
         .map(suggestion => ({
@@ -395,228 +272,98 @@ export class MapService {
       };
 
     } catch (error) {
-      console.error('Address suggestions error:', error);
-      
-      if (error instanceof Error && error.name === 'AbortError') {
-        return {
-          isValid: false,
-          error: this.createMapError('SUGGESTIONS_TIMEOUT', 'Address suggestions request timed out')
-        };
-      }
-
-      // Return fallback suggestions for common locations in Kenya
-      const fallbackSuggestions = this.getFallbackSuggestions(query);
-      
       return {
-        isValid: fallbackSuggestions.length > 0,
-        suggestions: fallbackSuggestions,
-        error: this.createMapError('SUGGESTIONS_FAILED', 'Using fallback suggestions due to API error', error)
+        isValid: false,
+        suggestions: [],
+        error: { code: 'SUGGESTIONS_FAILED', message: 'Failed to get address suggestions', details: error }
       };
     }
   }
-
-  private getFallbackSuggestions(query: string): AddressSuggestion[] {
-    const queryLower = query.toLowerCase();
-    const kenyaLocations = [
-      {
-        display_name: 'Nairobi, Kenya',
-        name: 'Nairobi',
-        lat: '-1.2921',
-        lon: '36.8219',
-        type: 'city',
-        importance: 0.9
-      },
-      {
-        display_name: 'Mombasa, Kenya',
-        name: 'Mombasa',
-        lat: '-4.0435',
-        lon: '39.6682',
-        type: 'city',
-        importance: 0.8
-      },
-      {
-        display_name: 'Kisumu, Kenya',
-        name: 'Kisumu',
-        lat: '-0.1022',
-        lon: '34.7617',
-        type: 'city',
-        importance: 0.7
-      },
-      {
-        display_name: 'Nakuru, Kenya',
-        name: 'Nakuru',
-        lat: '-0.3031',
-        lon: '36.0800',
-        type: 'city',
-        importance: 0.6
-      },
-      {
-        display_name: 'Eldoret, Kenya',
-        name: 'Eldoret',
-        lat: '0.5204',
-        lon: '35.2699',
-        type: 'city',
-        importance: 0.5
-      }
-    ];
-
-    return kenyaLocations
-      .filter(location => 
-        location.name.toLowerCase().includes(queryLower) ||
-        location.display_name.toLowerCase().includes(queryLower)
-      )
-      .slice(0, 3);
-  }
-
-
-
   /**
-   * Calculate distance between two points using Haversine formula
-   */
-  calculateDistance(point1: MapCoordinates, point2: MapCoordinates): number {
-    try {
-      if (!this.isValidCoordinates(point1) || !this.isValidCoordinates(point2)) {
-        throw new Error('Invalid coordinates provided');
-      }
-
-      const R = 6371; // Earth's radius in kilometers
-      const dLat = this.deg2rad(point2.lat - point1.lat);
-      const dLng = this.deg2rad(point2.lng - point1.lng);
-      
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(this.deg2rad(point1.lat)) * Math.cos(this.deg2rad(point2.lat)) * 
-        Math.sin(dLng/2) * Math.sin(dLng/2);
-      
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c;
-      
-      return Math.round(distance * 100) / 100; // Round to 2 decimal places
-    } catch (error) {
-      throw this.createMapError('DISTANCE_CALCULATION_FAILED', 'Failed to calculate distance', error);
-    }
-  }
-
-  /**
-   * Calculate route information between multiple points
-   */
-  calculateRouteInfo(waypoints: MapCoordinates[]): RouteInfo {
-    try {
-      if (waypoints.length < 2) {
-        throw new Error('At least 2 waypoints required for route calculation');
-      }
-
-      let totalDistance = 0;
-      
-      for (let i = 0; i < waypoints.length - 1; i++) {
-        totalDistance += this.calculateDistance(waypoints[i], waypoints[i + 1]);
-      }
-
-      // Estimate delivery time (assuming average speed of 30 km/h in city)
-      const estimatedTime = Math.round((totalDistance / 30) * 60); // in minutes
-
-      return {
-        distance: totalDistance,
-        estimatedTime,
-        waypoints
-      };
-    } catch (error) {
-      throw this.createMapError('ROUTE_CALCULATION_FAILED', 'Failed to calculate route information', error);
-    }
-  }
-
-  /**
-   * Create a route between points (basic polyline implementation)
+   * Creates a route on the map based on the provided waypoints.
+   * @param map The Leaflet map instance.
+   * @param waypoints The array of coordinates for the route.
+   * @param options Optional styling options for the route.
+   * @returns The created polyline representing the route.
    */
   createRoute(map: L.Map, waypoints: MapCoordinates[], options?: { color?: string; weight?: number }): L.Polyline {
-    try {
-      if (waypoints.length < 2) {
-        throw new Error('At least 2 waypoints required for route creation');
+    const polyline = L.polyline(
+      waypoints.map(wp => [wp.lat, wp.lng]),
+      {
+        color: options?.color || '#007bff',
+        weight: options?.weight || 4,
+        opacity: 0.7
       }
+    ).addTo(map);
 
-      const polyline = L.polyline(
-        waypoints.map(wp => [wp.lat, wp.lng]),
-        {
-          color: options?.color || '#007bff',
-          weight: options?.weight || 4,
-          opacity: 0.7
-        }
-      ).addTo(map);
-
-      // Fit map to show the route
-      map.fitBounds(polyline.getBounds().pad(0.1));
-
-      return polyline;
-    } catch (error) {
-      throw this.createMapError('ROUTE_CREATION_FAILED', 'Failed to create route on map', error);
+    return polyline;
+  }
+  /**
+   * Calculates route information such as distance and estimated time.
+   * @param waypoints The array of coordinates for the route.
+   * @returns An object containing the route information.
+   */
+  calculateRouteInfo(waypoints: MapCoordinates[]): RouteInfo {
+    let totalDistance = 0;
+    
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      totalDistance += this.calculateDistance(waypoints[i], waypoints[i + 1]);
     }
+
+    const estimatedTime = Math.round((totalDistance / 30) * 60); // in minutes
+
+    return {
+      distance: totalDistance,
+      estimatedTime,
+      waypoints
+    };
+  }
+  /**
+   * Calculates the distance between two geographical points using the Haversine formula.
+   * @param point1 The first point with latitude and longitude.
+   * @param point2 The second point with latitude and longitude.
+   * @returns The distance in kilometers, rounded to two decimal places.
+   */
+  calculateDistance(point1: MapCoordinates, point2: MapCoordinates): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.deg2rad(point2.lat - point1.lat);
+    const dLng = this.deg2rad(point2.lng - point1.lng);
+    
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.deg2rad(point1.lat)) * Math.cos(this.deg2rad(point2.lat)) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    return Math.round(distance * 100) / 100;
   }
 
-  /**
-   * Validate coordinates
-   */
-  private isValidCoordinates(coords: MapCoordinates): boolean {
-    return (
-      typeof coords.lat === 'number' &&
-      typeof coords.lng === 'number' &&
-      coords.lat >= -90 && coords.lat <= 90 &&
-      coords.lng >= -180 && coords.lng <= 180
-    );
-  }
-
-  /**
-   * Convert degrees to radians
-   */
   private deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
   }
-
   /**
-   * Create a standardized map error
-   */
-  private createMapError(code: string, message: string, details?: unknown): MapError {
-    return {
-      code,
-      message,
-      details
-    };
-  }
-
-  /**
-   * Utility function for delays
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Clear all markers from map
+   * Clears markers from the map.
+   * @param map The Leaflet map instance.
+   * @param markers The array of markers to remove.
    */
   clearMarkers(map: L.Map, markers: L.Marker[]): void {
-    try {
-      markers.forEach(marker => {
-        if (map.hasLayer(marker)) {
-          map.removeLayer(marker);
-        }
-      });
-    } catch (error) {
-      console.error('Error clearing markers:', error);
-    }
+    markers.forEach(marker => {
+      if (map.hasLayer(marker)) {
+        map.removeLayer(marker);
+      }
+    });
   }
-
   /**
-   * Fit map to show all markers
+   * Fits the map view to the bounds of the provided markers.
+   * @param map The Leaflet map instance.
+   * @param markers The array of markers to fit the map to.
    */
   fitMapToMarkers(map: L.Map, markers: L.Marker[]): void {
-    try {
-      if (markers.length > 0) {
-        const group = new L.FeatureGroup(markers);
-        map.fitBounds(group.getBounds().pad(0.1));
-      }
-    } catch (error) {
-      console.error('Error fitting map to markers:', error);
+    if (markers.length > 0) {
+      const group = new L.FeatureGroup(markers);
+      map.fitBounds(group.getBounds().pad(0.1));
     }
   }
-
-
 } 

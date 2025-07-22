@@ -93,7 +93,7 @@
   transform: scale(1.01);
 }
 
-/* You can add global styles to this file, and also import other style files */
+
 
 /* Map placeholder styles for components that haven't been updated yet */
 .tracking-map-placeholder {
@@ -146,4 +146,38 @@
   justify-content: center !important;
   font-weight: bold !important;
   font-size: 12px !important;
+  position: relative;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Custom marker hover effects */
+.custom-marker-element:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4) !important;
+}
+
+/* Pickup marker specific styles */
+.custom-marker-element[data-type="pickup"] {
+  background-color: #28a745 !important;
+}
+
+/* Delivery marker specific styles */
+.custom-marker-element[data-type="delivery"] {
+  background-color: #dc3545 !important;
+}
+
+/* Current location marker specific styles */
+.custom-marker-element[data-type="current"] {
+  background-color: #007bff !important;
+}
+
+/* Driver marker specific styles */
+.custom-marker-element[data-type="driver"] {
+  background-color: #ffc107 !important;
 }

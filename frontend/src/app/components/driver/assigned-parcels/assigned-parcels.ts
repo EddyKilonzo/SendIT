@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -74,19 +74,6 @@ export class AssignedParcels implements OnInit {
       assignedDate: '2024-07-20'
     },
     {
-      id: '4',
-      parcelId: '#13579',
-      pickupAddress: '444 Spruce Way, Anytown',
-      deliveryAddress: '555 Willow Place, Anytown',
-      status: 'Delivered',
-      scheduledTime: '2:30 PM',
-      customerName: 'Sarah Wilson',
-      customerPhone: '+1-555-789-0123',
-      weight: 1.5,
-      specialInstructions: 'Call upon arrival',
-      assignedDate: '2024-07-19'
-    },
-    {
       id: '5',
       parcelId: '#98765',
       pickupAddress: '666 Aspen Circle, Anytown',
@@ -107,6 +94,14 @@ export class AssignedParcels implements OnInit {
     this.loadAssignedParcels();
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.filter-container')) {
+      this.showFilterDropdown = false;
+    }
+  }
+
   loadAssignedParcels() {
     // This would typically load from a service
     console.log('Loading assigned parcels...');
@@ -114,6 +109,9 @@ export class AssignedParcels implements OnInit {
 
   get filteredParcels(): AssignedParcel[] {
     let filtered = this.assignedParcels;
+
+    // Filter out delivered parcels - they should go to history
+    filtered = filtered.filter(parcel => parcel.status !== 'Delivered');
 
     // Apply search filter
     if (this.searchTerm) {
@@ -134,8 +132,6 @@ export class AssignedParcels implements OnInit {
             return parcel.status === 'Pending';
           case 'in-transit':
             return parcel.status === 'In Transit';
-          case 'delivered':
-            return parcel.status === 'Delivered';
           default:
             return true;
         }
@@ -194,18 +190,13 @@ export class AssignedParcels implements OnInit {
 
   completeDelivery(parcelId: string) {
     console.log('Completing delivery for parcel:', parcelId);
-    // This would update the parcel status to 'Delivered'
+    // This would update the parcel status to 'Delivered' and move to history
     const parcel = this.assignedParcels.find(p => p.id === parcelId);
     if (parcel) {
       parcel.status = 'Delivered';
-    }
-  }
-
-  // Close dropdown when clicking outside
-  onDocumentClick(event: Event) {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.filter-container')) {
-      this.showFilterDropdown = false;
+      // In a real application, this would trigger a service call to move the parcel to history
+      // and remove it from the assigned parcels list
+      console.log('Parcel completed and moved to history:', parcel.parcelId);
     }
   }
 }

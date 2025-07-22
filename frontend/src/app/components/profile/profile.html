@@ -329,7 +329,7 @@
         <!-- Application Form -->
         <div class="application-form" *ngIf="!driverApplicationStatus || driverApplicationStatus === 'REJECTED'">
           <p class="form-description">
-            Join our delivery team and start earning by delivering packages. Fill out the application below and we'll review your information.
+             Fill out the application below and we'll review your information.
           </p>
           
           <form [formGroup]="driverApplicationForm" (ngSubmit)="submitDriverApplication()" class="driver-form">
@@ -415,7 +415,7 @@
             </div>
             <div class="action-content">
               <h3>Deactivate Account</h3>
-              <p>Temporarily disable your account. You can reactivate it later by contacting support.</p>
+                <p>Temporarily disable your account. Reactivate via support.</p>
               <button class="btn-deactivate" (click)="deactivateAccount()" [disabled]="isLoading">
                 <i class="fas fa-pause"></i>
                 Deactivate Account
@@ -429,7 +429,7 @@
             </div>
             <div class="action-content">
               <h3>Delete Account</h3>
-              <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                <p>Permanently delete your account. This cannot be undone.</p>
               <button class="btn-delete" (click)="deleteAccount()" [disabled]="isLoading">
                 <i class="fas fa-trash"></i>
                 Delete Account
@@ -456,7 +456,7 @@
         <i class="fas fa-exclamation-triangle"></i>
       </div>
       <p>Are you sure you want to permanently delete your account?</p>
-      <p class="warning-text">This action cannot be undone and will permanently remove all your data.</p>
+      <p class="warning-text">This cannot be undone.</p>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" (click)="cancelAction()">Cancel</button>
@@ -482,7 +482,7 @@
         <i class="fas fa-pause-circle"></i>
       </div>
       <p>Are you sure you want to deactivate your account?</p>
-      <p class="warning-text">You can reactivate your account later by contacting support.</p>
+      <!-- <p class="warning-text">You can reactivate later via support.</p> -->
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" (click)="cancelAction()">Cancel</button>

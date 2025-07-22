@@ -235,10 +235,10 @@
                 <thead>
                   <tr>
                     <th>Parcel ID</th>
-                    <th>Tracking #</th>
                     <th>Status</th>
                     <th>Sender</th>
                     <th>Receiver</th>
+                    <th>Rating</th>
                     <th>Pickup Date</th>
                     <th>Delivery Date</th>
                     <th>Weight</th>
@@ -252,7 +252,7 @@
                         {{ parcel.id }}
                       </a>
                     </td>
-                    <td>{{ parcel.trackingNumber }}</td>
+                    
                     <td>
                       <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
                         {{ parcel.status }}
@@ -260,6 +260,14 @@
                     </td>
                     <td>{{ parcel.sender }}</td>
                     <td>{{ parcel.receiver }}</td>
+                    <td>
+                      <span class="rating-stars" *ngIf="parcel.rating">
+                        {{ getRatingStars(parcel.rating) }}
+                      </span>
+                      <span class="no-rating" *ngIf="!parcel.rating">
+                        Not rated
+                      </span>
+                    </td>
                     <td>{{ parcel.pickupDate }}</td>
                     <td>{{ parcel.deliveryDate }}</td>
                     <td>{{ parcel.weight }}</td>
@@ -287,10 +295,10 @@
                 <thead>
                   <tr>
                     <th>Parcel ID</th>
-                    <th>Tracking #</th>
                     <th>Status</th>
                     <th>Sender</th>
                     <th>Receiver</th>
+                    <th>User Role</th>
                     <th>Pickup Date</th>
                     <th>Delivery Date</th>
                     <th>Weight</th>
@@ -304,7 +312,7 @@
                         {{ parcel.id }}
                       </a>
                     </td>
-                    <td>{{ parcel.trackingNumber }}</td>
+                    
                     <td>
                       <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
                         {{ parcel.status }}
@@ -312,6 +320,11 @@
                     </td>
                     <td>{{ parcel.sender }}</td>
                     <td>{{ parcel.receiver }}</td>
+                    <td>
+                      <span class="role-badge" [ngClass]="getUserRoleClass(getUserRoleInParcel(parcel, user.name))">
+                        {{ getUserRoleInParcel(parcel, user.name) }}
+                      </span>
+                    </td>
                     <td>{{ parcel.pickupDate }}</td>
                     <td>{{ parcel.deliveryDate }}</td>
                     <td>{{ parcel.weight }}</td>

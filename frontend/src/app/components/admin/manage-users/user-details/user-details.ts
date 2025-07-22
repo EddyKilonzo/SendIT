@@ -33,6 +33,7 @@ interface Parcel {
   price: string;
   sender: string;
   receiver: string;
+  rating?: number;
 }
 
 interface Activity {
@@ -125,8 +126,9 @@ export class UserDetails implements OnInit {
       deliveryDate: '2024-07-28',
       weight: '2.5 kg',
       price: 'KSH 2,500',
-      sender: 'John Doe',
-      receiver: 'Jane Smith'
+      sender: 'Ethan Carter',
+      receiver: 'Jane Smith',
+      rating: undefined
     },
     {
       id: 'P67890',
@@ -137,7 +139,8 @@ export class UserDetails implements OnInit {
       weight: '1.8 kg',
       price: 'KSH 1,800',
       sender: 'Alice Johnson',
-      receiver: 'Bob Wilson'
+      receiver: 'Ethan Carter',
+      rating: 5
     },
     {
       id: 'P11223',
@@ -148,7 +151,32 @@ export class UserDetails implements OnInit {
       weight: '3.2 kg',
       price: 'KSH 3,200',
       sender: 'Charlie Brown',
-      receiver: 'Diana Prince'
+      receiver: 'Diana Prince',
+      rating: undefined
+    },
+    {
+      id: 'P33445',
+      trackingNumber: 'TRK33445',
+      status: 'Delivered',
+      pickupDate: '2024-07-20',
+      deliveryDate: '2024-07-22',
+      weight: '4.0 kg',
+      price: 'KSH 4,000',
+      sender: 'Ethan Carter',
+      receiver: 'Mike Johnson',
+      rating: 4
+    },
+    {
+      id: 'P55667',
+      trackingNumber: 'TRK55667',
+      status: 'In Transit',
+      pickupDate: '2024-07-28',
+      deliveryDate: '2024-07-30',
+      weight: '1.5 kg',
+      price: 'KSH 1,500',
+      sender: 'Sarah Davis',
+      receiver: 'Ethan Carter',
+      rating: undefined
     }
   ];
 
@@ -161,7 +189,7 @@ export class UserDetails implements OnInit {
       deliveryDate: '2024-03-17',
       weight: '1.5 kg',
       price: 'KSH 1,500',
-      sender: 'Emma Davis',
+      sender: 'Sophia Bennett',
       receiver: 'Frank Miller'
     },
     {
@@ -173,7 +201,29 @@ export class UserDetails implements OnInit {
       weight: '2.8 kg',
       price: 'KSH 2,800',
       sender: 'Grace Lee',
-      receiver: 'Henry Taylor'
+      receiver: 'Sophia Bennett'
+    },
+    {
+      id: '456789',
+      trackingNumber: 'TRK456789',
+      status: 'Pending Pickup',
+      pickupDate: '2024-03-20',
+      deliveryDate: '2024-03-22',
+      weight: '3.2 kg',
+      price: 'KSH 3,200',
+      sender: 'Sophia Bennett',
+      receiver: 'Alice Johnson'
+    },
+    {
+      id: '567890',
+      trackingNumber: 'TRK567890',
+      status: 'Delivered',
+      pickupDate: '2024-03-05',
+      deliveryDate: '2024-03-07',
+      weight: '1.0 kg',
+      price: 'KSH 1,000',
+      sender: 'David Wilson',
+      receiver: 'Sophia Bennett'
     }
   ];
 
@@ -228,6 +278,26 @@ export class UserDetails implements OnInit {
       this.assignedParcels = [];
       this.userParcels = this.mockUserParcels;
       this.userActivity = this.mockUserActivity;
+    }
+  }
+
+  getUserRoleInParcel(parcel: Parcel, userName: string): string {
+    if (parcel.sender === userName) {
+      return 'Sender';
+    } else if (parcel.receiver === userName) {
+      return 'Receiver';
+    }
+    return 'Unknown';
+  }
+
+  getUserRoleClass(role: string): string {
+    switch (role.toLowerCase()) {
+      case 'sender':
+        return 'role-sender';
+      case 'receiver':
+        return 'role-receiver';
+      default:
+        return 'role-unknown';
     }
   }
 

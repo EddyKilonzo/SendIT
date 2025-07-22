@@ -8,6 +8,18 @@
   margin-top: 0;
 }
 
+/* Animation Keyframes */
+@keyframes fadeInUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
 /* Sidebar Styles */
 .sidebar {
   width: 100%;
@@ -43,6 +55,7 @@
 .nav-item:hover {
   background-color: #f8f9fa;
   color: #DBBB02;
+  transform: translateX(5px);
 }
 
 .nav-item.active {
@@ -117,6 +130,11 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #DBBB02;
+  transition: transform 0.3s ease;
+}
+
+.profile-picture:hover {
+  transform: scale(1.1);
 }
 
 .driver-name {
@@ -149,11 +167,15 @@
   border-radius: 12px;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
   border: 1px solid #e9ecef;
-  transition: transform 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+
+
 .metric-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-5px);
+  box-shadow: rgba(50, 50, 93, 0.35) 0px 60px 120px -20px, rgba(0, 0, 0, 0.4) 0px 40px 80px -30px;
 }
 
 .metric-header {
@@ -175,6 +197,11 @@
 .metric-icon {
   color: #DBBB02;
   font-size: 18px;
+  transition: transform 0.3s ease;
+}
+
+.metric-card:hover .metric-icon {
+  transform: scale(1.1);
 }
 
 .metric-value {
@@ -190,6 +217,7 @@
   gap: 5px;
   font-size: 14px;
   font-weight: 500;
+  transition: transform 0.3s ease;
 }
 
 .metric-change.positive {
@@ -202,11 +230,21 @@
 
 .metric-change i {
   font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+.metric-card:hover .metric-change {
+  transform: translateX(3px);
+}
+
+.metric-card:hover .metric-change i {
+  transform: translateY(-1px);
 }
 
 /* Deliveries Section */
 .deliveries-section {
   padding: 0 30px 30px 30px;
+  animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .table-container {
@@ -215,6 +253,12 @@
   box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
   border: 1px solid #e9ecef;
   overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.table-container:hover {
+  transform: translateY(-2px);
+  box-shadow: rgba(50, 50, 93, 0.35) 0px 60px 120px -20px, rgba(0, 0, 0, 0.4) 0px 40px 80px -30px;
 }
 
 .deliveries-table {
@@ -238,15 +282,26 @@
   padding: 15px 20px;
   border-bottom: 1px solid #e9ecef;
   color: #2c3e50;
+  transition: all 0.3s ease;
+}
+
+.deliveries-table tr {
+  transition: all 0.3s ease;
 }
 
 .deliveries-table tr:hover {
   background-color: #f8f9fa;
+  transform: translateX(3px);
 }
 
 .parcel-id {
   font-weight: 600;
   color: #DBBB02;
+  transition: color 0.3s ease;
+}
+
+.deliveries-table tr:hover .parcel-id {
+  color: #c4a602;
 }
 
 .pickup-address,
@@ -266,6 +321,11 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
 }
 
 .status-pending {
@@ -297,7 +357,7 @@
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -305,11 +365,21 @@
 
 .action-btn:hover {
   background-color: #c4a602;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(219, 187, 2, 0.3);
+}
+
+.action-btn:active {
+  transform: translateY(0);
 }
 
 .action-btn i {
   font-size: 10px;
+  transition: transform 0.3s ease;
+}
+
+.action-btn:hover i {
+  transform: translateX(2px);
 }
 
 /* Responsive Design */

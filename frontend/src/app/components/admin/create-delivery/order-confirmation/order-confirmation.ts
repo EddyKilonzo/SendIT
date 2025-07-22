@@ -1,8 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ToastService } from '../../../shared/toast/toast.service';
+import { MapService } from '../../../../services/map.service';
+import { MapMarkerType } from '../../../../types/map.types';
+import * as L from 'leaflet';
 
 interface OrderDetails {
   senderName: string;
@@ -28,7 +31,7 @@ interface OrderDetails {
   templateUrl: './order-confirmation.html',
   styleUrls: ['./order-confirmation.css']
 })
-export class OrderConfirmation implements OnInit {
+export class OrderConfirmation implements OnInit, OnDestroy {
   orderDetails: OrderDetails = {
     senderName: '',
     senderContact: '',
@@ -46,12 +49,20 @@ export class OrderConfirmation implements OnInit {
   originalOrderDetails: OrderDetails | null = null;
   expectedDeliveryDate: string = '';
   parcelDetails: any = null;
+  
+  // Map properties
+  private map: L.Map | null = null;
+  private pickupMarker: L.Marker | null = null;
+  private deliveryMarker: L.Marker | null = null;
+  private routeLine: L.Polyline | null = null;
+  private markers: L.Marker[] = [];
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private toastService: ToastService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private mapService: MapService
   ) {
     this.editForm = this.fb.group({
       senderName: ['', [Validators.required, Validators.minLength(2)]],
@@ -130,6 +141,11 @@ export class OrderConfirmation implements OnInit {
 
     // Initialize the edit form with current order details
     this.populateEditForm();
+    
+    // Initialize map after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      this.initializeMap();
+    }, 100);
   }
 
   populateEditForm() {
@@ -315,5 +331,170 @@ export class OrderConfirmation implements OnInit {
 
   goToUsers() {
     this.router.navigate(['/admin-users']);
+  }
+
+  // Map Methods
+  private async initializeMap(): Promise<void> {
+    try {
+      // Create map instance
+      this.map = this.mapService.createMap('order-confirmation-map');
+      
+      // Add markers for pickup and delivery locations
+      await this.addLocationMarkers();
+      
+      // Draw route between pickup and delivery
+      await this.drawRoute();
+      
+      // Fit map to show all markers
+      this.fitMapToMarkers();
+      
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      this.toastService.showError('Failed to load map. Please refresh the page.');
+    }
+  }
+
+  private async addLocationMarkers(): Promise<void> {
+    if (!this.map) return;
+
+    try {
+      // Geocode pickup location
+      const pickupResult = await this.mapService.geocodeAddress(this.orderDetails.pickupLocation);
+      
+      // Geocode delivery location
+      const deliveryResult = await this.mapService.geocodeAddress(this.orderDetails.destination);
+
+      // Add pickup marker if geocoding was successful
+      if (pickupResult.success && pickupResult.location) {
+        this.pickupMarker = this.mapService.createCustomMarker({
+          location: pickupResult.location,
+          type: MapMarkerType.PICKUP,
+          popupContent: `<strong>Pickup:</strong><br>${this.orderDetails.pickupLocation}<br><strong>Sender:</strong> ${this.orderDetails.senderName}`
+        });
+        if (this.pickupMarker) {
+          this.pickupMarker.addTo(this.map);
+          this.markers.push(this.pickupMarker);
+        }
+      }
+
+      // Add delivery marker if geocoding was successful
+      if (deliveryResult.success && deliveryResult.location) {
+        this.deliveryMarker = this.mapService.createCustomMarker({
+          location: deliveryResult.location,
+          type: MapMarkerType.DELIVERY,
+          popupContent: `<strong>Delivery:</strong><br>${this.orderDetails.destination}<br><strong>Recipient:</strong> ${this.orderDetails.recipientName}`
+        });
+        if (this.deliveryMarker) {
+          this.deliveryMarker.addTo(this.map);
+          this.markers.push(this.deliveryMarker);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error adding markers:', error);
+      // Fallback to default coordinates if geocoding fails
+      this.addFallbackMarkers();
+    }
+  }
+
+  private addFallbackMarkers(): void {
+    if (!this.map) return;
+
+    // Default coordinates (Nairobi and Mombasa)
+    const pickupCoords = { lat: -1.2921, lng: 36.8219 }; // Nairobi
+    const deliveryCoords = { lat: -4.0435, lng: 39.6682 }; // Mombasa
+
+    // Add pickup marker
+    this.pickupMarker = this.mapService.createCustomMarker({
+      location: pickupCoords,
+      type: MapMarkerType.PICKUP,
+      popupContent: `<strong>Pickup:</strong><br>${this.orderDetails.pickupLocation}<br><strong>Sender:</strong> ${this.orderDetails.senderName}`
+    });
+    if (this.pickupMarker) {
+      this.pickupMarker.addTo(this.map);
+      this.markers.push(this.pickupMarker);
+    }
+
+    // Add delivery marker
+    this.deliveryMarker = this.mapService.createCustomMarker({
+      location: deliveryCoords,
+      type: MapMarkerType.DELIVERY,
+      popupContent: `<strong>Delivery:</strong><br>${this.orderDetails.destination}<br><strong>Recipient:</strong> ${this.orderDetails.recipientName}`
+    });
+    if (this.deliveryMarker) {
+      this.deliveryMarker.addTo(this.map);
+      this.markers.push(this.deliveryMarker);
+    }
+  }
+
+  private async drawRoute(): Promise<void> {
+    if (!this.map || !this.pickupMarker || !this.deliveryMarker) return;
+
+    try {
+      const pickupPos = this.pickupMarker.getLatLng();
+      const deliveryPos = this.deliveryMarker.getLatLng();
+
+      const waypoints = [
+        { lat: pickupPos.lat, lng: pickupPos.lng },
+        { lat: deliveryPos.lat, lng: deliveryPos.lng }
+      ];
+
+      // Create route line
+      this.routeLine = this.mapService.createRoute(this.map, waypoints, {
+        color: '#007bff',
+        weight: 4
+      });
+
+      // Calculate and display route info
+      const routeInfo = this.mapService.calculateRouteInfo(waypoints);
+      console.log('Route distance:', routeInfo.distance, 'km');
+      console.log('Estimated time:', routeInfo.estimatedTime, 'hours');
+
+    } catch (error) {
+      console.error('Error drawing route:', error);
+    }
+  }
+
+  private fitMapToMarkers(): void {
+    if (!this.map || this.markers.length === 0) return;
+
+    try {
+      this.mapService.fitMapToMarkers(this.map, this.markers);
+    } catch (error) {
+      console.error('Error fitting map to markers:', error);
+    }
+  }
+
+  // Update map when order details change
+  private async updateMap(): Promise<void> {
+    if (!this.map) return;
+
+    // Clear existing markers and route
+    this.mapService.clearMarkers(this.map, this.markers);
+    this.markers = [];
+    this.pickupMarker = null;
+    this.deliveryMarker = null;
+
+    if (this.routeLine) {
+      this.map.removeLayer(this.routeLine);
+      this.routeLine = null;
+    }
+
+    // Re-add markers and route
+    await this.addLocationMarkers();
+    await this.drawRoute();
+    this.fitMapToMarkers();
+  }
+
+  ngOnDestroy(): void {
+    // Clean up map resources
+    if (this.map) {
+      this.map.remove();
+      this.map = null;
+    }
+    this.markers = [];
+    this.pickupMarker = null;
+    this.deliveryMarker = null;
+    this.routeLine = null;
   }
 }
