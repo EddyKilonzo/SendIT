@@ -1,0 +1,29 @@
+<nav class="home-navbar">
+  <div class="home-navbar-container">
+    <!-- Logo -->
+    <div class="home-logo" (click)="scrollToTop()">
+      <img src="/images/1logo-removebg-preview.png" alt="SendIT Logo" class="home-logo-image">
+      
+    </div>
+    
+    <!-- Navigation Links -->
+    <div class="home-nav-links">
+      <a (click)="scrollToSection('about')" class="home-nav-link">About</a>
+      <a (click)="scrollToSection('services')" class="home-nav-link">Services</a>
+      <a (click)="scrollToSection('features')" class="home-nav-link">Features</a>
+      <a (click)="scrollToSection('process')" class="home-nav-link">How It Works</a>
+      <a (click)="scrollToSection('partnerships')" class="home-nav-link">Partners</a>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="home-nav-actions">
+      <button class="home-login-btn" routerLink="/login">Login</button>
+      <button class="home-signup-btn" routerLink="/signup">Sign Up</button>
+    </div>
+    
+    <!-- Mobile Menu Toggle -->
+    <div class="mobile-menu-toggle">
+      <i class="fas fa-bars"></i>
+    </div>
+  </div>
+</nav> 

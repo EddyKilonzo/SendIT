@@ -56,7 +56,7 @@ export class MapService {
     const map = L.map(containerId).setView([mapCenter.lat, mapCenter.lng], mapZoom);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      // attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18,
       minZoom: 1
     }).addTo(map);

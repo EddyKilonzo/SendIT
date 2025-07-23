@@ -1,0 +1,195 @@
+.home-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(219, 187, 2, 0.1);
+  transition: all 0.3s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  height: 100px;
+}
+
+.home-navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+/* Logo Styles */
+.home-logo {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.home-logo:hover {
+  transform: scale(1.05);
+}
+
+.home-logo-image {
+  height: 150px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Navigation Links */
+.home-nav-links {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.home-nav-link {
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.home-nav-link:hover {
+  color: #DBBB02;
+}
+
+.home-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #DBBB02;
+  transition: width 0.3s ease;
+}
+
+.home-nav-link:hover::after {
+  width: 100%;
+}
+
+/* Action Buttons */
+.home-nav-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.home-login-btn {
+  background: transparent;
+  border: 2px solid #DBBB02;
+  color: #DBBB02;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-login-btn:hover {
+  background: #DBBB02;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(219, 187, 2, 0.3);
+}
+
+.home-signup-btn {
+  background: #DBBB02;
+  border: 2px solid #DBBB02;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-signup-btn:hover {
+  background: #916800;
+  border-color: #916800;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(219, 187, 2, 0.3);
+}
+
+/* Mobile Menu Toggle */
+.mobile-menu-toggle {
+  display: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: #333;
+  transition: color 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+  color: #DBBB02;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .home-nav-links {
+    gap: 2rem;
+  }
+  
+  .home-nav-link {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-navbar {
+    height: 70px;
+  }
+  
+  .home-navbar-container {
+    padding: 0.5rem 1.5rem;
+  }
+  
+  .home-nav-links {
+    display: none;
+  }
+  
+  .home-nav-actions {
+    display: none;
+  }
+  
+  .mobile-menu-toggle {
+    display: block;
+  }
+  
+  .home-logo-image {
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-navbar {
+    height: 60px;
+  }
+  
+  .home-navbar-container {
+    padding: 0.5rem 1rem;
+  }
+  
+  .home-logo-image {
+    height: 35px;
+  }
+} 

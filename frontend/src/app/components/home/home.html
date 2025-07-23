@@ -1,4 +1,7 @@
-<section class="hero-section">
+<!-- Home Navbar -->
+<app-home-navbar></app-home-navbar>
+
+<section class="hero-section" id="home">
   <div class="hero-container">
     <!-- Left Section - Text Content -->
     <div class="hero-content">
@@ -43,29 +46,141 @@
   </div>
 </section>
 
-<!-- Partnerships Section -->
-<section class="partnerships-section scroll-animate" #partnershipsSection>
+<!-- About Section -->
+<section class="about-section scroll-animate" id="about" #aboutSection>
   <div class="container">
-    <div class="partnerships-grid">
-      <div class="partner-card hover-lift">
-        <h3>FedEx.</h3>
+    <div class="about-container">
+      <div class="about-content">
+        <h2 class="about-title">About SendIT</h2>
+        <p class="about-description">
+          SendIT is a leading logistics platform that connects businesses and individuals with reliable shipping solutions worldwide.
+        </p>
+        <p class="about-description">
+          Our mission is to simplify delivery processes and provide seamless tracking experiences for all customers.
+        </p>
+        <p class="about-description">
+          With years of industry experience, we've built a robust network and cutting-edge technology to ensure your packages reach their destination safely and on time.
+        </p>
+        <div class="about-stats">
+          <div class="stat-item">
+            <h3>25+</h3>
+            <p>Countries Served</p>
+          </div>
+          <div class="stat-item">
+            <h3>100K+</h3>
+            <p>Packages Delivered</p>
+          </div>
+          <div class="stat-item">
+            <h3>98%</h3>
+            <p>Success Rate</p>
+          </div>
+        </div>
       </div>
-      <div class="partner-card hover-lift">
-        <h3>Ecom Express</h3>
+      <div class="about-image">
+        <img src="/images/premium_photo-1681487863055-6e87-removebg-preview.jpg" alt="About SendIT" class="about-img">
       </div>
-      <div class="partner-card hover-lift">
-        <h3>DTDC</h3>
+    </div>
+  </div>
+</section>
+
+<!-- Services Section -->
+<section class="services-section scroll-animate" id="services" #servicesSection>
+  <div class="container">
+    <div class="services-header">
+      <h2 class="services-title">Our Services</h2>
+      <p class="services-description">Choose from our comprehensive range of shipping solutions designed to meet your specific needs.</p>
+    </div>
+    
+    <div class="services-grid">
+      <div class="service-card hover-lift">
+        <div class="service-icon">
+          <i class="fas fa-truck"></i>
+        </div>
+        <h3>By Land</h3>
+        <p>Reliable ground transportation for domestic and regional deliveries. Cost-effective and environmentally friendly shipping option.</p>
       </div>
-      <div class="partner-card hover-lift">
-        <h3>DELHIUERY</h3>
+      
+      <div class="service-card hover-lift">
+        <div class="service-icon">
+          <i class="fas fa-ship"></i>
+        </div>
+        <h3>By Sea</h3>
+        <p>International shipping by sea for large cargo and bulk shipments. Safe, secure, and suitable for all types of goods.</p>
+      </div>
+      
+      <div class="service-card hover-lift">
+        <div class="service-icon">
+          <i class="fas fa-plane"></i>
+        </div>
+        <h3>By Air</h3>
+        <p>Express air freight for urgent deliveries worldwide. The fastest mode of transport for time-sensitive shipments.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section scroll-animate" id="features" #featuresSection>
+  <div class="container">
+    <div class="features-header">
+      <h2 class="features-title">Powerful Features</h2>
+      <p class="features-description">Everything you need to manage your shipments efficiently and stay informed every step of the way.</p>
+    </div>
+    <div class="features-container">
+      <!-- Left: Features Grid -->
+      <div class="features-grid">
+        <div class="feature-card hover-lift">
+          <div class="feature-icon">
+            <i class="fas fa-mobile-alt"></i>
+          </div>
+          <h3>Real-time Parcel Tracking</h3>
+          <p>Track your parcels with real-time updates and detailed status information.</p>
+          <a href="#" class="feature-link">Learn More ></a>
+        </div>
+        
+        <div class="feature-card hover-lift">
+          <div class="feature-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h3>Secure Login & Account</h3>
+          <p>Secure login and account management with advanced security features.</p>
+          <a href="#" class="feature-link">Learn More ></a>
+        </div>
+        
+        <div class="feature-card hover-lift">
+          <div class="feature-icon">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <h3>Instant Email Notifications</h3>
+          <p>Get automatic email alerts for status changes and delivery updates.</p>
+          <a href="#" class="feature-link">Learn More ></a>
+        </div>
+        
+        <div class="feature-card hover-lift">
+          <div class="feature-icon">
+            <i class="fas fa-map-marked-alt"></i>
+          </div>
+          <h3>Google Map Integration</h3>
+          <p>Visualize your delivery on an interactive map with real-time location tracking.</p>
+          <a href="#" class="feature-link">Learn More ></a>
+        </div>
+      </div>
+      
+      <!-- Right: Team Member Image -->
+      <div class="team-member-section">
+        <img src="/images/Flux_Dev_A_middleaged_black_man_with_a_trimmed_beard_and_brown_3-removebg-preview.png" alt="SendIT Team Member" class="team-member-image">
       </div>
     </div>
   </div>
 </section>
 
 <!-- Process Section -->
-<section class="process-section scroll-animate" #processSection>
+<section class="process-section scroll-animate" id="process" #processSection>
   <div class="container">
+    <div class="process-header">
+      <h2 class="process-title">How It Works</h2>
+      <p class="process-description">Get started with SendIT in three simple steps. We've made shipping as easy as possible.</p>
+    </div>
     <div class="process-container">
       <!-- Left: Team Image -->
       <div class="team-image-section">
@@ -108,92 +223,36 @@
   </div>
 </section>
 
-<!-- Features Section -->
-<section class="features-section scroll-animate" #featuresSection>
+<!-- Partnerships Section -->
+<section class="partnerships-section scroll-animate" id="partnerships" #partnershipsSection>
   <div class="container">
-    <div class="features-container">
-      <!-- Left: Features Grid -->
-      <div class="features-grid">
-        <div class="feature-card hover-lift">
-          <div class="feature-icon">
-            <i class="fas fa-mobile-alt"></i>
-          </div>
-          <h3>Real-time Parcel Tracking</h3>
-          <p>Track your parcels with real-time updates and detailed status information.</p>
-          <a href="#" class="feature-link">Button ></a>
-        </div>
-        
-        <div class="feature-card hover-lift">
-          <div class="feature-icon">
-            <i class="fas fa-shield-alt"></i>
-          </div>
-          <h3>Secure Login & Account</h3>
-          <p>Secure login and account management with advanced security features.</p>
-          <a href="#" class="feature-link">Button ></a>
-        </div>
-        
-        <div class="feature-card hover-lift">
-          <div class="feature-icon">
-            <i class="fas fa-envelope"></i>
-          </div>
-          <h3>Instant Email Notifications</h3>
-          <p>Get automatic email alerts for status changes and delivery updates.</p>
-          <a href="#" class="feature-link">Button ></a>
-        </div>
-        
-        <div class="feature-card hover-lift">
-          <div class="feature-icon">
-            <i class="fas fa-map-marked-alt"></i>
-          </div>
-          <h3>Google Map Integration</h3>
-          <p>Visualize your delivery on an interactive map with real-time location tracking.</p>
-          <a href="#" class="feature-link">Button ></a>
-        </div>
-      </div>
-      
-      <!-- Right: Team Member Image -->
-      <div class="team-member-section">
-        <img src="/images/Flux_Dev_A_middleaged_black_man_with_a_trimmed_beard_and_brown_3-removebg-preview.png" alt="SendIT Team Member" class="team-member-image">
-      </div>
+    <div class="partnerships-header">
+      <h2 class="partnerships-title">Trusted by Industry Leaders</h2>
+      <p class="partnerships-description">We partner with the world's leading logistics companies to provide you with the best shipping solutions.</p>
     </div>
-  </div>
-</section>
-
-<!-- Services Section -->
-<section class="services-section scroll-animate" #servicesSection>
-  <div class="container">
-    <h2 class="services-title">Our services</h2>
-    
-    <div class="services-grid">
-      <div class="service-card hover-lift">
-        <div class="service-icon">
-          <i class="fas fa-truck"></i>
-        </div>
-        <h3>By Land</h3>
-        <p>Land shipping is one of the oldest forms of transporting goods.</p>
+    <div class="partnerships-grid">
+      <div class="partner-card hover-lift">
+        <h3>FedEx</h3>
+        <p>Global Express Delivery</p>
       </div>
-      
-      <div class="service-card hover-lift">
-        <div class="service-icon">
-          <i class="fas fa-ship"></i>
-        </div>
-        <h3>By Sea</h3>
-        <p>By sea is cheap safe and suitable for all types of good.</p>
+      <div class="partner-card hover-lift">
+        <h3>Ecom Express</h3>
+        <p>E-commerce Solutions</p>
       </div>
-      
-      <div class="service-card hover-lift">
-        <div class="service-icon">
-          <i class="fas fa-plane"></i>
-        </div>
-        <h3>By Air</h3>
-        <p>Air transport is undoubtedly the fastest mode of transport.</p>
+      <div class="partner-card hover-lift">
+        <h3>DTDC</h3>
+        <p>Domestic & International</p>
+      </div>
+      <div class="partner-card hover-lift">
+        <h3>Delhivery</h3>
+        <p>Last-Mile Delivery</p>
       </div>
     </div>
   </div>
 </section>
 
 <!-- Global Network Section -->
-<section class="global-network-section scroll-animate" #globalNetworkSection>
+<section class="global-network-section scroll-animate" id="globalNetwork" #globalNetworkSection>
   <div class="container">
     <div class="global-network-container">
       <!-- Left: Static Globe and Boxes Image -->

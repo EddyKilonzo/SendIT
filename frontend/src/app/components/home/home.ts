@@ -1,12 +1,18 @@
 import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { HomeNavbarComponent } from './home-navbar/home-navbar';
 
 @Component({
   selector: 'app-home',
+  standalone: true,
+  imports: [CommonModule, RouterModule, HomeNavbarComponent],
   templateUrl: './home.html',
   styleUrls: ['./home.css']
 })
 export class HomeComponent implements OnInit, AfterViewInit {
+  @ViewChild('aboutSection', { static: false }) aboutSection!: ElementRef;
   @ViewChild('partnershipsSection', { static: false }) partnershipsSection!: ElementRef;
   @ViewChild('processSection', { static: false }) processSection!: ElementRef;
   @ViewChild('featuresSection', { static: false }) featuresSection!: ElementRef;
@@ -37,6 +43,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
     }, observerOptions);
 
     const sections = [
+      this.aboutSection?.nativeElement,
       this.partnershipsSection?.nativeElement,
       this.processSection?.nativeElement,
       this.featuresSection?.nativeElement,
