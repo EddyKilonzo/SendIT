@@ -1,0 +1,110 @@
+### Driver Management Endpoints
+
+# Base URL
+@baseUrl = http://localhost:3000
+
+# Variables - Replace with actual tokens from login responses
+@driverToken = your-driver-token-here
+@adminToken = your-admin-token-here
+
+### Get all drivers
+GET {{baseUrl}}/drivers
+Authorization: Bearer {{adminToken}}
+
+### Get driver by ID
+GET {{baseUrl}}/drivers/driver-id-here
+Authorization: Bearer {{adminToken}}
+
+### Get driver performance metrics
+GET {{baseUrl}}/drivers/driver-id-here/performance
+Authorization: Bearer {{adminToken}}
+
+### Update driver location
+PATCH {{baseUrl}}/drivers/driver-id-here/location
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "currentLat": 40.7128,
+  "currentLng": -74.0060,
+  "notes": "Currently at pickup location"
+}
+
+### Update driver availability
+PATCH {{baseUrl}}/drivers/driver-id-here/availability
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "isAvailable": false,
+  "reason": "Off duty for the day"
+}
+
+### Apply for driver position
+POST {{baseUrl}}/drivers/apply
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "licenseNumber": "DL987654321",
+  "vehicleNumber": "VH123456",
+  "vehicleType": "MOTORCYCLE"
+}
+
+### Assign parcel to driver (Admin only)
+POST {{baseUrl}}/drivers/assign-parcel
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "parcelId": "parcel-id-here",
+  "driverId": "driver-id-here",
+  "reason": "Driver assigned based on proximity"
+}
+
+### Update parcel status (Driver)
+PATCH {{baseUrl}}/drivers/parcels/parcel-id-here/status
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "status": "picked_up",
+  "notes": "Parcel picked up from sender",
+  "location": "Pickup location"
+}
+
+### Update parcel status to in transit
+PATCH {{baseUrl}}/drivers/parcels/parcel-id-here/status
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "status": "in_transit",
+  "notes": "Parcel is now in transit to destination",
+  "location": "En route to delivery location"
+}
+
+### Update parcel status to delivered
+PATCH {{baseUrl}}/drivers/parcels/parcel-id-here/status
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "status": "delivered",
+  "notes": "Parcel delivered successfully to recipient",
+  "location": "Delivery location",
+  "deliveryProof": "base64-encoded-signature-or-photo"
+}
+
+### Approve driver application (Admin only)
+POST {{baseUrl}}/drivers/applications/driver-id-here/approve
+Authorization: Bearer {{adminToken}}
+
+### Reject driver application (Admin only)
+POST {{baseUrl}}/drivers/applications/driver-id-here/reject
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Incomplete documentation provided"
+} 

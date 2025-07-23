@@ -71,13 +71,10 @@ export const parcelManagementSchema = Joi.object({
   parcelId: Joi.string().required().messages({
     'any.required': 'Parcel ID is required',
   }),
-  action: Joi.string()
-    .valid('cancel', 'reassign', 'priority', 'normal')
-    .required()
-    .messages({
-      'any.only': 'Action must be cancel, reassign, priority, or normal',
-      'any.required': 'Action is required',
-    }),
+  action: Joi.string().valid('cancel', 'reassign').required().messages({
+    'any.only': 'Action must be cancel or reassign',
+    'any.required': 'Action is required',
+  }),
   reason: Joi.string().max(200).optional().messages({
     'string.max': 'Reason cannot exceed 200 characters',
   }),
@@ -139,9 +136,6 @@ export const parcelFilterSchema = Joi.object({
   }),
   dateTo: Joi.string().isoDate().optional().messages({
     'string.isoDate': 'Date to must be a valid ISO date',
-  }),
-  priority: Joi.string().valid('high', 'normal', 'low').optional().messages({
-    'any.only': 'Priority must be high, normal, or low',
   }),
 });
 

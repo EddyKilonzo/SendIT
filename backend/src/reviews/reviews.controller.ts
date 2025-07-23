@@ -7,72 +7,84 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto, UpdateReviewDto, ReviewsQueryDto } from './dto';
-// TODO: Import guards and decorators when they are created
-// import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-// import { RolesGuard } from '../common/guards/roles.guard';
-// import { Roles } from '../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators';
+
+// Request interface for type safety
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    role: string;
+    email: string;
+  };
+}
 
 @Controller('reviews')
-// @UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
   @Post()
-  // @Roles('CUSTOMER')
-  async create(@Body() createReviewDto: CreateReviewDto, @Request() req: any) {
+  @Roles('CUSTOMER')
+  async create(
+    @Body() createReviewDto: CreateReviewDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.reviewsService.create(createReviewDto, req.user.id);
   }
 
   @Get()
-  async findAll(@Query() query: ReviewsQueryDto) {
-    return this.reviewsService.findAll(query);
+  @Roles('ADMIN')
+  async findAll(
+    @Query() query: ReviewsQueryDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.reviewsService.findAll(query, req.user.role, req.user.id);
   }
 
-  @Get('summary/:userId')
-  async getReviewSummary(@Param('userId') userId: string) {
-    return this.reviewsService.getReviewSummary(userId);
+  @Get('driver-summary/:driverId')
+  @Roles('DRIVER', 'ADMIN')
+  async getDriverReviewSummary(@Param('driverId') driverId: string) {
+    return this.reviewsService.getDriverReviewSummary(driverId);
   }
 
   @Get('parcel/:parcelId')
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async getParcelReviews(@Param('parcelId') parcelId: string) {
     return this.reviewsService.getParcelReviews(parcelId);
   }
 
   @Get('my-reviews')
-  // @Roles('CUSTOMER')
-  async getMyReviews(@Request() req: any) {
+  @Roles('CUSTOMER')
+  async getMyReviews(@Request() req: AuthenticatedRequest) {
     return this.reviewsService.getUserReviews(req.user.id);
   }
 
-  @Get('received')
-  // @Roles('DRIVER')
-  async getReviewsReceived(@Request() req: any) {
-    return this.reviewsService.getReviewsReceived(req.user.id);
-  }
-
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.reviewsService.findOne(id);
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
+  async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.reviewsService.findOne(id, req.user.role, req.user.id);
   }
 
   @Patch(':id')
-  // @Roles('CUSTOMER')
+  @Roles('CUSTOMER')
   async update(
     @Param('id') id: string,
     @Body() updateReviewDto: UpdateReviewDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.reviewsService.update(id, updateReviewDto, req.user.id);
   }
 
   @Delete(':id')
-  // @Roles('CUSTOMER')
-  async remove(@Param('id') id: string, @Request() req: any) {
+  @Roles('CUSTOMER')
+  async remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.reviewsService.remove(id, req.user.id);
   }
 }

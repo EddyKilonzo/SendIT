@@ -123,7 +123,7 @@ export interface DriverAssignmentCriteriaDto {
     address: string;
   };
   weight: number;
-  priority: 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT';
+
   maxDistance?: number; // in km
   requiredVehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
   minimumRating?: number;

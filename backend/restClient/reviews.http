@@ -1,0 +1,81 @@
+### Review Management Endpoints
+
+# Base URL
+@baseUrl = http://localhost:3000
+
+# Variables - Replace with actual tokens from login responses
+@customerToken = your-customer-token-here
+@driverToken = your-driver-token-here
+@adminToken = your-admin-token-here
+
+### Create a review for a driver (Customer)
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "driverId": "driver-id-here",
+  "parcelId": "parcel-id-here",
+  "rating": 5,
+  "comment": "Excellent service! Driver was very professional and delivered on time.",
+  "deliveryExperience": "EXCELLENT"
+}
+
+### Create a review for a customer (Driver)
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "customerId": "customer-id-here",
+  "parcelId": "parcel-id-here",
+  "rating": 4,
+  "comment": "Good customer, provided clear delivery instructions.",
+  "pickupExperience": "GOOD"
+}
+
+### Get all reviews
+GET {{baseUrl}}/reviews
+Authorization: Bearer {{adminToken}}
+
+### Get reviews with filters
+GET {{baseUrl}}/reviews?page=1&limit=10&rating=5&type=driver
+Authorization: Bearer {{adminToken}}
+
+### Get reviews by driver
+GET {{baseUrl}}/reviews/driver/driver-id-here
+Authorization: Bearer {{adminToken}}
+
+### Get reviews by customer
+GET {{baseUrl}}/reviews/customer/customer-id-here
+Authorization: Bearer {{adminToken}}
+
+### Get reviews by parcel
+GET {{baseUrl}}/reviews/parcel/parcel-id-here
+Authorization: Bearer {{adminToken}}
+
+### Get review by ID
+GET {{baseUrl}}/reviews/review-id-here
+Authorization: Bearer {{adminToken}}
+
+### Update review (Owner only)
+PATCH {{baseUrl}}/reviews/review-id-here
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "rating": 4,
+  "comment": "Updated review comment"
+}
+
+### Delete review (Owner/Admin)
+DELETE {{baseUrl}}/reviews/review-id-here
+Authorization: Bearer {{customerToken}}
+
+### Get driver average rating
+GET {{baseUrl}}/reviews/driver/driver-id-here/average
+Authorization: Bearer {{adminToken}}
+
+### Get customer average rating
+GET {{baseUrl}}/reviews/customer/customer-id-here/average
+Authorization: Bearer {{adminToken}} 

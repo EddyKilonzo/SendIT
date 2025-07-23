@@ -63,7 +63,7 @@ export class DriverApplicationManagementDto {
 
 export class ParcelManagementDto {
   parcelId: string;
-  action: 'cancel' | 'reassign' | 'priority' | 'normal';
+  action: 'cancel' | 'reassign';
   reason?: string;
   newDriverId?: string;
 }
@@ -92,7 +92,6 @@ export class ParcelFilterDto {
   assignedDriverId?: string;
   dateFrom?: string;
   dateTo?: string;
-  priority?: 'high' | 'normal' | 'low';
 }
 
 export class UserFilterDto {

@@ -1,0 +1,150 @@
+### Parcel Management Endpoints
+
+# Base URL
+@baseUrl = http://localhost:3000
+
+# Variables - 
+@customerToken = your-customer-token-here
+@driverToken = your-driver-token-here
+@adminToken = your-admin-token-here
+
+### Create a new parcel (Customer/Admin)
+POST {{baseUrl}}/parcels
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "senderName": "John Sender",
+  "senderEmail": "sender@example.com",
+  "senderPhone": "+1234567890",
+  "recipientName": "Jane Recipient",
+  "recipientEmail": "recipient@example.com",
+  "recipientPhone": "+1234567891",
+  "pickupAddress": "123 Pickup St, City, State",
+  "deliveryAddress": "456 Delivery Ave, City, State",
+  "weight": 2.5,
+  "description": "Fragile electronics",
+  "value": 500.00,
+  "deliveryInstructions": "Please handle with care",
+  "priority": "STANDARD"
+}
+
+### Create a priority parcel
+POST {{baseUrl}}/parcels
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "senderName": "John Sender",
+  "senderEmail": "sender@example.com",
+  "senderPhone": "+1234567890",
+  "recipientName": "Jane Recipient",
+  "recipientEmail": "recipient@example.com",
+  "recipientPhone": "+1234567891",
+  "pickupAddress": "123 Pickup St, City, State",
+  "deliveryAddress": "456 Delivery Ave, City, State",
+  "weight": 1.0,
+  "description": "Urgent documents",
+  "value": 100.00,
+  "deliveryInstructions": "Urgent delivery required",
+  "priority": "HIGH"
+}
+
+### Get all parcels (Admin only)
+GET {{baseUrl}}/parcels
+Authorization: Bearer {{adminToken}}
+
+### Get parcels with filters
+GET {{baseUrl}}/parcels?status=pending&page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get parcels by status
+GET {{baseUrl}}/parcels?status=in_transit
+Authorization: Bearer {{adminToken}}
+
+### Get parcels with search
+GET {{baseUrl}}/parcels?search=electronics
+Authorization: Bearer {{adminToken}}
+
+### Get my parcels (Customer)
+GET {{baseUrl}}/parcels/my-parcels?type=sent
+Authorization: Bearer {{customerToken}}
+
+### Get my received parcels (Customer)
+GET {{baseUrl}}/parcels/my-parcels?type=received
+Authorization: Bearer {{customerToken}}
+
+### Get assigned parcels (Driver)
+GET {{baseUrl}}/parcels/assigned
+Authorization: Bearer {{driverToken}}
+
+### Get assigned parcels by status (Driver)
+GET {{baseUrl}}/parcels/assigned?status=picked_up
+Authorization: Bearer {{driverToken}}
+
+### Get parcel by tracking number (Public)
+GET {{baseUrl}}/parcels/tracking/TRK123456789
+
+### Get parcel by ID
+GET {{baseUrl}}/parcels/parcel-id-here
+Authorization: Bearer {{customerToken}}
+
+### Get parcel status history
+GET {{baseUrl}}/parcels/parcel-id-here/status-history
+Authorization: Bearer {{customerToken}}
+
+### Update parcel (Owner/Admin)
+PATCH {{baseUrl}}/parcels/parcel-id-here
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "description": "Updated description",
+  "deliveryInstructions": "Updated instructions"
+}
+
+### Update parcel status (Driver)
+PATCH {{baseUrl}}/parcels/parcel-id-here/status
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "status": "picked_up",
+  "notes": "Parcel picked up successfully"
+}
+
+### Update parcel status to in transit
+PATCH {{baseUrl}}/parcels/parcel-id-here/status
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "status": "in_transit",
+  "notes": "Parcel is now in transit",
+  "currentLocation": "Distribution Center"
+}
+
+### Update parcel status to delivered
+PATCH {{baseUrl}}/parcels/parcel-id-here/status
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "status": "delivered",
+  "notes": "Parcel delivered successfully",
+  "deliveryProof": "base64-encoded-image-or-signature"
+}
+
+### Cancel parcel (Owner/Admin)
+PATCH {{baseUrl}}/parcels/parcel-id-here/status
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "status": "cancelled",
+  "notes": "Cancelled by sender"
+}
+
+### Delete parcel (Admin only)
+DELETE {{baseUrl}}/parcels/parcel-id-here
+Authorization: Bearer {{adminToken}} 

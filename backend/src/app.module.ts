@@ -9,6 +9,7 @@ import { DriversModule } from './drivers/drivers.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CommonModule } from './common/common.module';
 import { DatabaseModule } from './database/database.module';
+import { SendITMailerModule } from './mailer/mailer.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DatabaseModule } from './database/database.module';
     DriversModule,
     ReviewsModule,
     CommonModule,
+    SendITMailerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

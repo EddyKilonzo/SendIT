@@ -1,0 +1,107 @@
+### User Management Endpoints
+
+# Base URL
+@baseUrl = http://localhost:3000
+
+# Variables - 
+@customerToken = your-customer-token-here
+@driverToken = your-driver-token-here
+@adminToken = your-admin-token-here
+
+### Get current user profile (requires authentication)
+GET {{baseUrl}}/users/profile/me
+Authorization: Bearer {{customerToken}}
+
+### Get current user profile as driver
+GET {{baseUrl}}/users/profile/me
+Authorization: Bearer {{driverToken}}
+
+### Get current user profile as admin
+GET {{baseUrl}}/users/profile/me
+Authorization: Bearer {{adminToken}}
+
+### Get all users (Admin only)
+GET {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+
+### Get all users with pagination
+GET {{baseUrl}}/users?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get all users with search
+GET {{baseUrl}}/users?search=john
+Authorization: Bearer {{adminToken}}
+
+### Get user by ID (Admin only)
+GET {{baseUrl}}/users/user-id-here
+Authorization: Bearer {{adminToken}}
+
+### Update own profile (Customer)
+PATCH {{baseUrl}}/users/user-id-here
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "name": "John Updated Customer",
+  "phone": "+1234567899",
+  "address": "Updated Address, City, State"
+}
+
+### Update own profile (Driver)
+PATCH {{baseUrl}}/users/user-id-here
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "name": "Mike Updated Driver",
+  "phone": "+1234567898",
+  "address": "Updated Driver Address, City, State",
+  "vehicleNumber": "VH789457",
+  "isAvailable": true
+}
+
+### Update any user profile (Admin)
+PATCH {{baseUrl}}/users/user-id-here
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Admin Updated Name",
+  "phone": "+1234567897",
+  "address": "Admin Updated Address, City, State",
+  "isActive": true
+}
+
+### Change own password (Customer)
+PATCH {{baseUrl}}/users/user-id-here/change-password
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword123"
+}
+
+### Change own password (Driver)
+PATCH {{baseUrl}}/users/user-id-here/change-password
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword123"
+}
+
+### Change any user password (Admin)
+PATCH {{baseUrl}}/users/user-id-here/change-password
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword123"
+}
+
+### Delete user (Admin only)
+DELETE {{baseUrl}}/users/user-id-here
+Authorization: Bearer {{adminToken}} 

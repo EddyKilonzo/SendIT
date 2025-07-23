@@ -12,7 +12,6 @@ export interface CreateParcelDto {
   description?: string;
   value?: number;
   deliveryInstructions?: string;
-  priority?: 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT';
 }
 
 export interface UpdateParcelDto {
@@ -34,7 +33,6 @@ export interface ParcelQueryDto {
     | 'delivered_to_recipient'
     | 'delivered'
     | 'cancelled';
-  priority?: 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT';
   dateFrom?: string;
   dateTo?: string;
   assignedToMe?: boolean;
@@ -97,7 +95,6 @@ export interface ParcelResponseDto {
   actualDeliveryTime?: Date;
   totalDeliveryTime?: number;
   deliveryAttempts: number;
-  priority: 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT';
   deliveryFee?: number;
   paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
   deliveredToRecipient: boolean;

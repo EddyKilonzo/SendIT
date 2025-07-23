@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { ParcelsService } from './parcels.service';
 import {
@@ -17,10 +18,9 @@ import {
   ParcelStatusUpdateDto,
   DeliveryConfirmationDto,
 } from './dto';
-// TODO: Import guards and decorators when they are created
-// import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-// import { RolesGuard } from '../common/guards/roles.guard';
-// import { Roles } from '../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators';
 
 interface AuthenticatedRequest {
   user: {
@@ -30,12 +30,12 @@ interface AuthenticatedRequest {
 }
 
 @Controller('parcels')
-// @UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ParcelsController {
   constructor(private readonly parcelsService: ParcelsService) {}
 
   @Post()
-  // @Roles('CUSTOMER', 'ADMIN')
+  @Roles('ADMIN')
   async create(
     @Body() createParcelDto: CreateParcelDto,
     @Request() req: AuthenticatedRequest,
@@ -44,6 +44,7 @@ export class ParcelsController {
   }
 
   @Get()
+  @Roles('ADMIN')
   async findAll(
     @Query() query: ParcelQueryDto,
     @Request() req: AuthenticatedRequest,
@@ -52,12 +53,13 @@ export class ParcelsController {
   }
 
   @Get('tracking/:trackingNumber')
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async findByTrackingNumber(@Param('trackingNumber') trackingNumber: string) {
     return this.parcelsService.findByTrackingNumber(trackingNumber);
   }
 
   @Get('my-parcels')
-  // @Roles('CUSTOMER')
+  @Roles('CUSTOMER')
   async getMyParcels(
     @Query('type') type: 'sent' | 'received' = 'sent',
     @Request() req: AuthenticatedRequest,
@@ -66,7 +68,7 @@ export class ParcelsController {
   }
 
   @Get('assigned')
-  // @Roles('DRIVER')
+  @Roles('DRIVER')
   async getAssignedParcels(
     @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
@@ -75,6 +77,7 @@ export class ParcelsController {
   }
 
   @Get('status-history/:id')
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async getStatusHistory(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
@@ -83,12 +86,13 @@ export class ParcelsController {
   }
 
   @Get(':id')
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.parcelsService.findOne(id, req.user.id, req.user.role);
   }
 
   @Patch(':id')
-  // @Roles('CUSTOMER', 'ADMIN')
+  @Roles('CUSTOMER', 'ADMIN')
   async update(
     @Param('id') id: string,
     @Body() updateParcelDto: UpdateParcelDto,
@@ -103,7 +107,7 @@ export class ParcelsController {
   }
 
   @Patch(':id/status')
-  // @Roles('DRIVER')
+  @Roles('DRIVER')
   async updateStatus(
     @Param('id') id: string,
     @Body() statusUpdateDto: ParcelStatusUpdateDto,
@@ -113,7 +117,7 @@ export class ParcelsController {
   }
 
   @Patch(':id/confirm-delivery')
-  // @Roles('CUSTOMER')
+  @Roles('CUSTOMER')
   async confirmDelivery(
     @Param('id') id: string,
     @Body() confirmationDto: DeliveryConfirmationDto,
@@ -127,7 +131,7 @@ export class ParcelsController {
   }
 
   @Delete(':id')
-  // @Roles('CUSTOMER', 'ADMIN')
+  @Roles('CUSTOMER', 'ADMIN')
   async remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.parcelsService.cancel(id, req.user.id, req.user.role);
   }

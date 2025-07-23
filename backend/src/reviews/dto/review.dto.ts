@@ -1,41 +1,24 @@
 // Review DTOs
 export interface CreateReviewDto {
   parcelId: string;
-  revieweeId?: string; // Driver being reviewed (optional)
   rating: number; // 1-5 stars
-  comment?: string;
-  reviewType:
-    | 'SERVICE'
-    | 'DRIVER'
-    | 'DELIVERY_SPEED'
-    | 'COMMUNICATION'
-    | 'OVERALL';
+  comment: string;
 }
 
 export interface UpdateReviewDto {
   rating?: number;
   comment?: string;
-  isPublic?: boolean;
 }
 
 export interface ReviewResponseDto {
   id: string;
   parcelId: string;
   reviewerId: string;
-  revieweeId?: string;
   rating: number;
-  comment?: string;
-  reviewType:
-    | 'SERVICE'
-    | 'DRIVER'
-    | 'DELIVERY_SPEED'
-    | 'COMMUNICATION'
-    | 'OVERALL';
-  isPublic: boolean;
+  comment: string;
   createdAt: Date;
   updatedAt: Date;
   reviewer?: any; // UserResponseDto
-  reviewee?: any; // UserResponseDto
   parcel?: any; // ParcelResponseDto
 }
 
@@ -57,17 +40,9 @@ export interface ReviewsQueryDto {
   limit?: number;
   parcelId?: string;
   reviewerId?: string;
-  revieweeId?: string;
-  reviewType?:
-    | 'SERVICE'
-    | 'DRIVER'
-    | 'DELIVERY_SPEED'
-    | 'COMMUNICATION'
-    | 'OVERALL';
   rating?: number;
   minRating?: number;
   maxRating?: number;
-  isPublic?: boolean;
-  sortBy?: 'createdAt' | 'rating' | 'reviewType';
+  sortBy?: 'createdAt' | 'rating';
   sortOrder?: 'asc' | 'desc';
 }

@@ -1,0 +1,140 @@
+### Admin Management Endpoints
+
+# Base URL
+@baseUrl = http://localhost:3000
+
+# Variables - Replace with actual tokens from login responses
+@adminToken = your-admin-token-here
+
+### Get dashboard statistics
+GET {{baseUrl}}/admin/dashboard/stats
+Authorization: Bearer {{adminToken}}
+
+### Get system statistics
+GET {{baseUrl}}/admin/dashboard/system-stats
+Authorization: Bearer {{adminToken}}
+
+### Get all users with filters
+GET {{baseUrl}}/admin/users?page=1&limit=10&search=john&isActive=true
+Authorization: Bearer {{adminToken}}
+
+### Get user by ID
+GET {{baseUrl}}/admin/users/user-id-here
+Authorization: Bearer {{adminToken}}
+
+### Manage user (activate/deactivate/suspend)
+PATCH {{baseUrl}}/admin/users/user-id-here/manage
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "activate",
+  "reason": "User account reactivated"
+}
+
+### Suspend user
+PATCH {{baseUrl}}/admin/users/user-id-here/manage
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "suspend",
+  "reason": "Violation of terms of service"
+}
+
+### Get all drivers with filters
+GET {{baseUrl}}/admin/drivers?page=1&limit=10&isAvailable=true&vehicleType=CAR
+Authorization: Bearer {{adminToken}}
+
+### Manage driver
+PATCH {{baseUrl}}/admin/drivers/driver-id-here/manage
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "activate",
+  "reason": "Driver account activated"
+}
+
+### Get driver applications
+GET {{baseUrl}}/admin/driver-applications?page=1&limit=10&status=PENDING
+Authorization: Bearer {{adminToken}}
+
+### Manage driver application (approve/reject)
+PATCH {{baseUrl}}/admin/driver-applications/user-id-here/manage
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "approve",
+  "reason": "Application approved after review"
+}
+
+### Reject driver application
+PATCH {{baseUrl}}/admin/driver-applications/user-id-here/manage
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "reject",
+  "reason": "Incomplete documentation provided"
+}
+
+### Get all parcels with filters
+GET {{baseUrl}}/admin/parcels?page=1&limit=10&status=pending&assignedDriverId=driver-id
+Authorization: Bearer {{adminToken}}
+
+### Get parcel by ID
+GET {{baseUrl}}/admin/parcels/parcel-id-here
+Authorization: Bearer {{adminToken}}
+
+### Manage parcel
+PATCH {{baseUrl}}/admin/parcels/parcel-id-here/manage
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "cancel",
+  "reason": "Customer requested cancellation"
+}
+
+### Reassign parcel to different driver
+PATCH {{baseUrl}}/admin/parcels/parcel-id-here/manage
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "reassign",
+  "reason": "Original driver unavailable",
+  "newDriverId": "new-driver-id-here"
+}
+
+### Assign parcel to driver
+POST {{baseUrl}}/admin/parcels/assign
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "parcelId": "parcel-id-here",
+  "driverId": "driver-id-here",
+  "reason": "Driver assigned based on availability and location"
+}
+
+### Bulk assign parcels to drivers
+POST {{baseUrl}}/admin/parcels/bulk-assign
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "assignments": [
+    {
+      "parcelId": "parcel-id-1",
+      "driverId": "driver-id-1"
+    },
+    {
+      "parcelId": "parcel-id-2",
+      "driverId": "driver-id-2"
+    }
+  ],
+  "reason": "Bulk assignment for efficiency"
+} 

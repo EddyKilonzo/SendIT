@@ -52,7 +52,6 @@ interface ParcelWithRelations {
   actualDeliveryTime?: Date | null;
   totalDeliveryTime?: number | null;
   deliveryAttempts: number;
-  priority: string;
   deliveryFee?: number | null;
   paymentStatus: string;
   deliveredToRecipient: boolean;
@@ -587,7 +586,7 @@ export class AdminService {
       limit,
     };
   }
-
+  // Driver Application Management
   async manageDriverApplication(
     userId: string,
     managementDto: DriverApplicationManagementDto,
@@ -656,7 +655,6 @@ export class AdminService {
       assignedDriverId,
       dateFrom,
       dateTo,
-      priority,
     } = query;
 
     const skip = (page - 1) * limit;
@@ -691,14 +689,6 @@ export class AdminService {
       if (dateTo) {
         where.createdAt.lte = new Date(dateTo);
       }
-    }
-
-    if (priority) {
-      where.priority = priority.toUpperCase() as
-        | 'LOW'
-        | 'STANDARD'
-        | 'HIGH'
-        | 'URGENT';
     }
 
     const [parcels, total] = await Promise.all([
@@ -816,12 +806,7 @@ export class AdminService {
         };
         break;
       }
-      case 'priority':
-        updateData = { priority: 'HIGH' };
-        break;
-      case 'normal':
-        updateData = { priority: 'STANDARD' };
-        break;
+
       default:
         throw new BadRequestException('Invalid action');
     }
@@ -1026,7 +1011,6 @@ export class AdminService {
       actualDeliveryTime: parcel.actualDeliveryTime || undefined,
       totalDeliveryTime: parcel.totalDeliveryTime || undefined,
       deliveryAttempts: parcel.deliveryAttempts,
-      priority: parcel.priority as 'LOW' | 'STANDARD' | 'HIGH' | 'URGENT',
       deliveryFee: parcel.deliveryFee || undefined,
       paymentStatus: parcel.paymentStatus as
         | 'PENDING'

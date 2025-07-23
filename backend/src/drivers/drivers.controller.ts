@@ -9,6 +9,8 @@ import {
   HttpCode,
   HttpStatus,
   UsePipes,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { DriversService } from './drivers.service';
 import {
@@ -26,22 +28,29 @@ import {
   assignParcelSchema,
   updateParcelStatusSchema,
 } from '../users/dto/driver.schemas';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators';
 
 @Controller('drivers')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DriversController {
   constructor(private readonly driversService: DriversService) {}
 
   @Get()
+  @Roles('ADMIN')
   findAll(@Query() query: any) {
     return this.driversService.findAll(query);
   }
 
   @Get(':id')
+  @Roles('ADMIN')
   findOne(@Param() params: IdParamDto) {
     return this.driversService.findOne(params.id);
   }
 
   @Get(':id/performance')
+  @Roles('ADMIN')
   getDriverPerformance(@Param() params: IdParamDto) {
     return this.driversService.getDriverPerformance(params.id);
   }
@@ -49,6 +58,7 @@ export class DriversController {
   @Patch(':id/location')
   @HttpCode(HttpStatus.OK)
   @UsePipes(createJoiValidationPipe(updateLocationSchema))
+  @Roles('DRIVER')
   updateLocation(
     @Param() params: IdParamDto,
     @Body() updateLocationDto: UpdateLocationDto,
@@ -59,6 +69,7 @@ export class DriversController {
   @Patch(':id/availability')
   @HttpCode(HttpStatus.OK)
   @UsePipes(createJoiValidationPipe(updateAvailabilitySchema))
+  @Roles('DRIVER')
   updateAvailability(
     @Param() params: IdParamDto,
     @Body() updateAvailabilityDto: UpdateAvailabilityDto,
@@ -71,17 +82,21 @@ export class DriversController {
 
   @Post('apply')
   @HttpCode(HttpStatus.CREATED)
-  applyForDriver(@Body() driverApplicationDto: DriverApplicationDto) {
-    // This would typically get the user ID from the JWT token
-    // For now, we'll need to pass it in the body or use a different approach
-    return {
-      message: 'Driver application endpoint - needs user ID from token',
-    };
+  @Roles('CUSTOMER')
+  applyForDriver(
+    @Body() driverApplicationDto: DriverApplicationDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.driversService.applyForDriver(
+      req.user.id,
+      driverApplicationDto,
+    );
   }
 
   @Post('assign-parcel')
   @HttpCode(HttpStatus.OK)
   @UsePipes(createJoiValidationPipe(assignParcelSchema))
+  @Roles('ADMIN')
   assignParcel(@Body() assignParcelDto: AssignParcelDto) {
     return this.driversService.assignParcel(assignParcelDto);
   }
@@ -89,37 +104,41 @@ export class DriversController {
   @Patch('parcels/:parcelId/status')
   @HttpCode(HttpStatus.OK)
   @UsePipes(createJoiValidationPipe(updateParcelStatusSchema))
+  @Roles('DRIVER')
   updateParcelStatus(
     @Param('parcelId') parcelId: string,
     @Body() updateParcelStatusDto: UpdateParcelStatusDto,
+    @Request() req: { user: { id: string } },
   ) {
-    // This would typically get the driver ID from the JWT token
-    // For now, we'll need to pass it in the body or use a different approach
-    return {
-      message: 'Update parcel status endpoint - needs driver ID from token',
-    };
+    return this.driversService.updateParcelStatus(
+      parcelId,
+      req.user.id,
+      updateParcelStatusDto,
+    );
   }
 
   // Admin endpoints for managing driver applications
   @Post('applications/:id/approve')
   @HttpCode(HttpStatus.OK)
-  approveDriverApplication(@Param('id') driverId: string) {
-    // This would typically get the admin ID from the JWT token
-    const adminId = 'admin-id'; // Placeholder
-    return this.driversService.approveDriverApplication(driverId, adminId);
+  @Roles('ADMIN')
+  approveDriverApplication(
+    @Param('id') driverId: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.driversService.approveDriverApplication(driverId, req.user.id);
   }
 
   @Post('applications/:id/reject')
   @HttpCode(HttpStatus.OK)
+  @Roles('ADMIN')
   rejectDriverApplication(
     @Param('id') driverId: string,
     @Body() body: { reason: string },
+    @Request() req: { user: { id: string } },
   ) {
-    // This would typically get the admin ID from the JWT token
-    const adminId = 'admin-id'; // Placeholder
     return this.driversService.rejectDriverApplication(
       driverId,
-      adminId,
+      req.user.id,
       body.reason,
     );
   }

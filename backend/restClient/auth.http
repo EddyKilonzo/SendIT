@@ -1,0 +1,85 @@
+### Authentication Endpoints
+
+# Base URL
+@baseUrl = http://localhost:3000
+
+### Register a new user
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "password": "password123",
+  "name": "John Customer",
+  "phone": "+1234567890",
+  "address": "123 Main St, City, State",
+  "role": "CUSTOMER"
+}
+
+### Register a driver
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "driver@example.com",
+  "password": "password123",
+  "name": "Mike Driver",
+  "phone": "+1234567891",
+  "address": "456 Driver St, City, State",
+  "role": "DRIVER",
+  "licenseNumber": "DL123456789",
+  "vehicleNumber": "VH789456",
+  "vehicleType": "CAR"
+}
+
+### Register an admin
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123",
+  "name": "Admin User",
+  "phone": "+1234567892",
+  "address": "789 Admin Ave, City, State",
+  "role": "ADMIN"
+}
+
+### Login as customer
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "password": "password123"
+}
+
+### Login as driver
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "driver@example.com",
+  "password": "password123"
+}
+
+### Login as admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+
+### Refresh token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "your-refresh-token-here"
+}
+
+### Logout
+POST {{baseUrl}}/auth/logout
+# Authorization: Bearer {{accessToken}} 

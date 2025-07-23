@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { DriversController } from './drivers.controller';
 import { DriversService } from './drivers.service';
-import { DatabaseModule } from '../database/database.module';
+import { AuthModule } from '../auth/auth.module';
+import { CommonModule } from '../common/common.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [AuthModule, CommonModule],
   controllers: [DriversController],
   providers: [DriversService],
   exports: [DriversService],

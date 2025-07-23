@@ -2,9 +2,9 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { Prisma, Parcel, User } from '@prisma/client';
 import {
   CreateParcelDto,
   UpdateParcelDto,
@@ -14,7 +14,6 @@ import {
   DeliveryConfirmationDto,
 } from './dto';
 import { UserResponseDto } from '../users/dto';
-import { ReviewResponseDto } from '../reviews/dto';
 
 @Injectable()
 export class ParcelsService {
@@ -38,7 +37,6 @@ export class ParcelsService {
       description,
       value,
       deliveryInstructions,
-      priority = 'STANDARD',
     } = createParcelDto;
 
     // Generate unique tracking number
@@ -61,7 +59,6 @@ export class ParcelsService {
         description,
         value,
         deliveryInstructions,
-        priority,
         status: 'pending',
       },
       include: {
@@ -90,7 +87,6 @@ export class ParcelsService {
       limit = 10,
       search,
       status,
-      priority,
       dateFrom,
       dateTo,
       assignedToMe,
@@ -99,7 +95,7 @@ export class ParcelsService {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.ParcelWhereInput = {
       deletedAt: null,
     };
 
@@ -129,10 +125,6 @@ export class ParcelsService {
 
     if (status) {
       where.status = status;
-    }
-
-    if (priority) {
-      where.priority = priority;
     }
 
     if (dateFrom || dateTo) {
@@ -178,7 +170,7 @@ export class ParcelsService {
     userId?: string,
     userRole?: string,
   ): Promise<ParcelResponseDto> {
-    const where: any = {
+    const where: Prisma.ParcelWhereInput = {
       id,
       deletedAt: null,
     };
@@ -267,7 +259,7 @@ export class ParcelsService {
     userRole?: string,
   ): Promise<ParcelResponseDto> {
     // Check if user has permission to update this parcel
-    const existingParcel = await this.findOne(id, userId, userRole);
+    await this.findOne(id, userId, userRole);
 
     const { description, value, deliveryInstructions, notes } = updateParcelDto;
 
@@ -322,7 +314,7 @@ export class ParcelsService {
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: Prisma.ParcelUpdateInput = {
       status,
       currentLocation,
       latitude,
@@ -523,7 +515,7 @@ export class ParcelsService {
     userId: string,
     type: 'sent' | 'received' = 'sent',
   ): Promise<ParcelResponseDto[]> {
-    const where: any = {
+    const where: Prisma.ParcelWhereInput = {
       deletedAt: null,
     };
 
@@ -555,13 +547,13 @@ export class ParcelsService {
     driverId: string,
     status?: string,
   ): Promise<ParcelResponseDto[]> {
-    const where: any = {
+    const where: Prisma.ParcelWhereInput = {
       driverId,
       deletedAt: null,
     };
 
     if (status) {
-      where.status = status;
+      where.status = status as Prisma.EnumParcelStatusFilter;
     }
 
     const parcels = await this.prisma.parcel.findMany({
@@ -619,45 +611,53 @@ export class ParcelsService {
     return validTransitions[currentStatus]?.includes(newStatus) || false;
   }
 
-  private mapToParcelResponse(parcel: any): ParcelResponseDto {
+  private mapToParcelResponse(
+    parcel: Parcel & {
+      sender?: User | null;
+      recipient?: User | null;
+      driver?: User | null;
+      statusHistory?: unknown[];
+      reviews?: unknown[];
+      deliveryProof?: unknown;
+    },
+  ): ParcelResponseDto {
     return {
       id: parcel.id,
       trackingNumber: parcel.trackingNumber,
-      senderId: parcel.senderId,
+      senderId: parcel.senderId || undefined,
       senderName: parcel.senderName,
       senderEmail: parcel.senderEmail,
       senderPhone: parcel.senderPhone,
-      recipientId: parcel.recipientId,
+      recipientId: parcel.recipientId || undefined,
       recipientName: parcel.recipientName,
       recipientEmail: parcel.recipientEmail,
       recipientPhone: parcel.recipientPhone,
-      driverId: parcel.driverId,
-      assignedAt: parcel.assignedAt,
+      driverId: parcel.driverId || undefined,
+      assignedAt: parcel.assignedAt || undefined,
       pickupAddress: parcel.pickupAddress,
       deliveryAddress: parcel.deliveryAddress,
-      currentLocation: parcel.currentLocation,
+      currentLocation: parcel.currentLocation || undefined,
       status: parcel.status,
       weight: parcel.weight,
-      description: parcel.description,
-      value: parcel.value,
-      deliveryInstructions: parcel.deliveryInstructions,
-      notes: parcel.notes,
-      latitude: parcel.latitude,
-      longitude: parcel.longitude,
-      estimatedPickupTime: parcel.estimatedPickupTime,
-      actualPickupTime: parcel.actualPickupTime,
-      estimatedDeliveryTime: parcel.estimatedDeliveryTime,
-      actualDeliveryTime: parcel.actualDeliveryTime,
-      totalDeliveryTime: parcel.totalDeliveryTime,
+      description: parcel.description || undefined,
+      value: parcel.value || undefined,
+      deliveryInstructions: parcel.deliveryInstructions || undefined,
+      notes: parcel.notes || undefined,
+      latitude: parcel.latitude || undefined,
+      longitude: parcel.longitude || undefined,
+      estimatedPickupTime: parcel.estimatedPickupTime || undefined,
+      actualPickupTime: parcel.actualPickupTime || undefined,
+      estimatedDeliveryTime: parcel.estimatedDeliveryTime || undefined,
+      actualDeliveryTime: parcel.actualDeliveryTime || undefined,
+      totalDeliveryTime: parcel.totalDeliveryTime || undefined,
       deliveryAttempts: parcel.deliveryAttempts,
-      priority: parcel.priority,
-      deliveryFee: parcel.deliveryFee,
+      deliveryFee: parcel.deliveryFee || undefined,
       paymentStatus: parcel.paymentStatus,
       deliveredToRecipient: parcel.deliveredToRecipient,
-      deliveryConfirmedAt: parcel.deliveryConfirmedAt,
-      deliveryConfirmedBy: parcel.deliveryConfirmedBy,
-      customerSignature: parcel.customerSignature,
-      customerNotes: parcel.customerNotes,
+      deliveryConfirmedAt: parcel.deliveryConfirmedAt || undefined,
+      deliveryConfirmedBy: parcel.deliveryConfirmedBy || undefined,
+      customerSignature: parcel.customerSignature || undefined,
+      customerNotes: parcel.customerNotes || undefined,
       createdAt: parcel.createdAt,
       updatedAt: parcel.updatedAt,
       sender: parcel.sender ? this.mapToUserResponse(parcel.sender) : undefined,
@@ -671,37 +671,37 @@ export class ParcelsService {
     };
   }
 
-  private mapToUserResponse(user: any): UserResponseDto {
+  private mapToUserResponse(user: User): UserResponseDto {
     return {
       id: user.id,
       email: user.email,
       name: user.name,
-      phone: user.phone,
-      address: user.address,
+      phone: user.phone || undefined,
+      address: user.address || undefined,
       role: user.role,
       isActive: user.isActive,
-      licenseNumber: user.licenseNumber,
-      vehicleNumber: user.vehicleNumber,
-      vehicleType: user.vehicleType,
+      licenseNumber: user.licenseNumber || undefined,
+      vehicleNumber: user.vehicleNumber || undefined,
+      vehicleType: user.vehicleType || undefined,
       isAvailable: user.isAvailable,
-      currentLat: user.currentLat,
-      currentLng: user.currentLng,
-      averageRating: user.averageRating,
+      currentLat: user.currentLat || undefined,
+      currentLng: user.currentLng || undefined,
+      averageRating: user.averageRating || undefined,
       totalRatings: user.totalRatings,
       totalDeliveries: user.totalDeliveries,
       completedDeliveries: user.completedDeliveries,
       cancelledDeliveries: user.cancelledDeliveries,
-      averageDeliveryTime: user.averageDeliveryTime,
-      onTimeDeliveryRate: user.onTimeDeliveryRate,
-      lastActiveAt: user.lastActiveAt,
-      totalEarnings: user.totalEarnings,
+      averageDeliveryTime: user.averageDeliveryTime || undefined,
+      onTimeDeliveryRate: user.onTimeDeliveryRate || undefined,
+      lastActiveAt: user.lastActiveAt || undefined,
+      totalEarnings: user.totalEarnings || undefined,
       totalParcelsEverSent: user.totalParcelsEverSent,
       totalParcelsReceived: user.totalParcelsReceived,
-      preferredPaymentMethod: user.preferredPaymentMethod,
-      driverApplicationStatus: user.driverApplicationStatus,
-      driverApplicationDate: user.driverApplicationDate,
-      driverApprovalDate: user.driverApprovalDate,
-      driverRejectionReason: user.driverRejectionReason,
+      preferredPaymentMethod: user.preferredPaymentMethod || undefined,
+      driverApplicationStatus: user.driverApplicationStatus || undefined,
+      driverApplicationDate: user.driverApplicationDate || undefined,
+      driverApprovalDate: user.driverApprovalDate || undefined,
+      driverRejectionReason: user.driverRejectionReason || undefined,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

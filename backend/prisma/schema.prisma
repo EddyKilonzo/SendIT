@@ -111,7 +111,6 @@ model Parcel {
   actualDeliveryTime     DateTime?
   totalDeliveryTime      Int?       // minutes from pickup to delivery
   deliveryAttempts       Int        @default(0)
-  priority              Priority   @default(STANDARD)
   deliveryFee           Float?
   paymentStatus         PaymentStatus @default(PENDING)
   
@@ -263,12 +262,7 @@ enum NotificationType {
   REVIEW_RECEIVED
 }
 
-enum Priority {
-  LOW
-  STANDARD
-  HIGH
-  URGENT
-}
+
 
 enum PaymentStatus {
   PENDING
