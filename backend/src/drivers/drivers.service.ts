@@ -2,8 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { Prisma } from '@prisma/client';
 import {
   UpdateLocationDto,
   UpdateAvailabilityDto,
@@ -14,11 +16,48 @@ import {
   UpdateParcelStatusDto,
 } from '../users/dto';
 
+interface DriverPerformanceResponse {
+  driverId: string;
+  driverName: string;
+  totalDeliveries: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  averageRating: number;
+  totalRatings: number;
+  totalEarnings: number;
+  onTimeDeliveryRate: number;
+  averageDeliveryTime: number;
+  lastActiveAt: Date | null;
+}
+
+interface AssignParcelResponse {
+  message: string;
+  parcel: any; // This will be the Prisma Parcel type
+  driver: UserResponseDto;
+}
+
+interface UpdateParcelStatusResponse {
+  message: string;
+  parcel: any; // This will be the Prisma Parcel type
+}
+
 @Injectable()
 export class DriversService {
+  private readonly logger = new Logger(DriversService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: any): Promise<{
+  async findAll(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    isAvailable?: boolean;
+    vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+    driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    minimumRating?: number;
+  }): Promise<{
     drivers: UserResponseDto[];
     total: number;
     page: number;
@@ -34,13 +73,12 @@ export class DriversService {
       sortBy = 'createdAt',
       sortOrder = 'desc',
       minimumRating,
-      location,
     } = query;
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
-    const where: any = {
+    // Build where clause with proper typing
+    const where: Prisma.UserWhereInput = {
       role: 'DRIVER',
       deletedAt: null,
     };
@@ -79,7 +117,7 @@ export class DriversService {
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [sortBy]: sortOrder } as Prisma.UserOrderByWithRelationInput,
       }),
       this.prisma.user.count({ where }),
     ]);
@@ -144,7 +182,7 @@ export class DriversService {
     id: string,
     updateAvailabilityDto: UpdateAvailabilityDto,
   ): Promise<UserResponseDto> {
-    const { isAvailable, reason } = updateAvailabilityDto;
+    const { isAvailable } = updateAvailabilityDto;
 
     // Check if driver exists
     const driver = await this.prisma.user.findFirst({
@@ -174,44 +212,63 @@ export class DriversService {
     userId: string,
     driverApplicationDto: DriverApplicationDto,
   ): Promise<DriverApplicationResponseDto> {
-    const { licenseNumber, vehicleNumber, vehicleType, reason } =
-      driverApplicationDto;
+    try {
+      this.logger.log(`Processing driver application for user: ${userId}`);
 
-    // Check if user exists and is a customer
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-        role: 'CUSTOMER',
-        deletedAt: null,
-      },
-    });
+      const { licenseNumber, vehicleNumber, vehicleType } =
+        driverApplicationDto;
 
-    if (!user) {
-      throw new NotFoundException('User not found');
+      // Check if user exists and is not already a driver
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+          role: { not: 'DRIVER' }, // Allow any role except DRIVER
+          deletedAt: null,
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found or already a driver');
+      }
+
+      this.logger.log(`User found: ${user.email}, current role: ${user.role}`);
+
+      // Check if license number is already taken (only if license number is provided)
+      if (licenseNumber) {
+        const existingDriver = await this.prisma.user.findFirst({
+          where: {
+            licenseNumber,
+            id: { not: userId }, // Exclude current user
+          },
+        });
+
+        if (existingDriver) {
+          throw new BadRequestException('License number already registered');
+        }
+      }
+
+      this.logger.log(`License number check passed, updating user...`);
+
+      // Update user with driver application
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          licenseNumber,
+          vehicleNumber,
+          vehicleType,
+          driverApplicationStatus: 'PENDING',
+          driverApplicationDate: new Date(),
+        },
+      });
+
+      this.logger.log(
+        `Driver application submitted successfully for user: ${userId}`,
+      );
+      return this.mapToDriverApplicationResponse(updatedUser);
+    } catch (error) {
+      this.logger.error(`Driver application failed for user ${userId}:`, error);
+      throw error;
     }
-
-    // Check if license number is already taken
-    const existingDriver = await this.prisma.user.findUnique({
-      where: { licenseNumber },
-    });
-
-    if (existingDriver) {
-      throw new BadRequestException('License number already registered');
-    }
-
-    // Update user with driver application
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        licenseNumber,
-        vehicleNumber,
-        vehicleType,
-        driverApplicationStatus: 'PENDING',
-        driverApplicationDate: new Date(),
-      },
-    });
-
-    return this.mapToDriverApplicationResponse(updatedUser);
   }
 
   async approveDriverApplication(
@@ -280,7 +337,7 @@ export class DriversService {
     return this.mapToDriverApplicationResponse(updatedDriver);
   }
 
-  async getDriverPerformance(id: string): Promise<any> {
+  async getDriverPerformance(id: string): Promise<DriverPerformanceResponse> {
     const driver = await this.prisma.user.findFirst({
       where: {
         id,
@@ -334,14 +391,11 @@ export class DriversService {
     };
   }
 
-  async assignParcel(assignParcelDto: AssignParcelDto): Promise<any> {
-    const {
-      driverId,
-      parcelId,
-      assignmentNotes,
-      estimatedPickupTime,
-      estimatedDeliveryTime,
-    } = assignParcelDto;
+  async assignParcel(
+    assignParcelDto: AssignParcelDto,
+  ): Promise<AssignParcelResponse> {
+    const { driverId, parcelId, estimatedPickupTime, estimatedDeliveryTime } =
+      assignParcelDto;
 
     // Check if driver exists and is available
     const driver = await this.prisma.user.findFirst({
@@ -394,7 +448,7 @@ export class DriversService {
     parcelId: string,
     driverId: string,
     updateParcelStatusDto: UpdateParcelStatusDto,
-  ): Promise<any> {
+  ): Promise<UpdateParcelStatusResponse> {
     const { status, currentLocation, latitude, longitude, notes } =
       updateParcelStatusDto;
 
@@ -441,56 +495,66 @@ export class DriversService {
     };
   }
 
-  private mapToDriverResponse(driver: any): UserResponseDto {
+  private mapToDriverResponse(
+    driver: Prisma.UserGetPayload<Record<string, never>>,
+  ): UserResponseDto {
     return {
       id: driver.id,
       email: driver.email,
       name: driver.name,
-      phone: driver.phone,
-      address: driver.address,
+      phone: driver.phone ?? undefined,
+      address: driver.address ?? undefined,
       role: driver.role,
       isActive: driver.isActive,
-      licenseNumber: driver.licenseNumber,
-      vehicleNumber: driver.vehicleNumber,
-      vehicleType: driver.vehicleType,
+      licenseNumber: driver.licenseNumber ?? undefined,
+      vehicleNumber: driver.vehicleNumber ?? undefined,
+      vehicleType: driver.vehicleType ?? undefined,
       isAvailable: driver.isAvailable,
-      currentLat: driver.currentLat,
-      currentLng: driver.currentLng,
-      averageRating: driver.averageRating,
+      currentLat: driver.currentLat ?? undefined,
+      currentLng: driver.currentLng ?? undefined,
+      averageRating: driver.averageRating ?? undefined,
       totalRatings: driver.totalRatings,
       totalDeliveries: driver.totalDeliveries,
       completedDeliveries: driver.completedDeliveries,
       cancelledDeliveries: driver.cancelledDeliveries,
-      averageDeliveryTime: driver.averageDeliveryTime,
-      onTimeDeliveryRate: driver.onTimeDeliveryRate,
-      lastActiveAt: driver.lastActiveAt,
-      totalEarnings: driver.totalEarnings,
+      averageDeliveryTime: driver.averageDeliveryTime ?? undefined,
+      onTimeDeliveryRate: driver.onTimeDeliveryRate ?? undefined,
+      lastActiveAt: driver.lastActiveAt ?? undefined,
+      totalEarnings: driver.totalEarnings ?? undefined,
       totalParcelsEverSent: driver.totalParcelsEverSent,
       totalParcelsReceived: driver.totalParcelsReceived,
-      preferredPaymentMethod: driver.preferredPaymentMethod,
-      driverApplicationStatus: driver.driverApplicationStatus,
-      driverApplicationDate: driver.driverApplicationDate,
-      driverApprovalDate: driver.driverApprovalDate,
-      driverRejectionReason: driver.driverRejectionReason,
+      preferredPaymentMethod: driver.preferredPaymentMethod ?? undefined,
+      driverApplicationStatus: driver.driverApplicationStatus ?? undefined,
+      driverApplicationDate: driver.driverApplicationDate ?? undefined,
+      driverApprovalDate: driver.driverApprovalDate ?? undefined,
+      driverRejectionReason: driver.driverRejectionReason ?? undefined,
       createdAt: driver.createdAt,
       updatedAt: driver.updatedAt,
     };
   }
 
   private mapToDriverApplicationResponse(
-    user: any,
+    user: Record<string, any>,
   ): DriverApplicationResponseDto {
     return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      driverApplicationStatus: user.driverApplicationStatus,
-      driverApplicationDate: user.driverApplicationDate,
-      driverApprovalDate: user.driverApprovalDate,
-      driverRejectionReason: user.driverRejectionReason,
-      licenseNumber: user.licenseNumber,
-      vehicleNumber: user.vehicleNumber,
-      vehicleType: user.vehicleType,
+      id: user.id as string,
+      email: user.email as string,
+      name: user.name as string,
+      driverApplicationStatus: user.driverApplicationStatus as
+        | 'PENDING'
+        | 'APPROVED'
+        | 'REJECTED',
+      driverApplicationDate: user.driverApplicationDate as Date,
+      driverApprovalDate: user.driverApprovalDate as Date,
+      driverRejectionReason: user.driverRejectionReason as string,
+      licenseNumber: user.licenseNumber as string,
+      vehicleNumber: user.vehicleNumber as string,
+      vehicleType: user.vehicleType as
+        | 'MOTORCYCLE'
+        | 'CAR'
+        | 'VAN'
+        | 'TRUCK'
+        | undefined,
     };
   }
 }

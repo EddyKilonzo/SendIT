@@ -178,6 +178,10 @@
             text-align: center;
             margin: 20px 0;
         }
+        .separator {
+            border-top: 1px solid #e1e4e8;
+            margin: 25px 0;
+        }
         
         .support-link a {
             color: #DBBB02;
@@ -246,19 +250,13 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header Section -->
-        <div class="header">
-            <div class="logo">
-                <!-- Replace this with your actual logo URL when hosting -->
-                <div style="width: 120px; height: 60px; background-color: #DBBB02; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 18px; margin: 0 auto;">
-                    SendIT
-                </div>
-            </div>
-            <h1 class="main-heading">New Parcel Assignment</h1>
-        </div>
+        
 
         <!-- Main Content Card -->
         <div class="content-card">
+            <div style="text-align: center; margin: 0;">    
+                <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
+            </div>
             <div class="user-avatar">
                 <% if (typeof profilePicture !== 'undefined' && profilePicture) { %>
                     <img src="<%= profilePicture %>" alt="<%= name %>'s profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
@@ -268,6 +266,7 @@
             </div>
             
             <h2 class="card-heading">New Parcel Assignment</h2>
+            <div class="separator"></div>
             
             <div class="greeting">
                 Greetings, <strong><%= name %></strong>
@@ -304,9 +303,7 @@
                 Please update the parcel status as you progress through the delivery process.
             </div>
             
-            <div class="content-text">
-                Remember to update the parcel status in your driver dashboard as you complete each step of the delivery process.
-            </div>
+            
             
             <div style="text-align: center;">
                 <a href="<%= baseUrl %>/driver/parcels/<%= parcelId %>" class="cta-button">

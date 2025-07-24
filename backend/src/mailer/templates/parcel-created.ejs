@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Reset Request - SendIT</title>
+    <title>Application Approved - SendIT</title>
     <style>
         * {
             margin: 0;
@@ -47,7 +47,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             padding: 40px;
-            margin: 0 auto;
+            margin-bottom: 30px;
         }
         
         .user-avatar {
@@ -86,6 +86,63 @@
             line-height: 1.6;
         }
         
+        .delivery-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #DBBB02;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            min-width: 120px;
+        }
+        
+        .detail-value {
+            color: #666;
+            font-size: 14px;
+            text-align: right;
+            flex: 1;
+            margin-left: 15px;
+        }
+        
+        .address-value {
+            color: #666;
+            font-size: 14px;
+            text-align: right;
+            flex: 1;
+            margin-left: 15px;
+            line-height: 1.4;
+        }
+        
+        .assignment-badge {
+            background-color: #DBBB02;
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        
         .highlight-text {
             font-weight: 600;
             text-align: center;
@@ -95,17 +152,6 @@
             background-color: #fef7e0;
             padding: 15px;
             border-radius: 6px;
-            border-left: 4px solid #DBBB02;
-        }
-        
-        .security-notice {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 20px 0;
-            font-size: 13px;
-            color: #856404;
         }
         
         .cta-button {
@@ -132,6 +178,10 @@
             text-align: center;
             margin: 20px 0;
         }
+        .separator {
+            border-top: 1px solid #e1e4e8;
+            margin: 25px 0;
+        }
         
         .support-link a {
             color: #DBBB02;
@@ -141,26 +191,6 @@
         
         .support-link a:hover {
             text-decoration: underline;
-        }
-        
-        .separator {
-            border-top: 1px solid #e1e4e8;
-            margin: 25px 0;
-        }
-        
-        .fallback-link {
-            font-size: 12px;
-            color: #666;
-            margin-top: 15px;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-        }
-        
-        .fallback-link a {
-            color: #DBBB02;
-            text-decoration: none;
-            word-break: break-all;
         }
         
         .footer {
@@ -200,6 +230,18 @@
                 font-size: 18px;
             }
             
+            .detail-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .detail-value,
+            .address-value {
+                text-align: left;
+                margin-left: 0;
+                margin-top: 4px;
+            }
+            
             .logo {
                 width: 100px;
             }
@@ -208,10 +250,11 @@
 </head>
 <body>
     <div class="container">
+        
 
         <!-- Main Content Card -->
         <div class="content-card">
-            <div style="text-align: center; margin: 0;">
+            <div style="text-align: center; margin: 0;">    
                 <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
             </div>
             <div class="user-avatar">
@@ -222,37 +265,49 @@
                 <% } %>
             </div>
             
-            <h2 class="card-heading">Password Reset Request</h2>
+            <h2 class="card-heading">Application Approved</h2>
             <div class="separator"></div>
             
             <div class="greeting">
-                Greetings, <strong><%= name %></strong>
+                Greetings, <strong style="color: #DBBB02;"> <%= name %></strong>
             </div>
             
             <div class="content-text">
-                We received a request to reset your password for your account. If you didn't make this request, you can ignore this email.
+                We are pleased to inform you that your application has been approved. You can now start delivering parcels with ease.
+            </div>
+            <div class="content-text">
+                <p>What you can do as a driver</p>
+            </div>
+            <div class="delivery-details">
+                
+                <div class="detail-row">
+                    <span class="detail-label">1. Pick up the parcel from the sender</span>
+                    
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">2. Deliver the parcel to the recipient</span>
+                    
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">3. User inspects the parcel and rates you</span>
+                    
+                </div>
+                    
+                
             </div>
             
             <div class="highlight-text">
-                Click the button below to reset your password. This link will expire in 1 hour for security reasons.
+                <p>You can now start delivering parcels with ease.</p>
             </div>
             
-            <div class="content-text">
-                If you requested a password reset, click the button below to create a new password. For your security, this link will only work once and expires in 1 hour.
-            </div>
+            
             
             <div style="text-align: center;">
-                <a href="<%= baseUrl %>/reset-password?token=<%= resetToken %>" class="cta-button">
-                    Reset Password
+                <a href="<%= baseUrl %>/driver/parcels/<%= parcelId %>" class="cta-button">
+                    Check your dashboard
                 </a>
             </div>
             
-            
-            <div class="support-link">
-                If you didn't request this password reset, please <a href="<%= baseUrl %>/contact">contact our support team</a> immediately.
-            </div>
-            
-            <div class="separator"></div>
             
         </div>
 
@@ -264,4 +319,4 @@
         </div>
     </div>
 </body>
-</html> 
+</html> `

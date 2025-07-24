@@ -22,6 +22,7 @@ import {
 } from '../common/exceptions/custom.exceptions';
 import * as bcrypt from 'bcrypt';
 import { UserRole, User } from '@prisma/client';
+import { MailerService } from '../mailer/mailer.service';
 
 interface JwtPayload {
   sub: string;
@@ -41,6 +42,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly mailerService: MailerService,
   ) {}
 
   async register(
@@ -62,14 +64,14 @@ export class AuthService {
         this.SALT_ROUNDS,
       );
 
-      // Create user - ALWAYS start as CUSTOMER
+      // Create user with specified role or default to CUSTOMER
       const userData = {
         email: createUserDto.email,
         password: hashedPassword,
         name: createUserDto.name,
         phone: createUserDto.phone,
         address: createUserDto.address,
-        role: UserRole.CUSTOMER, //  start as customer
+        role: createUserDto.role || UserRole.CUSTOMER, // Allow role specification
         // Set default values for metrics
         averageRating: 0,
         totalRatings: 0,
@@ -89,6 +91,21 @@ export class AuthService {
       // Generate tokens
       const tokens = await this.generateTokens(user);
 
+      // Send welcome email
+      try {
+        await this.mailerService.sendWelcomeEmail({
+          to: user.email,
+          name: user.name,
+        });
+        this.logger.log(`Welcome email sent to: ${user.email}`);
+      } catch (emailError) {
+        this.logger.warn(
+          `Failed to send welcome email to ${user.email}:`,
+          emailError,
+        );
+        // Don't fail registration if email fails
+      }
+
       // Prepare response
       const userResponse: UserResponseDto = this.mapToUserResponse(user);
       const authResponse: AuthResponseDto = {
@@ -99,7 +116,10 @@ export class AuthService {
       };
 
       this.logger.log(`User registered successfully: ${user.email}`);
-      return ApiResponse.success(authResponse, 'User registered successfully');
+      return ApiResponse.success(
+        authResponse,
+        'User registered successfully. Welcome email sent.',
+      );
     } catch (error) {
       this.logger.error('Registration failed', error);
 
@@ -356,6 +376,7 @@ export class AuthService {
       name: user.name,
       phone: user.phone || undefined,
       address: user.address || undefined,
+      profilePicture: user.profilePicture || undefined,
       role: user.role,
       isActive: user.isActive,
       licenseNumber: user.licenseNumber || undefined,

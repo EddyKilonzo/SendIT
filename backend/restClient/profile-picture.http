@@ -1,0 +1,33 @@
+### Profile Picture Upload Endpoints
+
+# Base URL
+@baseUrl = http://localhost:3000
+
+### Upload Profile Picture
+# Note: This requires a valid JWT token and a file upload
+POST {{baseUrl}}/users/profile/upload-picture
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+# Authorization: Bearer {{accessToken}}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="profilePicture"; filename="profile.jpg"
+Content-Type: image/jpeg
+
+< ./test-image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Get User Profile (to see profile picture)
+GET {{baseUrl}}/users/profile/me
+# Authorization: Bearer {{accessToken}}
+
+### Update User Profile (including profile picture URL)
+# PATCH {{baseUrl}}/users/{{userId}}
+Content-Type: application/json
+# Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Updated Name",
+  "phone": "+1234567890",
+  "address": "Updated Address",
+  "profilePicture": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/sendit-profiles/profile.jpg"
+} 

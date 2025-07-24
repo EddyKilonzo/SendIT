@@ -12,7 +12,10 @@ import {
   UsePipes,
   UseGuards,
   Request,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { UsersService } from './users.service';
 import {
@@ -82,5 +85,19 @@ export class UsersController {
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.usersService.changePassword(params.id, changePasswordDto);
+  }
+
+  @Post('profile/upload-picture')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('profilePicture'))
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
+  async uploadProfilePicture(
+    @Request() req: { user: { sub: string } },
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+    return this.usersService.uploadProfilePicture(req.user.sub, file);
   }
 }

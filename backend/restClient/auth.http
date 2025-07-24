@@ -37,7 +37,7 @@ POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "email": "admin@example.com",
+  "email": "admin@123example.com",
   "password": "password123",
   "name": "Admin User",
   "phone": "+1234567892",

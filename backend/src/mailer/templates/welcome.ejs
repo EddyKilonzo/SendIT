@@ -30,7 +30,7 @@
         }
         
         .logo {
-            width: 120px;
+            width: 10px;
             height: auto;
             margin-bottom: 20px;
         }
@@ -174,20 +174,14 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header Section -->
-        <div class="header">
-            <div class="logo">
-                <!-- Replace this with your actual logo URL when hosting -->
-                <div style="width: 120px; height: 60px; background-color: #DBBB02; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 18px; margin: 0 auto;">
-                    SendIT
-                </div>
-            </div>
-            <h1 class="main-heading">Welcome to SendIT!</h1>
-        </div>
+        
 
         <!-- Main Content Card -->
         <div class="content-card">
-            <div class="user-avatar">
+            <div style="text-align: center; margin: 0;">
+                <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
+            </div>
+            <div class="user-avatar" style="margin: 0 auto;">
                 <% if (typeof profilePicture !== 'undefined' && profilePicture) { %>
                     <img src="<%= profilePicture %>" alt="<%= name %>'s profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
                 <% } else { %>
@@ -195,7 +189,7 @@
                 <% } %>
             </div>
             
-            <h2 class="card-heading">Welcome to SendIT!</h2>
+            <h2 class="card-heading">Welcome to <span style="color: #DBBB02;">SendIT!</span></h2>
             
             <div class="greeting">
                 Greetings, <strong><%= name %></strong>
@@ -206,16 +200,14 @@
             </div>
             
             <div class="content-text">
-                Your account has been successfully created and you can now start sending parcels with ease. Our platform offers secure, fast, and reliable delivery services across the country.
+                Your account has been successfully created. Our platform offers secure, fast, and reliable delivery services across the country.
             </div>
             
             <div class="highlight-text">
-                Get started by creating your first parcel delivery!
+                You can Track your parcels and manage your account from your dashboard.
             </div>
             
-            <div class="content-text">
-                If you have any questions or need assistance, our support team is here to help you every step of the way.
-            </div>
+            
             
             <div style="text-align: center;">
                 <a href="<%= baseUrl %>/dashboard" class="cta-button">
@@ -224,7 +216,7 @@
             </div>
             
             <div class="support-link">
-                Need help getting started? <a href="<%= baseUrl %>/help">Visit our help center</a> or <a href="<%= baseUrl %>/contact">contact our support team</a>.
+                Need help, Visit our help center</a> or <a href="<%= baseUrl %>/contact">contact our support team</a>.
             </div>
         </div>
 

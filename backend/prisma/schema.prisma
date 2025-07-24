@@ -51,6 +51,7 @@ model User {
   preferredPaymentMethod  String?
   
   // Common fields
+  profilePicture String?      // URL to profile picture
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

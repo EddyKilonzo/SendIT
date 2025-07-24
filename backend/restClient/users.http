@@ -4,9 +4,9 @@
 @baseUrl = http://localhost:3000
 
 # Variables - 
-@customerToken = your-customer-token-here
+@customerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWRoMDA3ODAwMDAxazd2NHAyZjRjNG9lIiwiZW1haWwiOiJjdXN0b21lckBleGFtcGxlLmNvbSIsInJvbGUiOiJDVVNUT01FUiIsImlhdCI6MTc1MzMzNzg5OSwiZXhwIjoxNzUzMzQxNDk5fQ.sOM2cp4LWKiQtc1qddWNb9Es6g0oYiZ2QHbRjpPZV9c
 @driverToken = your-driver-token-here
-@adminToken = your-admin-token-here
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWRoMW4zNHUwMDAwazdnZ296M3A5MDM4IiwiZW1haWwiOiJhZG1pbkAxMjNleGFtcGxlLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc1MzM0MDQ2MiwiZXhwIjoxNzUzMzQ0MDYyfQ.WYcB_1YUHInY0rU_2R56_mF9BxR4wAouJMcDZVVaKSo
 
 ### Get current user profile (requires authentication)
 GET {{baseUrl}}/users/profile/me

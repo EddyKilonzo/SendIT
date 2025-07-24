@@ -1,5 +1,23 @@
 import * as Joi from 'joi';
 
+export const driverApplicationSchema = Joi.object({
+  licenseNumber: Joi.string().required().messages({
+    'any.required': 'License number is required',
+  }),
+  vehicleNumber: Joi.string().optional().messages({
+    'string.base': 'Vehicle number must be a string',
+  }),
+  vehicleType: Joi.string()
+    .valid('MOTORCYCLE', 'CAR', 'VAN', 'TRUCK')
+    .optional()
+    .messages({
+      'any.only': 'Vehicle type must be MOTORCYCLE, CAR, VAN, or TRUCK',
+    }),
+  reason: Joi.string().max(500).optional().messages({
+    'string.max': 'Reason cannot exceed 500 characters',
+  }),
+});
+
 export const updateLocationSchema = Joi.object({
   currentLat: Joi.number().min(-90).max(90).required().messages({
     'number.min': 'Latitude must be between -90 and 90',

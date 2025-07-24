@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -11,12 +12,19 @@ import {
   ChangePasswordDto,
   UsersQueryDto,
   UserResponseDto,
+  ProfilePictureResponseDto,
 } from './dto';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     const { email, password, name, phone, address } = createUserDto;
@@ -243,6 +251,53 @@ export class UsersService {
     return this.findOne(id);
   }
 
+  async uploadProfilePicture(
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<ProfilePictureResponseDto> {
+    try {
+      // Check if user exists
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Extract public ID from current profile picture URL if it exists
+      let currentPublicId: string | undefined;
+      if (user.profilePicture) {
+        const urlParts = user.profilePicture.split('/');
+        const filename = urlParts[urlParts.length - 1];
+        currentPublicId = filename.split('.')[0]; // Remove file extension
+      }
+
+      // Upload new profile picture
+      const uploadResult = await this.cloudinaryService.updateProfilePicture(
+        file,
+        currentPublicId,
+      );
+
+      // Update user with new profile picture URL
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: { profilePicture: uploadResult.url },
+      });
+
+      this.logger.log(`Profile picture updated for user: ${userId}`);
+
+      return {
+        id: updatedUser.id,
+        profilePicture: updatedUser.profilePicture!,
+        message: 'Profile picture updated successfully',
+      };
+    } catch (error) {
+      this.logger.error('Profile picture upload failed:', error);
+      throw new BadRequestException('Failed to upload profile picture');
+    }
+  }
+
   private mapToUserResponse(
     user: Prisma.UserGetPayload<object>,
   ): UserResponseDto {
@@ -252,6 +307,7 @@ export class UsersService {
       name: user.name,
       phone: user.phone || undefined,
       address: user.address || undefined,
+      profilePicture: user.profilePicture || undefined,
       role: user.role,
       isActive: user.isActive,
       totalParcelsEverSent: user.totalParcelsEverSent,

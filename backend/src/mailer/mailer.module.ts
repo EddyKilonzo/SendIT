@@ -3,7 +3,6 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { join } from 'path';
 import { MailerService } from './mailer.service';
-import { MailerController } from './mailer.controller';
 
 @Module({
   imports: [
@@ -29,7 +28,6 @@ import { MailerController } from './mailer.controller';
       },
     }),
   ],
-  controllers: [MailerController],
   providers: [MailerService],
   exports: [MailerService],
 })

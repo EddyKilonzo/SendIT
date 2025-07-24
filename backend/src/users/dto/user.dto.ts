@@ -6,6 +6,7 @@ export interface CreateUserDto {
   phone?: string;
   address?: string;
   role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  profilePicture?: string;
 
   // Driver-specific fields (only for DRIVER role)
   licenseNumber?: string;
@@ -20,6 +21,7 @@ export interface UpdateUserDto {
   email?: string;
   role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   isActive?: boolean;
+  profilePicture?: string;
 
   // Driver-specific fields (only for DRIVER role)
   licenseNumber?: string;
@@ -72,6 +74,7 @@ export interface UserResponseDto {
   name: string;
   phone?: string;
   address?: string;
+  profilePicture?: string;
   role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   isActive: boolean;
 

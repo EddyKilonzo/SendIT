@@ -85,6 +85,10 @@
             margin-bottom: 15px;
             line-height: 1.6;
         }
+        .separator {
+            border-top: 1px solid #e1e4e8;
+            margin: 25px 0;
+        }
         
         .parcel-details {
             background-color: #f8f9fa;
@@ -228,19 +232,13 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header Section -->
-        <div class="header">
-            <div class="logo">
-                <!-- Replace this with your actual logo URL when hosting -->
-                <div style="width: 120px; height: 60px; background-color: #DBBB02; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 18px; margin: 0 auto;">
-                    SendIT
-                </div>
-            </div>
-            <h1 class="main-heading">Parcel Status Update</h1>
-        </div>
+        
 
         <!-- Main Content Card -->
         <div class="content-card">
+            <div style="text-align: center; margin: 0;">    
+                <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
+            </div>
             <div class="user-avatar">
                 <% if (typeof profilePicture !== 'undefined' && profilePicture) { %>
                     <img src="<%= profilePicture %>" alt="<%= name %>'s profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
@@ -250,13 +248,14 @@
             </div>
             
             <h2 class="card-heading">Parcel Status Update</h2>
+            <div class="separator"></div>
             
             <div class="greeting">
                 Greetings, <strong><%= name %></strong>
             </div>
             
             <div class="content-text">
-                Your parcel has been updated with a new status. Here are the details:
+                Your parcel has been delivered. Here are the details:
             </div>
             
             <div class="parcel-details">
@@ -283,12 +282,9 @@
             </div>
             
             <div class="highlight-text">
-                Track your parcel in real-time to see its current location and delivery progress.
+                Inspect your parcel and mark as complete, leave a review and rate the driver.
             </div>
             
-            <div class="content-text">
-                You can track your parcel anytime by visiting your dashboard or using the tracking number above.
-            </div>
             
             <div style="text-align: center;">
                 <a href="<%= baseUrl %>/track/<%= trackingNumber %>" class="cta-button">

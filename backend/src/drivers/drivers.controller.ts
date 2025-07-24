@@ -23,6 +23,7 @@ import {
 import { IdParamDto } from '../common/dto';
 import { createJoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import {
+  driverApplicationSchema,
   updateLocationSchema,
   updateAvailabilitySchema,
   assignParcelSchema,
@@ -32,6 +33,32 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators';
 
+// Import the response types from the service
+interface DriverPerformanceResponse {
+  driverId: string;
+  driverName: string;
+  totalDeliveries: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  averageRating: number;
+  totalRatings: number;
+  totalEarnings: number;
+  onTimeDeliveryRate: number;
+  averageDeliveryTime: number;
+  lastActiveAt: Date | null;
+}
+
+interface AssignParcelResponse {
+  message: string;
+  parcel: any;
+  driver: any;
+}
+
+interface UpdateParcelStatusResponse {
+  message: string;
+  parcel: any;
+}
+
 @Controller('drivers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class DriversController {
@@ -39,7 +66,20 @@ export class DriversController {
 
   @Get()
   @Roles('ADMIN')
-  findAll(@Query() query: any) {
+  findAll(
+    @Query()
+    query: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      isAvailable?: boolean;
+      vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+      driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      minimumRating?: number;
+    },
+  ) {
     return this.driversService.findAll(query);
   }
 
@@ -51,7 +91,9 @@ export class DriversController {
 
   @Get(':id/performance')
   @Roles('ADMIN')
-  getDriverPerformance(@Param() params: IdParamDto) {
+  getDriverPerformance(
+    @Param() params: IdParamDto,
+  ): Promise<DriverPerformanceResponse> {
     return this.driversService.getDriverPerformance(params.id);
   }
 
@@ -82,13 +124,15 @@ export class DriversController {
 
   @Post('apply')
   @HttpCode(HttpStatus.CREATED)
-  @Roles('CUSTOMER')
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  @UsePipes(createJoiValidationPipe(driverApplicationSchema))
+  @Roles('CUSTOMER', 'ADMIN')
   applyForDriver(
     @Body() driverApplicationDto: DriverApplicationDto,
-    @Request() req: { user: { id: string } },
+    @Request() req: { user: { sub: string } },
   ) {
     return this.driversService.applyForDriver(
-      req.user.id,
+      req.user.sub,
       driverApplicationDto,
     );
   }
@@ -97,7 +141,9 @@ export class DriversController {
   @HttpCode(HttpStatus.OK)
   @UsePipes(createJoiValidationPipe(assignParcelSchema))
   @Roles('ADMIN')
-  assignParcel(@Body() assignParcelDto: AssignParcelDto) {
+  assignParcel(
+    @Body() assignParcelDto: AssignParcelDto,
+  ): Promise<AssignParcelResponse> {
     return this.driversService.assignParcel(assignParcelDto);
   }
 
@@ -108,11 +154,11 @@ export class DriversController {
   updateParcelStatus(
     @Param('parcelId') parcelId: string,
     @Body() updateParcelStatusDto: UpdateParcelStatusDto,
-    @Request() req: { user: { id: string } },
-  ) {
+    @Request() req: { user: { sub: string } },
+  ): Promise<UpdateParcelStatusResponse> {
     return this.driversService.updateParcelStatus(
       parcelId,
-      req.user.id,
+      req.user.sub,
       updateParcelStatusDto,
     );
   }
@@ -123,9 +169,9 @@ export class DriversController {
   @Roles('ADMIN')
   approveDriverApplication(
     @Param('id') driverId: string,
-    @Request() req: { user: { id: string } },
+    @Request() req: { user: { sub: string } },
   ) {
-    return this.driversService.approveDriverApplication(driverId, req.user.id);
+    return this.driversService.approveDriverApplication(driverId, req.user.sub);
   }
 
   @Post('applications/:id/reject')
@@ -134,11 +180,11 @@ export class DriversController {
   rejectDriverApplication(
     @Param('id') driverId: string,
     @Body() body: { reason: string },
-    @Request() req: { user: { id: string } },
+    @Request() req: { user: { sub: string } },
   ) {
     return this.driversService.rejectDriverApplication(
       driverId,
-      req.user.id,
+      req.user.sub,
       body.reason,
     );
   }
