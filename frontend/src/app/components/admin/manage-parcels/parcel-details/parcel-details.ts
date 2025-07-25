@@ -6,6 +6,7 @@ import { MapComponent } from '../../../shared/map/map.component';
 import { MapService } from '../../../../services/map.service';
 import { MapLocation, MapCoordinates, MapError, MapMarkerType } from '../../../../types/map.types';
 import { ToastService } from '../../../shared/toast/toast.service';
+import { SidebarComponent } from '../../../shared/sidebar/sidebar';
 import * as L from 'leaflet';
 
 interface ParcelDetailsData {
@@ -53,7 +54,7 @@ interface ParcelDetailsData {
 
 @Component({
   selector: 'app-parcel-details',
-  imports: [CommonModule, FormsModule, RouterModule, MapComponent],
+  imports: [CommonModule, FormsModule, RouterModule, MapComponent, SidebarComponent],
   templateUrl: './parcel-details.html',
   styleUrl: './parcel-details.css'
 })

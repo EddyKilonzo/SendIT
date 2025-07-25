@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { SidebarComponent } from '../../shared/sidebar/sidebar';
 
 interface Parcel {
   id: string;
@@ -26,7 +27,7 @@ interface Notification {
 @Component({
   selector: 'app-user-parcels',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, SidebarComponent],
   templateUrl: './user-parcels.html',
   styleUrls: ['./user-parcels.css']
 })

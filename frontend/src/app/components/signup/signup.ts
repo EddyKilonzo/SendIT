@@ -1,25 +1,34 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { ToastService } from '../shared/toast/toast.service';
+import { AuthService, CreateUserDto } from '../../services/auth.service';
 
 @Component({
   selector: 'app-signup',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CommonModule],
   templateUrl: './signup.html',
   styleUrl: './signup.css'
 })
 export class Signup {
   showPassword = false;
+  isLoading = false;
   
-  signupData = {
+  signupData: CreateUserDto = {
     name: '',
     email: '',
-    password: ''
+    password: '',
+    phone: '',
+    role: 'CUSTOMER' // Default role
   };
 
-  constructor(private toastService: ToastService, private router: Router) {}
+  constructor(
+    private toastService: ToastService, 
+    private router: Router,
+    private authService: AuthService
+  ) {}
 
   togglePassword() {
     this.showPassword = !this.showPassword;
@@ -45,14 +54,34 @@ export class Signup {
       return;
     }
 
-    console.log('Signup data:', this.signupData);
-    
-    // Simulate API call
-    this.toastService.showSuccess('Account created successfully! Welcome to SendIT');
-    
-    // Redirect to login page after successful signup
-    setTimeout(() => {
-      this.router.navigate(['/login']);
-    }, 1000); 
+    // Validate name
+    if (this.signupData.name.trim().length < 2) {
+      this.toastService.showError('Name must be at least 2 characters long');
+      return;
+    }
+
+    this.isLoading = true;
+
+    // Call auth service
+    this.authService.register(this.signupData).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        console.log('Registration successful:', response);
+        
+        // Redirect based on user role
+        this.redirectBasedOnRole(response.user.role);
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('Registration failed:', error);
+        // Error is already handled by auth service with toast
+      }
+    });
+  }
+
+  private redirectBasedOnRole(role: string) {
+    // Redirect to login page after successful registration
+    this.router.navigate(['/login']);
+    this.toastService.showSuccess('Registration successful! Please login to continue.');
   }
 }

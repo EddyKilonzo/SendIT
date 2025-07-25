@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
+import { SidebarComponent } from '../../shared/sidebar/sidebar';
 // Removed: import { ApiService } from '../../../services/api.service';
 
 interface Parcel {
@@ -15,7 +16,7 @@ interface Parcel {
 
 @Component({
   selector: 'app-manage-parcels',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, SidebarComponent],
   templateUrl: './manage-parcels.html',
   styleUrl: './manage-parcels.css'
 })

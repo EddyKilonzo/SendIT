@@ -1,32 +1,50 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { ToastService } from '../../shared/toast/toast.service';
+import { SidebarComponent } from '../../shared/sidebar/sidebar';
+import { AdminService } from '../../../services/admin.service';
+import { catchError, of } from 'rxjs';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  role: 'Driver' | 'User';
-  status: 'Active' | 'Inactive';
-  registered: string;
-  avatar: string;
+  phone?: string;
+  role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  isActive: boolean;
+  createdAt: string;
+  profilePicture?: string;
+  // Driver-specific fields
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  isAvailable?: boolean;
+  averageRating?: number;
+  totalDeliveries: number;
+  completedDeliveries: number;
+  onTimeDeliveryRate?: number;
+  totalEarnings?: number;
+  // Driver application fields
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: string;
+  driverApprovalDate?: string;
+  driverRejectionReason?: string;
 }
 
 interface DriverApplication {
   id: string;
-  applicantName: string;
-  applicantEmail: string;
-  licenseNumber: string;
+  name: string;
+  email: string;
+  phone?: string;
+  driverApplicationStatus: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: string;
+  driverApprovalDate?: string;
+  driverRejectionReason?: string;
+  licenseNumber?: string;
   vehicleNumber?: string;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  reason?: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  applicationDate: Date;
-  approvalDate?: Date;
-  rejectionReason?: string;
 }
 
 @Component({
@@ -34,19 +52,24 @@ interface DriverApplication {
   templateUrl: './manage-users.html',
   styleUrl: './manage-users.css',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule]
+  imports: [CommonModule, FormsModule, RouterModule, SidebarComponent]
 })
-export class ManageUsers {
+export class ManageUsers implements OnInit {
   constructor(
     private router: Router,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private adminService: AdminService
   ) {}
   
   // User role for role-based access control
-  userRole: string = 'ADMIN'; // Default role for admin component, will be set from auth service later
+  userRole: string = 'ADMIN';
   
   // Tab management
   activeTab = 'users';
+  
+  // Loading states
+  isLoadingUsers = true;
+  isLoadingApplications = true;
   
   // User management
   searchTerm = '';
@@ -62,205 +85,121 @@ export class ManageUsers {
   rejectionReason = '';
   showApplicationDetailsModal = false;
   selectedApplicationForReview: DriverApplication | null = null;
-  users: User[] = [
-    {
-      id: '1',
-      name: 'Sophia Clark',
-      email: 'sophia.clark@email.com',
-      phone: '123-456-7890',
-      role: 'User',
-      status: 'Active',
-      registered: '2023-09-15',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '2',
-      name: 'Ethan Bennett',
-      email: 'ethan.bennett@email.com',
-      phone: '123-456-7891',
-      role: 'Driver',
-      status: 'Active',
-      registered: '2023-09-12',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '3',
-      name: 'Olivia Hayes',
-      email: 'olivia.hayes@email.com',
-      phone: '123-456-7892',
-      role: 'User',
-      status: 'Active',
-      registered: '2023-09-13',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '4',
-      name: 'Liam Foster',
-      email: 'liam.foster@email.com',
-      phone: '123-456-7893',
-      role: 'Driver',
-      status: 'Active',
-      registered: '2023-04-05',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '5',
-      name: 'Ava Mitchell',
-      email: 'ava.mitchell@email.com',
-      phone: '123-456-7894',
-      role: 'User',
-      status: 'Active',
-      registered: '2023-09-11',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '6',
-      name: 'Noah Carter',
-      email: 'noah.carter@email.com',
-      phone: '123-456-7895',
-      role: 'Driver',
-      status: 'Inactive',
-      registered: '2023-06-18',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '7',
-      name: 'Isabella Reed',
-      email: 'isabella.reed@email.com',
-      phone: '123-456-7896',
-      role: 'User',
-      status: 'Inactive',
-      registered: '2023-07-22',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '8',
-      name: 'Jackson Cole',
-      email: 'jackson.cole@email.com',
-      phone: '123-456-7897',
-      role: 'Driver',
-      status: 'Active',
-      registered: '2023-08-30',
-      avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '9',
-      name: 'Mia Hughes',
-      email: 'mia.hughes@email.com',
-      phone: '123-456-7898',
-      role: 'User',
-      status: 'Inactive',
-      registered: '2023-09-10',
-      avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop&crop=entropy'
-    },
-    {
-      id: '10',
-      name: 'Aiden Parker',
-      email: 'aiden.parker@email.com',
-      phone: '123-456-7899',
-      role: 'Driver',
-      status: 'Active',
-      registered: '2023-10-11',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=entropy'
-    }
-  ];
-
-  // Driver Applications Data
-  driverApplications: DriverApplication[] = [
-    {
-      id: '1',
-      applicantName: 'John Smith',
-      applicantEmail: 'john.smith@email.com',
-      licenseNumber: 'DL123456789',
-      vehicleNumber: 'KCA 123A',
-      vehicleType: 'CAR',
-      reason: 'I have been driving for 5 years and I am looking for a flexible job that allows me to work on my own schedule. I am reliable and have a clean driving record.',
-      status: 'PENDING',
-      applicationDate: new Date('2024-01-15')
-    },
-    {
-      id: '2',
-      applicantName: 'Sarah Johnson',
-      applicantEmail: 'sarah.johnson@email.com',
-      licenseNumber: 'DL987654321',
-      vehicleNumber: 'KCB 456B',
-      vehicleType: 'MOTORCYCLE',
-      reason: 'I am a student looking for part-time work. I have a motorcycle and can deliver packages efficiently in the city area.',
-      status: 'APPROVED',
-      applicationDate: new Date('2024-01-10'),
-      approvalDate: new Date('2024-01-12')
-    },
-    {
-      id: '3',
-      applicantName: 'Michael Brown',
-      applicantEmail: 'michael.brown@email.com',
-      licenseNumber: 'DL456789123',
-      vehicleNumber: 'KCC 789C',
-      vehicleType: 'VAN',
-      reason: 'I have experience in logistics and delivery. I own a van and can handle larger packages and multiple deliveries efficiently.',
-      status: 'REJECTED',
-      applicationDate: new Date('2024-01-08'),
-      rejectionReason: 'Vehicle registration expired'
-    },
-    {
-      id: '4',
-      applicantName: 'Emily Davis',
-      applicantEmail: 'emily.davis@email.com',
-      licenseNumber: 'DL789123456',
-      vehicleNumber: 'KCD 012D',
-      vehicleType: 'CAR',
-      reason: 'I am a stay-at-home parent looking for flexible work hours. I have a reliable car and can work during school hours.',
-      status: 'PENDING',
-      applicationDate: new Date('2024-01-20')
-    },
-    {
-      id: '5',
-      applicantName: 'David Wilson',
-      applicantEmail: 'david.wilson@email.com',
-      licenseNumber: 'DL321654987',
-      vehicleNumber: 'KCE 345E',
-      vehicleType: 'TRUCK',
-      reason: 'I have a commercial driver\'s license and experience in heavy vehicle operation. I can handle large and heavy packages.',
-      status: 'APPROVED',
-      applicationDate: new Date('2024-01-05'),
-      approvalDate: new Date('2024-01-07')
-    }
-  ];
-
-  // Pagination
+  
+  // Users data
+  users: User[] = [];
+  totalUsers = 0;
   currentPage = 1;
   usersPerPage = 8;
+  
+  // Driver applications data
+  driverApplications: DriverApplication[] = [];
+  totalApplications = 0;
+
+  ngOnInit(): void {
+    console.log('ManageUsers component initialized');
+    this.loadUsers();
+    this.loadDriverApplications();
+  }
+
+  // Test method to verify API connection
+  testApiConnection() {
+    console.log('Testing API connection...');
+    this.adminService.getUsers(1, 5)
+      .subscribe({
+        next: (response) => {
+          console.log('✅ API connection successful:', response);
+        },
+        error: (error) => {
+          console.error('❌ API connection failed:', error);
+          this.toastService.showError('API connection failed. Please check your backend server.');
+        }
+      });
+  }
+
+  loadUsers() {
+    this.isLoadingUsers = true;
+    
+    const query: any = {};
+    if (this.searchTerm) query.search = this.searchTerm;
+    if (this.selectedStatus) query.isActive = this.selectedStatus === 'Active';
+    if (this.selectedRole) query.role = this.selectedRole;
+    
+    console.log('Loading users with query:', query);
+    console.log('Page:', this.currentPage, 'Limit:', this.usersPerPage);
+    
+    this.adminService.getUsers(this.currentPage, this.usersPerPage, query)
+      .pipe(
+        catchError(error => {
+          console.error('Error loading users:', error);
+          this.toastService.showError('Failed to load users. Please try again.');
+          return of({ users: [], total: 0 });
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('Users API response:', response);
+          this.users = response.users || [];
+          this.totalUsers = response.total || 0;
+          this.isLoadingUsers = false;
+          console.log('Loaded users:', this.users.length, 'Total:', this.totalUsers);
+        },
+        error: (error) => {
+          console.error('Subscription error:', error);
+          this.isLoadingUsers = false;
+        }
+      });
+  }
+
+  loadDriverApplications() {
+    this.isLoadingApplications = true;
+    
+    const query: any = {};
+    if (this.selectedApplicationStatus) query.status = this.selectedApplicationStatus; // Changed from driverApplicationStatus to status
+    
+    console.log('Loading driver applications with query:', query);
+    console.log('Page:', this.currentApplicationPage, 'Limit:', this.applicationsPerPage);
+    
+    this.adminService.getDriverApplications(this.currentApplicationPage, this.applicationsPerPage, query)
+      .pipe(
+        catchError(error => {
+          console.error('Error loading driver applications:', error);
+          this.toastService.showError('Failed to load driver applications. Please try again.');
+          return of({ applications: [], total: 0 });
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('Driver applications API response:', response);
+          this.driverApplications = response.applications || [];
+          this.totalApplications = response.total || 0;
+          this.isLoadingApplications = false;
+          console.log('Loaded applications:', this.driverApplications.length, 'Total:', this.totalApplications);
+        },
+        error: (error) => {
+          console.error('Subscription error for applications:', error);
+          this.isLoadingApplications = false;
+        }
+      });
+  }
 
   get filteredUsers(): User[] {
-    let filtered = this.users;
-    if (this.searchTerm) {
-      const search = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(user =>
-        user.name.toLowerCase().includes(search) ||
-        user.email.toLowerCase().includes(search) ||
-        user.phone.includes(search)
-      );
-    }
-    if (this.selectedStatus) {
-      filtered = filtered.filter(user => user.status === this.selectedStatus);
-    }
-    if (this.selectedRole) {
-      filtered = filtered.filter(user => user.role === this.selectedRole);
-    }
-    return filtered;
+    // Since we're doing server-side filtering, just return the users as they come from the API
+    return this.users;
   }
 
   get paginatedUsers(): User[] {
-    const start = (this.currentPage - 1) * this.usersPerPage;
-    return this.filteredUsers.slice(start, start + this.usersPerPage);
+    // Since we're doing server-side pagination, just return the users as they come from the API
+    return this.users;
   }
 
   get totalPages(): number {
-    return Math.ceil(this.filteredUsers.length / this.usersPerPage);
+    return Math.ceil(this.totalUsers / this.usersPerPage);
   }
 
   setPage(page: number) {
     this.currentPage = page;
+    this.loadUsers();
   }
 
   clearFilters() {
@@ -268,6 +207,31 @@ export class ManageUsers {
     this.selectedStatus = '';
     this.selectedRole = '';
     this.currentPage = 1;
+    this.loadUsers();
+  }
+
+  // Add method to handle search input changes
+  onSearchChange() {
+    this.currentPage = 1;
+    this.loadUsers();
+  }
+
+  // Add method to handle status filter changes
+  onStatusChange() {
+    this.currentPage = 1;
+    this.loadUsers();
+  }
+
+  // Add method to handle role filter changes
+  onRoleChange() {
+    this.currentPage = 1;
+    this.loadUsers();
+  }
+
+  // Add method to handle application status filter changes
+  onApplicationStatusChange() {
+    this.currentApplicationPage = 1;
+    this.loadDriverApplications();
   }
 
   viewUserDetails(userId: string) {
@@ -277,10 +241,8 @@ export class ManageUsers {
   // Tab Management
   switchTab(tab: string) {
     this.activeTab = tab;
-    if (tab === 'users') {
-      this.currentPage = 1;
-    } else {
-      this.currentApplicationPage = 1;
+    if (tab === 'applications' && this.driverApplications.length === 0) {
+      this.loadDriverApplications();
     }
   }
 
@@ -288,14 +250,15 @@ export class ManageUsers {
   get filteredApplications(): DriverApplication[] {
     let filtered = this.driverApplications;
     if (this.selectedApplicationStatus) {
-      filtered = filtered.filter(app => app.status === this.selectedApplicationStatus);
+      filtered = filtered.filter(app => app.driverApplicationStatus === this.selectedApplicationStatus);
     }
     return filtered;
   }
 
   get paginatedApplications(): DriverApplication[] {
-    const start = (this.currentApplicationPage - 1) * this.applicationsPerPage;
-    return this.filteredApplications.slice(start, start + this.applicationsPerPage);
+    const startIndex = (this.currentApplicationPage - 1) * this.applicationsPerPage;
+    const endIndex = startIndex + this.applicationsPerPage;
+    return this.filteredApplications.slice(startIndex, endIndex);
   }
 
   get totalApplicationPages(): number {
@@ -304,29 +267,45 @@ export class ManageUsers {
 
   setApplicationPage(page: number) {
     this.currentApplicationPage = page;
+    this.loadDriverApplications();
   }
 
   clearApplicationFilters() {
     this.selectedApplicationStatus = '';
     this.currentApplicationPage = 1;
+    this.loadDriverApplications();
+  }
+
+  // Helper method to get user initials
+  getUserInitials(name: string): string {
+    if (!name) return '?';
+    
+    const names = name.trim().split(' ');
+    if (names.length === 1) {
+      return names[0].charAt(0).toUpperCase();
+    } else {
+      return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    }
   }
 
   // Application Statistics
   get pendingApplicationsCount(): number {
-    return this.driverApplications.filter(app => app.status === 'PENDING').length;
+    return this.driverApplications.filter(app => app.driverApplicationStatus === 'PENDING').length;
   }
 
   get approvedApplicationsCount(): number {
-    return this.driverApplications.filter(app => app.status === 'APPROVED').length;
+    return this.driverApplications.filter(app => app.driverApplicationStatus === 'APPROVED').length;
   }
 
   get rejectedApplicationsCount(): number {
-    return this.driverApplications.filter(app => app.status === 'REJECTED').length;
+    return this.driverApplications.filter(app => app.driverApplicationStatus === 'REJECTED').length;
   }
 
   // Status Methods
   getStatusClass(status: string): string {
     switch (status) {
+      case 'NOT_APPLIED':
+        return 'status-not-applied';
       case 'PENDING':
         return 'status-pending';
       case 'APPROVED':
@@ -340,6 +319,8 @@ export class ManageUsers {
 
   getStatusText(status: string): string {
     switch (status) {
+      case 'NOT_APPLIED':
+        return 'Not Applied';
       case 'PENDING':
         return 'Pending';
       case 'APPROVED':
@@ -364,22 +345,18 @@ export class ManageUsers {
     event.stopPropagation();
     const application = this.driverApplications.find(app => app.id === applicationId);
     if (application) {
-      // Show loading state
-      this.toastService.showInfo('Processing application approval...');
-      
-      // Simulate API call
-      setTimeout(() => {
-        application.status = 'APPROVED';
-        application.approvalDate = new Date();
-        
-        // Show success message
-        this.toastService.showSuccess(`Application from ${application.applicantName} has been approved successfully!`);
-        
-        // Update statistics
-        this.updateApplicationStats();
-        
-        console.log('Application approved:', applicationId);
-      }, 1500);
+      this.adminService.approveDriverApplication(applicationId)
+        .pipe(
+          catchError(error => {
+            this.toastService.showError('Failed to approve application.');
+            console.error(error);
+            return of(null);
+          })
+        )
+        .subscribe(() => {
+          this.toastService.showSuccess(`Application from ${application.name} has been approved successfully!`);
+          this.loadDriverApplications();
+        });
     }
   }
 
@@ -399,25 +376,19 @@ export class ManageUsers {
       return;
     }
 
-    // Show loading state
-    this.toastService.showInfo('Processing application rejection...');
-    
-    // Simulate API call
-    setTimeout(() => {
-      this.selectedApplicationForRejection!.status = 'REJECTED';
-      this.selectedApplicationForRejection!.rejectionReason = this.rejectionReason;
-      
-      // Show success message
-      this.toastService.showSuccess(`Application from ${this.selectedApplicationForRejection!.applicantName} has been rejected.`);
-      
-      // Update statistics
-      this.updateApplicationStats();
-      
-      // Close modal
+    this.adminService.rejectDriverApplication(this.selectedApplicationForRejection!.id, this.rejectionReason)
+      .pipe(
+        catchError(error => {
+          this.toastService.showError('Failed to reject application.');
+          console.error(error);
+          return of(null);
+        })
+      )
+      .subscribe(() => {
+        this.toastService.showSuccess(`Application from ${this.selectedApplicationForRejection!.name} has been rejected.`);
+        this.loadDriverApplications();
       this.closeRejectionModal();
-      
-      console.log('Application rejected:', this.selectedApplicationForRejection!.id);
-    }, 1500);
+      });
   }
 
   closeRejectionModal() {
@@ -435,29 +406,19 @@ export class ManageUsers {
   approveApplicationFromModal() {
     if (!this.selectedApplicationForReview) return;
     
-    // Show loading state
-    this.toastService.showInfo('Processing application approval...');
-    
-    // Simulate API call
-    setTimeout(() => {
-      this.selectedApplicationForReview!.status = 'APPROVED';
-      this.selectedApplicationForReview!.approvalDate = new Date();
-      
-      // Update the original application in the list
-      const originalApp = this.driverApplications.find(app => app.id === this.selectedApplicationForReview!.id);
-      if (originalApp) {
-        originalApp.status = 'APPROVED';
-        originalApp.approvalDate = new Date();
-      }
-      
-      // Show success message
-      this.toastService.showSuccess(`Application from ${this.selectedApplicationForReview!.applicantName} has been approved successfully!`);
-      
-      // Close modal
+    this.adminService.approveDriverApplication(this.selectedApplicationForReview!.id)
+      .pipe(
+        catchError(error => {
+          this.toastService.showError('Failed to approve application from modal.');
+          console.error(error);
+          return of(null);
+        })
+      )
+      .subscribe(() => {
+        this.toastService.showSuccess(`Application from ${this.selectedApplicationForReview!.name} has been approved successfully!`);
       this.closeApplicationDetailsModal();
-      
-      console.log('Application approved from modal:', this.selectedApplicationForReview!.id);
-    }, 1500);
+        this.loadDriverApplications();
+      });
   }
 
   rejectApplicationFromModal() {
@@ -467,12 +428,5 @@ export class ManageUsers {
     this.rejectionReason = '';
     this.showRejectionModal = true;
     this.closeApplicationDetailsModal();
-  }
-
-  // Helper method to update application statistics
-  private updateApplicationStats() {
-    // This method is called after status changes to ensure statistics are up to date
-    // The getters will automatically recalculate the counts
-    console.log('Application statistics updated');
   }
 }

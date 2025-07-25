@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { AuthGuard } from './guards/auth.guard';
 import { HomeComponent } from './components/home/home';
 import { Signup } from './components/signup/signup';
 import { Login } from './components/login/login';
@@ -26,23 +27,50 @@ export const routes: Routes = [
   { path: 'signup', component: Signup },
   { path: 'login', component: Login },
   { path: 'reset', component: Reset },
-  // Admin routes
-  { path: 'admin-dashboard', component: AdminDashboard },
-  { path: 'admin-create-delivery', component: CreateDelivery },
-  { path: 'admin-assign-driver', component: AssignDriver },
-  { path: 'admin-manage-parcels', component: ManageParcels },
-  { path: 'admin-parcel-details/:id', component: AdminParcelDetails },
-  { path: 'admin-manage-users', component: ManageUsers },
-  { path: 'admin-user-details/:id', component: UserDetails },
-  { path: 'order-confirmation', component: OrderConfirmation },
-  { path: 'profile', component: Profile },
-  // User routes
-  { path: 'user-dashboard', component: UserDashboard },
-  { path: 'user-parcels', component: UserParcels },
-  { path: 'parcel-details/:id', component: ParcelDetails },
-  // Driver routes
-  { path: 'driver-dashboard', component: DriverDashboard },
-  { path: 'driver-my-parcels', component: AssignedParcels },
-  { path: 'driver-history', component: DeliveryHistory },
-  { path: 'driver-parcel-details/:id', component: DriverParcelDetails },
+  
+  // Admin routes - protected with ADMIN role
+  { path: 'admin', children: [
+    { path: 'dashboard', component: AdminDashboard, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+    { path: 'create-delivery', component: CreateDelivery, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+    { path: 'assign-driver', component: AssignDriver, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+    { path: 'manage-parcels', component: ManageParcels, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+    { path: 'parcel-details/:id', component: AdminParcelDetails, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+    { path: 'manage-users', component: ManageUsers, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+    { path: 'user-details/:id', component: UserDetails, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  ]},
+  
+  // User routes - protected with CUSTOMER role
+  { path: 'user', children: [
+    { path: 'dashboard', component: UserDashboard, canActivate: [AuthGuard], data: { roles: ['CUSTOMER'] } },
+    { path: 'parcels', component: UserParcels, canActivate: [AuthGuard], data: { roles: ['CUSTOMER'] } },
+    { path: 'parcel-details/:id', component: ParcelDetails, canActivate: [AuthGuard], data: { roles: ['CUSTOMER'] } },
+  ]},
+  
+  // Driver routes - protected with DRIVER role
+  { path: 'driver', children: [
+    { path: 'dashboard', component: DriverDashboard, canActivate: [AuthGuard], data: { roles: ['DRIVER'] } },
+    { path: 'my-parcels', component: AssignedParcels, canActivate: [AuthGuard], data: { roles: ['DRIVER'] } },
+    { path: 'history', component: DeliveryHistory, canActivate: [AuthGuard], data: { roles: ['DRIVER'] } },
+    { path: 'parcel-details/:id', component: DriverParcelDetails, canActivate: [AuthGuard], data: { roles: ['DRIVER'] } },
+  ]},
+  
+  // Profile route - protected for all authenticated users
+  { path: 'profile', component: Profile, canActivate: [AuthGuard] },
+  
+  // Legacy routes for backward compatibility - protected with appropriate roles
+  { path: 'admin-dashboard', component: AdminDashboard, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'admin-create-delivery', component: CreateDelivery, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'admin-assign-driver', component: AssignDriver, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'admin-manage-parcels', component: ManageParcels, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'admin-parcel-details/:id', component: AdminParcelDetails, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'admin-manage-users', component: ManageUsers, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'admin-user-details/:id', component: UserDetails, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'order-confirmation', component: OrderConfirmation, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'user-dashboard', component: UserDashboard, canActivate: [AuthGuard], data: { roles: ['CUSTOMER'] } },
+  { path: 'user-parcels', component: UserParcels, canActivate: [AuthGuard], data: { roles: ['CUSTOMER'] } },
+  { path: 'parcel-details/:id', component: ParcelDetails, canActivate: [AuthGuard], data: { roles: ['CUSTOMER'] } },
+  { path: 'driver-dashboard', component: DriverDashboard, canActivate: [AuthGuard], data: { roles: ['DRIVER'] } },
+  { path: 'driver-my-parcels', component: AssignedParcels, canActivate: [AuthGuard], data: { roles: ['DRIVER'] } },
+  { path: 'driver-history', component: DeliveryHistory, canActivate: [AuthGuard], data: { roles: ['DRIVER'] } },
+  { path: 'driver-parcel-details/:id', component: DriverParcelDetails, canActivate: [AuthGuard], data: { roles: ['DRIVER'] } },
 ];

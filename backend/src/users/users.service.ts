@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, Parcel, User } from '@prisma/client';
 import {
   CreateUserDto,
   UpdateUserDto,
@@ -142,13 +142,17 @@ export class UsersService {
     id: string,
     updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
+    // Validate ID
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      throw new BadRequestException('Invalid user ID provided');
+    }
+    
     const { name, phone, address, email } = updateUserDto;
 
-    // Check if user exists and is a customer
+    // Check if user exists
     const existingUser = await this.prisma.user.findFirst({
       where: {
-        id,
-        role: 'CUSTOMER',
+        id: id.trim(),
         deletedAt: null,
       },
     });
@@ -157,25 +161,40 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Check if email is being changed and if it's already taken
-    if (email && email !== existingUser.email) {
-      const emailExists = await this.prisma.user.findUnique({
-        where: { email },
-      });
+    // Build update data object with only provided fields
+    const updateData: any = {};
+    
+    if (name !== undefined) {
+      updateData.name = name;
+    }
+    if (phone !== undefined) {
+      updateData.phone = phone;
+    }
+    if (address !== undefined) {
+      updateData.address = address;
+    }
+    if (email !== undefined) {
+      // Check if email is being changed and if it's already taken
+      if (email !== existingUser.email) {
+        const emailExists = await this.prisma.user.findUnique({
+          where: { email },
+        });
 
-      if (emailExists) {
-        throw new BadRequestException('Email already taken');
+        if (emailExists) {
+          throw new BadRequestException('Email already taken');
+        }
       }
+      updateData.email = email;
+    }
+
+    // If no fields to update, return current user
+    if (Object.keys(updateData).length === 0) {
+      return this.mapToUserResponse(existingUser);
     }
 
     const updatedUser = await this.prisma.user.update({
       where: { id },
-      data: {
-        name,
-        phone,
-        address,
-        email,
-      },
+      data: updateData,
     });
 
     return this.mapToUserResponse(updatedUser);
@@ -187,11 +206,10 @@ export class UsersService {
   ): Promise<{ message: string }> {
     const { currentPassword, newPassword } = changePasswordDto;
 
-    // Check if user exists and is a customer
+    // Check if user exists
     const user = await this.prisma.user.findFirst({
       where: {
         id,
-        role: 'CUSTOMER',
         deletedAt: null,
       },
     });
@@ -222,11 +240,10 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<{ message: string }> {
-    // Check if user exists and is a customer
+    // Check if user exists
     const user = await this.prisma.user.findFirst({
       where: {
         id,
-        role: 'CUSTOMER',
         deletedAt: null,
       },
     });
@@ -247,8 +264,162 @@ export class UsersService {
     return { message: 'User deleted successfully' };
   }
 
+  async deactivateAccount(userId: string): Promise<{ message: string }> {
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new BadRequestException('Account is already deactivated');
+    }
+
+    // Deactivate account
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false },
+    });
+
+    return { message: 'Account deactivated successfully' };
+  }
+
+  async deleteAccount(userId: string): Promise<{ message: string }> {
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Soft delete the account
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+      },
+    });
+
+    return { message: 'Account deleted successfully' };
+  }
+
   async getProfile(id: string): Promise<UserResponseDto> {
-    return this.findOne(id);
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.mapToUserResponse(user);
+  }
+
+  async getDashboard(userId: string): Promise<any> {
+    // Get user with parcels
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        sentParcels: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+        receivedParcels: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Get all user parcels for statistics
+    const allParcels = await this.prisma.parcel.findMany({
+      where: {
+        OR: [
+          { senderId: userId },
+          { recipientId: userId },
+        ],
+        deletedAt: null,
+      },
+    });
+
+    // Calculate statistics
+    const totalParcelsSent = user.sentParcels.length;
+    const totalParcelsReceived = user.receivedParcels.length;
+    
+    const parcelsInTransit = allParcels.filter(parcel => 
+      ['assigned', 'picked_up', 'in_transit'].includes(parcel.status)
+    ).length;
+
+    // Calculate scheduled for tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const dayAfterTomorrow = new Date(tomorrow);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+    
+    const scheduledForTomorrow = allParcels.filter(parcel => {
+      if (!parcel.estimatedPickupTime) return false;
+      const pickupDate = new Date(parcel.estimatedPickupTime);
+      return pickupDate >= tomorrow && pickupDate < dayAfterTomorrow;
+    }).length;
+
+    // Calculate total spent
+    const totalSpent = allParcels
+      .filter(parcel => parcel.deliveryFee)
+      .reduce((sum, parcel) => sum + (parcel.deliveryFee || 0), 0);
+
+    // Get recent parcels for activity feed
+    const recentParcels = allParcels
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5);
+
+    // Create summary cards
+    const summaryCards = [
+      {
+        title: 'Parcels Sent',
+        value: totalParcelsSent,
+        icon: 'fas fa-paper-plane'
+      },
+      {
+        title: 'Parcels Received',
+        value: totalParcelsReceived,
+        icon: 'fas fa-inbox'
+      },
+      {
+        title: 'Total Spent',
+        value: `ksh${totalSpent.toFixed(0)}`,
+        icon: 'fas fa-dollar-sign'
+      }
+    ];
+
+    return {
+      totalParcelsSent,
+      totalParcelsReceived,
+      parcelsInTransit,
+      scheduledForTomorrow,
+      recentParcels: recentParcels.map(parcel => this.mapToParcelResponse(parcel)),
+      summaryCards,
+      totalParcels: allParcels.length,
+    };
   }
 
   async uploadProfilePicture(
@@ -310,15 +481,79 @@ export class UsersService {
       profilePicture: user.profilePicture || undefined,
       role: user.role,
       isActive: user.isActive,
-      totalParcelsEverSent: user.totalParcelsEverSent,
-      totalParcelsReceived: user.totalParcelsReceived,
-      preferredPaymentMethod: user.preferredPaymentMethod || undefined,
+      // Driver-specific fields
+      licenseNumber: user.licenseNumber || undefined,
+      vehicleNumber: user.vehicleNumber || undefined,
+      vehicleType: user.vehicleType || undefined,
+      isAvailable: user.isAvailable,
+      currentLat: user.currentLat || undefined,
+      currentLng: user.currentLng || undefined,
+      // Driver application fields
+      driverApplicationStatus: user.driverApplicationStatus || undefined,
+      driverApplicationDate: user.driverApplicationDate || undefined,
+      driverApprovalDate: user.driverApprovalDate || undefined,
+      driverRejectionReason: user.driverRejectionReason || undefined,
+      // Performance metrics
+      averageRating: user.averageRating || undefined,
       totalRatings: user.totalRatings,
       totalDeliveries: user.totalDeliveries,
       completedDeliveries: user.completedDeliveries,
       cancelledDeliveries: user.cancelledDeliveries,
+      averageDeliveryTime: user.averageDeliveryTime || undefined,
+      onTimeDeliveryRate: user.onTimeDeliveryRate || undefined,
+      lastActiveAt: user.lastActiveAt || undefined,
+      totalEarnings: user.totalEarnings || undefined,
+      // Customer metrics
+      totalParcelsEverSent: user.totalParcelsEverSent,
+      totalParcelsReceived: user.totalParcelsReceived,
+      preferredPaymentMethod: user.preferredPaymentMethod || undefined,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+    };
+  }
+
+  private mapToParcelResponse(
+    parcel: Prisma.ParcelGetPayload<object>,
+  ): any {
+    return {
+      id: parcel.id,
+      trackingNumber: parcel.trackingNumber,
+      senderId: parcel.senderId || undefined,
+      senderName: parcel.senderName,
+      senderEmail: parcel.senderEmail,
+      senderPhone: parcel.senderPhone,
+      recipientId: parcel.recipientId || undefined,
+      recipientName: parcel.recipientName,
+      recipientEmail: parcel.recipientEmail,
+      recipientPhone: parcel.recipientPhone,
+      driverId: parcel.driverId || undefined,
+      assignedAt: parcel.assignedAt || undefined,
+      pickupAddress: parcel.pickupAddress,
+      deliveryAddress: parcel.deliveryAddress,
+      currentLocation: parcel.currentLocation || undefined,
+      status: parcel.status,
+      weight: parcel.weight,
+      description: parcel.description || undefined,
+      value: parcel.value || undefined,
+      deliveryInstructions: parcel.deliveryInstructions || undefined,
+      notes: parcel.notes || undefined,
+      latitude: parcel.latitude || undefined,
+      longitude: parcel.longitude || undefined,
+      estimatedPickupTime: parcel.estimatedPickupTime || undefined,
+      actualPickupTime: parcel.actualPickupTime || undefined,
+      estimatedDeliveryTime: parcel.estimatedDeliveryTime || undefined,
+      actualDeliveryTime: parcel.actualDeliveryTime || undefined,
+      totalDeliveryTime: parcel.totalDeliveryTime || undefined,
+      deliveryAttempts: parcel.deliveryAttempts,
+      deliveryFee: parcel.deliveryFee || undefined,
+      paymentStatus: parcel.paymentStatus,
+      deliveredToRecipient: parcel.deliveredToRecipient,
+      deliveryConfirmedAt: parcel.deliveryConfirmedAt || undefined,
+      deliveryConfirmedBy: parcel.deliveryConfirmedBy || undefined,
+      customerSignature: parcel.customerSignature || undefined,
+      customerNotes: parcel.customerNotes || undefined,
+      createdAt: parcel.createdAt,
+      updatedAt: parcel.updatedAt,
     };
   }
 }

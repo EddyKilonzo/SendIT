@@ -74,7 +74,7 @@ export class DriversController {
       search?: string;
       isAvailable?: boolean;
       vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-      driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+      driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
       sortBy?: string;
       sortOrder?: 'asc' | 'desc';
       minimumRating?: number;

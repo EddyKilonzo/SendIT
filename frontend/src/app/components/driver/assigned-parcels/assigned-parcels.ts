@@ -2,6 +2,7 @@ import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { SidebarComponent } from '../../shared/sidebar/sidebar';
 
 interface AssignedParcel {
   id: string;
@@ -20,7 +21,7 @@ interface AssignedParcel {
 @Component({
   selector: 'app-assigned-parcels',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, SidebarComponent],
   templateUrl: './assigned-parcels.html',
   styleUrls: ['./assigned-parcels.css']
 })

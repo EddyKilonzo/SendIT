@@ -1,28 +1,18 @@
 <div class="user-parcels">
-  <!-- Left Sidebar -->
-  <aside class="sidebar">
-    <nav class="sidebar-nav">
-      <a routerLink="/user-dashboard" class="nav-item">
-        <i class="fas fa-home"></i>
-        <span>Home</span>
-      </a>
-      <a routerLink="/user-parcels" class="nav-item active" routerLinkActive="active">
-        <i class="fas fa-box"></i>
-        <span>My Parcels</span>
-      </a>
-      <a routerLink="/profile" class="nav-item">
-        <i class="fas fa-user"></i>
-        <span>Profile</span>
-      </a>
-    </nav>
-  </aside>
+  <!-- Shared Sidebar -->
+  <app-sidebar></app-sidebar>
 
   <!-- Main Content -->
   <main class="main-content">
-    <!-- Header Section -->
-    <div class="header-section">
-      <h1 class="page-title">My Parcels</h1>
-      
+    <!-- Header -->
+    <div class="content-header">
+      <div class="header-left">
+        <h1>My Parcels</h1>
+      </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-content">
       <!-- Tabs -->
       <div class="tabs">
         <button 
@@ -40,7 +30,6 @@
           Received
         </button>
       </div>
-    </div>
 
     <!-- Summary Cards -->
     <div class="summary-section">
@@ -161,6 +150,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
   </main>
 </div> 

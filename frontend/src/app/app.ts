@@ -5,11 +5,12 @@ import { CommonModule } from '@angular/common';
 import { NavbarComponent } from './components/shared/navbar/navbar';
 import { Footer } from './components/shared/footer/footer';
 import { Toast } from './components/shared/toast/toast';
+import { ScrollToTopComponent } from './components/shared/scroll-to-top/scroll-to-top';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, NavbarComponent, Footer, Toast],
+  imports: [RouterOutlet, CommonModule, NavbarComponent, Footer, Toast, ScrollToTopComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

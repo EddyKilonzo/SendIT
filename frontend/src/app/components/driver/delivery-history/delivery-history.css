@@ -1,82 +1,50 @@
 .delivery-history {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  grid-template-rows: 1fr;
+  display: flex;
   min-height: calc(100vh - 80px);
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin-top: 0;
+  overflow: hidden; /* CRITICAL FOR STICKY */
 }
 
-/* Sidebar Styles */
+/* Sidebar Styles (override shared sidebar if needed) */
 .sidebar {
-  width: 100%;
-  background-color: white;
-  border-right: 1px solid #e9ecef;
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: calc(100vh - 80px);
-  z-index: 1000;
-  overflow-y: auto;
-  align-self: start;
+  background-color: #fff !important;
 }
 
-.sidebar-nav {
-  flex: 1;
-  padding: 20px 0;
+.nav-item, .sidebar .nav-item {
+  color: #6c757d !important;
 }
 
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  color: #6c757d;
-  text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 0 25px 25px 0;
-  margin-right: 15px;
-  margin-bottom: 5px;
+.nav-item i, .sidebar .nav-item i {
+  color: #6c757d !important;
 }
 
-.nav-item:hover {
-  background-color: #f8f9fa;
-  color: #DBBB02;
-}
-
-.nav-item.active {
-  background-color: rgba(219, 187, 2, 0.3);
-  color: black;
+.nav-item.active, .sidebar .nav-item.active {
+  background-color: #FFF9E3 !important;
+  color: #000 !important;
   font-weight: 500;
 }
 
-.nav-item i {
-  margin-right: 12px;
-  width: 20px;
-  text-align: center;
+.nav-item:hover, .sidebar .nav-item:hover {
+  background-color: #DBBB02 !important;
+  color: #000 !important;
 }
 
-.sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid #e9ecef;
-}
-
-.help-link {
-  color: #6c757d;
-  transition: color 0.3s ease;
-}
-
-.help-link:hover {
-  color: #DBBB02;
+/* Remove yellow background from dashboard content */
+.dashboard-content {
+  background: #fff;
 }
 
 /* Main Content Styles */
 .main-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 80px);
   padding: 0;
+  overflow-y: auto; /* CRITICAL FOR STICKY */
+  overflow-x: hidden; /* CRITICAL FOR STICKY */
 }
 
 .content-header {
@@ -91,6 +59,28 @@
   font-weight: bold;
   color: #2c3e50;
   margin: 0;
+}
+
+.dashboard-content {
+  padding: 30px;
+  flex: 1;
+  margin-top: 0;
+}
+
+/* Sidebar and dashboard icons should be grey */
+.nav-icon,
+.history-table th.sortable i,
+.search-icon,
+.clear-search-btn i,
+.filter-btn i,
+.no-results-icon,
+.pagination-btn i {
+  color: #6c757d !important;
+}
+
+/* Table and dashboard backgrounds should be white for contrast */
+.history-table {
+  background-color: white;
 }
 
 /* Search and Filter Section */
@@ -456,7 +446,12 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .delivery-history {
-    grid-template-columns: 180px 1fr;
+    display: flex;
+  }
+  
+  .sidebar {
+    width: 180px;
+    min-width: 180px;
   }
   
   .search-filter-section {
@@ -471,11 +466,21 @@
 
 @media (max-width: 768px) {
   .delivery-history {
-    grid-template-columns: 1fr;
+    display: flex;
   }
   
   .sidebar {
-    display: none;
+    position: fixed;
+    left: -200px;
+    width: 200px;
+    min-width: 200px;
+    transition: left 0.3s ease;
+    z-index: 1001;
+    top: 80px;
+  }
+  
+  .sidebar.open {
+    left: 0;
   }
   
   .content-header {

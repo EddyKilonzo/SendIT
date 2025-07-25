@@ -9,9 +9,24 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, RefreshDto } from './dto';
+import {
+  RegisterDto,
+  LoginDto,
+  RefreshDto,
+  ForgotPasswordDto,
+  VerifyResetTokenDto,
+  ResetPasswordDto,
+  ChangePasswordDto,
+} from './dto';
 import { createJoiValidationPipe } from '../common/pipes/joi-validation.pipe';
-import { registerSchema, loginSchema } from './dto';
+import {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  verifyResetTokenSchema,
+  resetPasswordSchema,
+  changePasswordSchema,
+} from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Request } from 'express';
 
@@ -45,5 +60,45 @@ export class AuthController {
   async logout(@Req() req: Request) {
     const userId = req.user?.['sub'];
     return await this.authService.logout(userId);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(createJoiValidationPipe(forgotPasswordSchema))
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return await this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Post('verify-reset-token')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(createJoiValidationPipe(verifyResetTokenSchema))
+  async verifyResetToken(@Body() verifyResetTokenDto: VerifyResetTokenDto) {
+    return await this.authService.verifyResetToken(
+      verifyResetTokenDto.email,
+      verifyResetTokenDto.token,
+    );
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(createJoiValidationPipe(resetPasswordSchema))
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return await this.authService.resetPassword(
+      resetPasswordDto.email,
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(createJoiValidationPipe(changePasswordSchema))
+  async changePassword(
+    @Req() req: Request,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    const userId = req.user?.['sub'];
+    return await this.authService.changePassword(userId, changePasswordDto);
   }
 }

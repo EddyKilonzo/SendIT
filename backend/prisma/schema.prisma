@@ -28,7 +28,7 @@ model User {
   currentLng    Float?
   
   // Driver application fields
-  driverApplicationStatus DriverApplicationStatus? @default(PENDING)
+  driverApplicationStatus DriverApplicationStatus? @default(NOT_APPLIED)
   driverApplicationDate   DateTime?
   driverApprovalDate      DateTime?
   driverApprovedBy        String?
@@ -221,6 +221,7 @@ enum UserRole {
 }
 
 enum DriverApplicationStatus {
+  NOT_APPLIED
   PENDING
   APPROVED
   REJECTED
@@ -270,4 +271,15 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   // 6-digit token
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
 } 

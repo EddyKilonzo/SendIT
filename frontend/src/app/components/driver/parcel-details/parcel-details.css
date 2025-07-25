@@ -1,89 +1,45 @@
 .driver-parcel-details {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  grid-template-rows: 1fr;
+  display: flex;
   min-height: calc(100vh - 80px);
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin-top: 0;
-}
-
-/* Sidebar Styles */
-.sidebar {
-  width: 100%;
-  background-color: white;
-  border-right: 1px solid #e9ecef;
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: calc(100vh - 80px);
-  z-index: 1000;
-  overflow-y: auto;
-  align-self: start;
-}
-
-.sidebar-nav {
-  flex: 1;
-  padding: 20px 0;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  color: #6c757d;
-  text-decoration: none;
-  transition: background-color 0.15s ease, color 0.15s ease;
-  border-radius: 0 25px 25px 0;
-  margin-right: 15px;
-  margin-bottom: 5px;
-}
-
-.nav-item:hover {
-  background-color: #f8f9fa;
-  color: #DBBB02;
-}
-
-.nav-item.active {
-  background-color: rgba(219, 187, 2, 0.3);
-  color: black;
-  font-weight: 500;
-}
-
-.nav-item i {
-  margin-right: 12px;
-  width: 20px;
-  text-align: center;
-}
-
-.sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid #e9ecef;
-}
-
-.help-link {
-  color: #6c757d;
-  transition: color 0.15s ease;
-}
-
-.help-link:hover {
-  color: #DBBB02;
+  overflow: hidden;
 }
 
 /* Main Content Styles */
 .main-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 80px);
   padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
+/* Content Header */
 .content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 20px 30px;
   background-color: transparent;
   border-bottom: none;
   margin-bottom: 20px;
+}
+
+.header-left h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.dashboard-content {
+  padding: 30px;
+  flex: 1;
+  margin-top: 0;
 }
 
 .breadcrumb {
@@ -450,11 +406,7 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .driver-parcel-details {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    display: none;
+    display: flex;
   }
 
   .info-grid {
@@ -473,6 +425,10 @@
 }
 
 @media (max-width: 768px) {
+  .driver-parcel-details {
+    display: flex;
+  }
+  
   .content-header {
     padding: 15px 20px;
   }
@@ -492,8 +448,6 @@
     padding: 15px 20px;
     flex-direction: column;
   }
-
-
 
   .btn-primary,
   .btn-secondary {

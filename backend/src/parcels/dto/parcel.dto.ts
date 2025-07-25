@@ -139,7 +139,7 @@ export interface UserResponseDto {
   totalParcelsEverSent?: number;
   totalParcelsReceived?: number;
   preferredPaymentMethod?: string;
-  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverApplicationDate?: Date;
   driverApprovalDate?: Date;
   driverRejectionReason?: string;

@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { MapService } from '../../../../services/map.service';
 import { MapMarkerType } from '../../../../types/map.types';
+import { SidebarComponent } from '../../../shared/sidebar/sidebar';
 import * as L from 'leaflet';
 
 interface Driver {
@@ -28,7 +29,7 @@ interface ParcelDetails {
 @Component({
   selector: 'app-assign-driver',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, SidebarComponent],
   templateUrl: './assign-driver.html',
   styleUrls: ['./assign-driver.css']
 })

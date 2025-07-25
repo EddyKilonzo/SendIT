@@ -1,0 +1,16 @@
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+    <a 
+      *ngFor="let item of getVisibleNavItems(); let i = index" 
+      #navItem
+      [routerLink]="item.route" 
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{exact: false}"
+      class="nav-item"
+      [class.active]="isRouteActive(item.route)"
+    >
+      <i [class]="item.icon" class="nav-icon"></i>
+      <span>{{ item.label }}</span>
+    </a>
+  </nav>
+</aside> 

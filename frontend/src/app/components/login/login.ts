@@ -1,25 +1,31 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { ToastService } from '../shared/toast/toast.service';
+import { AuthService, LoginDto } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CommonModule],
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
 export class Login {
   showPassword = false;
+  isLoading = false;
   
-  loginData = {
+  loginData: LoginDto = {
     email: '',
-    password: '',
-    rememberMe: false
+    password: ''
   };
 
-  constructor(private toastService: ToastService) {}
+  constructor(
+    private toastService: ToastService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   togglePassword() {
     this.showPassword = !this.showPassword;
@@ -39,12 +45,40 @@ export class Login {
       return;
     }
 
-    console.log('Login data:', this.loginData);
-    
-    // Simulate API call
-    this.toastService.showSuccess('Login successful! Welcome back');
-    
-    // Add your login logic here
-    // You can redirect to dashboard after successful login
+    this.isLoading = true;
+
+    // Call auth service
+    this.authService.login(this.loginData).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        console.log('Login successful:', response);
+        
+        // Redirect based on user role
+        this.redirectBasedOnRole(response.user.role);
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('Login failed:', error);
+        // Error is already handled by auth service with toast
+      }
+    });
+  }
+
+  private redirectBasedOnRole(role: string) {
+    // Redirect to home page so users can see the dynamic CTA button
+    this.router.navigate(['/']);
+    this.toastService.showSuccess(`Welcome back! You can now ${this.getActionText(role)}.`);
+  }
+
+  private getActionText(role: string): string {
+    switch (role) {
+      case 'ADMIN':
+        return 'create parcels';
+      case 'DRIVER':
+        return 'view assigned parcels';
+      case 'CUSTOMER':
+      default:
+        return 'view your parcels';
+    }
   }
 }

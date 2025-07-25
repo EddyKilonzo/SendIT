@@ -8,17 +8,14 @@ export const updateUserSchema = Joi.object({
   email: Joi.string().email().optional().messages({
     'string.email': 'Please provide a valid email address',
   }),
-  phone: Joi.string()
-    .pattern(/^\+?[\d\s\-()]+$/)
-    .optional()
-    .messages({
-      'string.pattern.base': 'Please provide a valid phone number',
-    }),
+  phone: Joi.string().optional().messages({
+    'string.base': 'Phone must be a string',
+  }),
   address: Joi.string().max(200).optional().messages({
     'string.max': 'Address cannot exceed 200 characters',
   }),
-  role: Joi.string().valid('USER', 'DRIVER', 'ADMIN').optional().messages({
-    'any.only': 'Role must be either USER, DRIVER, or ADMIN',
+  role: Joi.string().valid('CUSTOMER', 'DRIVER', 'ADMIN').optional().messages({
+    'any.only': 'Role must be either CUSTOMER, DRIVER, or ADMIN',
   }),
   isActive: Joi.boolean().optional(),
 

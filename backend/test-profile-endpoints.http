@@ -1,0 +1,64 @@
+### Test Profile Endpoints
+
+### 1. Get User Profile
+GET http://localhost:3000/users/profile/me
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+### 2. Get User Dashboard Data
+GET http://localhost:3000/users/dashboard
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+### 3. Update User Profile
+PATCH http://localhost:3000/users/USER_ID_HERE
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "name": "Updated Name",
+  "email": "updated@example.com",
+  "phone": "+1234567890",
+  "address": "Updated Address"
+}
+
+### 4. Upload Profile Picture
+POST http://localhost:3000/users/profile/upload-picture
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="profilePicture"; filename="profile.jpg"
+Content-Type: image/jpeg
+
+< ./profile.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 5. Deactivate Account
+PATCH http://localhost:3000/users/profile/deactivate
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{}
+
+### 6. Delete Account
+DELETE http://localhost:3000/users/profile/delete
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+### 7. Driver Application
+POST http://localhost:3000/drivers/apply
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "licenseNumber": "LIC123456",
+  "vehicleNumber": "ABC123",
+  "vehicleType": "CAR",
+  "reason": "I want to help deliver packages and earn extra income."
+}
+
+### 8. Get User Parcels
+GET http://localhost:3000/parcels
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json 

@@ -1,27 +1,6 @@
 <div class="delivery-history">
-  <!-- Left Sidebar -->
-  <aside class="sidebar">
-    <nav class="sidebar-nav">
-      <a routerLink="/driver-dashboard" class="nav-item">
-        <i class="fas fa-home"></i>
-        <span>Dashboard</span>
-      </a>
-      <a routerLink="/driver-my-parcels" class="nav-item">
-        <i class="fas fa-box"></i>
-        <span>My Parcels</span>
-      </a>
-      <a routerLink="/driver-history" class="nav-item active" routerLinkActive="active">
-        <i class="fas fa-history"></i>
-        <span style="font-size: 15px;">Delivery History</span>
-      </a>
-      <a routerLink="/profile" class="nav-item">
-        <i class="fas fa-user"></i>
-        <span>Profile</span>
-      </a>
-    </nav>
-    
-    
-  </aside>
+  <!-- Shared Sidebar -->
+  <app-sidebar></app-sidebar>
 
   <!-- Main Content -->
   <main class="main-content">
@@ -71,8 +50,6 @@
         </div>
       </div>
 
-
-
       <div class="filter-container">
         <button class="filter-btn" (click)="toggleRatingDropdown()">
           <span>Customer Rating</span>
@@ -111,96 +88,99 @@
       </div>
     </div>
 
-    <!-- Delivery History Table -->
-    <div class="table-container animate-fade-in-up">
-      <table class="history-table">
-        <thead>
-          <tr>
-            <th class="sortable">
-              Parcel ID
-              <i class="fas fa-sort"></i>
-            </th>
-            <th class="sortable">
-              Delivery Date
-              <i class="fas fa-sort"></i>
-            </th>
-            <th>Pickup</th>
-            <th>Delivery</th>
-            <th>Status</th>
-            <th class="sortable">
-              Customer Rating
-              <i class="fas fa-sort"></i>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr 
-            *ngFor="let delivery of paginatedHistory"
-            (click)="viewParcelDetails(delivery.id)"
-            class="table-row clickable hover-lift"
-          >
-            <td class="parcel-id">{{ delivery.parcelId }}</td>
-            <td class="delivery-date">{{ delivery.deliveryDate }}</td>
-            <td class="pickup-address">{{ delivery.pickupAddress }}</td>
-            <td class="delivery-address">{{ delivery.deliveryAddress }}</td>
-            <td>
-              <span class="status-badge" [ngClass]="getStatusClass(delivery.status)">
-                {{ delivery.status }}
-              </span>
-            </td>
-            <td class="customer-rating">
-              <span *ngIf="delivery.customerRating" class="rating-stars">
-                {{ getRatingStars(delivery.customerRating) }}
-              </span>
-              <span *ngIf="!delivery.customerRating" class="no-rating">
-                No rating
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      
-      <!-- No Results Message -->
-      <div class="no-results animate-fade-in" *ngIf="filteredHistory.length === 0">
-        <div class="no-results-content">
-          <i class="fas fa-search no-results-icon"></i>
-          <h3>No Deliveries Found</h3>
-          <p>No deliveries match your current search criteria or filters.</p>
-          <button class="clear-filters-btn" (click)="clearFilters()">
-            <i class="fas fa-times"></i>
-            Clear All Filters
-          </button>
+    <!-- Dashboard Content -->
+    <div class="dashboard-content">
+      <!-- Delivery History Table -->
+      <div class="table-container animate-fade-in-up">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th class="sortable">
+                Parcel ID
+                <i class="fas fa-sort"></i>
+              </th>
+              <th class="sortable">
+                Delivery Date
+                <i class="fas fa-sort"></i>
+              </th>
+              <th>Pickup</th>
+              <th>Delivery</th>
+              <th>Status</th>
+              <th class="sortable">
+                Customer Rating
+                <i class="fas fa-sort"></i>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              *ngFor="let delivery of paginatedHistory"
+              (click)="viewParcelDetails(delivery.id)"
+              class="table-row clickable hover-lift"
+            >
+              <td class="parcel-id">{{ delivery.parcelId }}</td>
+              <td class="delivery-date">{{ delivery.deliveryDate }}</td>
+              <td class="pickup-address">{{ delivery.pickupAddress }}</td>
+              <td class="delivery-address">{{ delivery.deliveryAddress }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(delivery.status)">
+                  {{ delivery.status }}
+                </span>
+              </td>
+              <td class="customer-rating">
+                <span *ngIf="delivery.customerRating" class="rating-stars">
+                  {{ getRatingStars(delivery.customerRating) }}
+                </span>
+                <span *ngIf="!delivery.customerRating" class="no-rating">
+                  No rating
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <!-- No Results Message -->
+        <div class="no-results animate-fade-in" *ngIf="filteredHistory.length === 0">
+          <div class="no-results-content">
+            <i class="fas fa-search no-results-icon"></i>
+            <h3>No Deliveries Found</h3>
+            <p>No deliveries match your current search criteria or filters.</p>
+            <button class="clear-filters-btn" (click)="clearFilters()">
+              <i class="fas fa-times"></i>
+              Clear All Filters
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Pagination -->
-    <div class="pagination-container animate-fade-in-up" *ngIf="totalPages > 1">
-      <div class="pagination">
-        <button 
-          class="pagination-btn" 
-          (click)="previousPage()"
-          [disabled]="currentPage === 1"
-        >
-          <i class="fas fa-chevron-left"></i>
-        </button>
-        
-        <button 
-          *ngFor="let page of pages"
-          class="pagination-btn page-number"
-          [class.active]="page === currentPage"
-          (click)="goToPage(page)"
-        >
-          {{ page }}
-        </button>
-        
-        <button 
-          class="pagination-btn" 
-          (click)="nextPage()"
-          [disabled]="currentPage === totalPages"
-        >
-          <i class="fas fa-chevron-right"></i>
-        </button>
+      <!-- Pagination -->
+      <div class="pagination-container animate-fade-in-up" *ngIf="totalPages > 1">
+        <div class="pagination">
+          <button 
+            class="pagination-btn" 
+            (click)="previousPage()"
+            [disabled]="currentPage === 1"
+          >
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          
+          <button 
+            *ngFor="let page of pages"
+            class="pagination-btn page-number"
+            [class.active]="page === currentPage"
+            (click)="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+          
+          <button 
+            class="pagination-btn" 
+            (click)="nextPage()"
+            [disabled]="currentPage === totalPages"
+          >
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
       </div>
     </div>
   </main>

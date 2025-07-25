@@ -1,66 +1,43 @@
 /* User Parcels Container */
 .user-parcels {
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  min-height: 100vh;
+  display: flex;
+  min-height: calc(100vh - 80px);
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Sidebar Styles */
-.sidebar {
-  background-color: #f8f9fa;
-  border-right: 1px solid #e9ecef;
-  padding: 20px 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 15px 25px;
-  color: #6c757d;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border-radius: 0 25px 25px 0;
-  margin-right: 15px;
-  border-left: 3px solid transparent;
-}
-
-.nav-item:hover {
-  background-color: #fef7e0;
-  color: #333;
-  border-left: 3px solid #DBBB02;
-}
-
-.nav-item.active {
-  background-color: #fef7e0;
-  color: #333;
-  font-weight: 500;
-  border-left: 3px solid #DBBB02;
-}
-
-.nav-item i {
-  margin-right: 12px;
-  width: 16px;
-  text-align: center;
-  color: #333;
-  font-size: 14px;
+  margin-top: 0;
+  overflow: hidden;
 }
 
 /* Main Content */
 .main-content {
+  flex: 1;
   padding: 30px;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Content Header */
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  background-color: transparent;
+  border-bottom: none;
+  margin-bottom: 20px;
+}
+
+.header-left h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.dashboard-content {
+  padding: 30px;
+  flex: 1;
+  margin-top: 0;
 }
 
 /* Header Section */
@@ -510,11 +487,12 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .user-parcels {
-    grid-template-columns: 1fr;
+    display: flex;
   }
   
   .sidebar {
-    display: none;
+    width: 200px;
+    min-width: 200px;
   }
   
   .filters-container {
@@ -536,7 +514,26 @@
 }
 
 @media (max-width: 768px) {
+  .user-parcels {
+    display: flex;
+  }
+  
+  .sidebar {
+    position: fixed;
+    left: -250px;
+    width: 250px;
+    min-width: 250px;
+    transition: left 0.3s ease;
+    z-index: 1001;
+    top: 80px;
+  }
+  
+  .sidebar.open {
+    left: 0;
+  }
+  
   .main-content {
+    margin-left: 0; /* Remove left margin on mobile */
     padding: 20px;
   }
   

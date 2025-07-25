@@ -1,3 +1,6 @@
+import { Transform } from 'class-transformer';
+import { IsOptional, IsString, IsNumber, IsBoolean, IsEnum } from 'class-validator';
+
 export class DashboardStatsDto {
   totalUsers: number;
   totalDrivers: number;
@@ -95,21 +98,64 @@ export class ParcelFilterDto {
 }
 
 export class UserFilterDto {
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
   page?: number = 1;
+
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
   limit?: number = 10;
+
+  @IsOptional()
+  @IsString()
   search?: string;
+
+  @IsOptional()
+  @IsEnum(['CUSTOMER', 'DRIVER', 'ADMIN'])
   role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
   hasParcels?: boolean;
-  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+
+  @IsOptional()
+  @IsEnum(['NOT_APPLIED', 'PENDING', 'APPROVED', 'REJECTED'])
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export class DriverApplicationFilterDto {
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
   page?: number = 1;
+
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
   limit?: number = 10;
+
+  @IsOptional()
+  @IsString()
   search?: string;
-  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+
+  @IsOptional()
+  @IsEnum(['NOT_APPLIED', 'PENDING', 'APPROVED', 'REJECTED'])
+  status?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
+  @IsOptional()
+  @IsString()
   dateFrom?: string;
+
+  @IsOptional()
+  @IsString()
   dateTo?: string;
 }
 

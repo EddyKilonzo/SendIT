@@ -1,15 +1,62 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { map, catchError, switchMap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+import { ToastService } from '../components/shared/toast/toast.service';
 
+// Backend API Response DTOs
+export interface ApiResponseDto<T = unknown> {
+  success: boolean;
+  message: string;
+  data?: T;
+  error?: string;
+  timestamp: Date;
+}
+
+// User DTOs matching backend
 export interface User {
   id: string;
   email: string;
   name: string;
+  phone?: string;
+  address?: string;
+  profilePicture?: string;
   role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   isActive: boolean;
-  // Add other user properties as needed
+  
+  // Driver-specific fields
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  isAvailable?: boolean;
+  currentLat?: number;
+  currentLng?: number;
+  
+  // Performance metrics
+  averageRating?: number;
+  totalRatings: number;
+  totalDeliveries: number;
+  completedDeliveries: number;
+  cancelledDeliveries: number;
+  averageDeliveryTime?: number;
+  onTimeDeliveryRate?: number;
+  lastActiveAt?: Date;
+  totalEarnings?: number;
+  
+  // Customer metrics
+  totalParcelsEverSent: number;
+  totalParcelsReceived: number;
+  preferredPaymentMethod?: string;
+  
+  // Driver application fields
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: Date;
+  driverApprovalDate?: Date;
+  driverRejectionReason?: string;
+  
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface AuthResponse {
@@ -19,15 +66,61 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
+export interface LoginDto {
+  email: string;
+  password: string;
+}
+
+export interface CreateUserDto {
+  email: string;
+  password: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  profilePicture?: string;
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface PasswordResetRequest {
+  email: string;
+}
+
+export interface PasswordResetConfirm {
+  email: string;
+  token: string;  // 6-digit token
+  newPassword: string;
+}
+
+export interface TokenVerificationRequest {
+  email: string;
+  token: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private apiUrl = environment.apiUrl;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+  
+  // Observable for authentication status
+  public isAuthenticated$ = this.currentUserSubject.pipe(
+    map(user => user !== null)
+  );
 
-  constructor(private http: HttpClient) {
-    // Check for existing token on app start
+  constructor(
+    private http: HttpClient,
+    private toastService: ToastService
+  ) {
     this.loadUserFromStorage();
   }
 
@@ -45,32 +138,171 @@ export class AuthService {
     }
   }
 
-  login(email: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>('/api/auth/login', { email, password })
+  login(loginDto: LoginDto): Observable<AuthResponse> {
+    return this.http.post<ApiResponseDto<AuthResponse>>(`${this.apiUrl}/auth/login`, loginDto)
       .pipe(
         map(response => {
-          this.setAuth(response);
-          return response;
-        })
+          if (response.success && response.data) {
+            this.setAuth(response.data);
+            this.toastService.showSuccess('Login successful!');
+            return response.data;
+          } else {
+            throw new Error(response.message || 'Login failed');
+          }
+        }),
+        catchError(this.handleError.bind(this))
       );
   }
 
-  register(userData: any): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>('/api/auth/register', userData)
+  register(userData: CreateUserDto): Observable<AuthResponse> {
+    return this.http.post<ApiResponseDto<AuthResponse>>(`${this.apiUrl}/auth/register`, userData)
       .pipe(
         map(response => {
-          this.setAuth(response);
-          return response;
-        })
+          if (response.success && response.data) {
+            this.setAuth(response.data);
+            this.toastService.showSuccess('Registration successful! Welcome to SendIT.');
+            return response.data;
+          } else {
+            throw new Error(response.message || 'Registration failed');
+          }
+        }),
+        catchError(this.handleError.bind(this))
       );
   }
 
-  logout(): void {
+  logout(): Observable<boolean> {
     const user = this.currentUserSubject.value;
+    console.log('Logout called, user:', user);
+    console.log('API URL:', this.apiUrl);
+    
     if (user) {
-      this.http.post('/api/auth/logout', {}).subscribe();
+      const logoutUrl = `${this.apiUrl}/auth/logout`;
+      console.log('Making logout request to:', logoutUrl);
+      
+      return this.http.post<ApiResponseDto<boolean>>(logoutUrl, {}, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }).pipe(
+        map(response => {
+          console.log('Logout response:', response);
+          this.clearAuth();
+          return true;
+        }),
+        catchError(error => {
+          console.error('Logout API error:', error);
+          
+          // Handle connection refused errors gracefully
+          if (error.status === 0 || error.statusText === 'Unknown Error') {
+            console.log('Connection refused or network error, clearing auth locally');
+            this.clearAuth();
+            return new Observable<boolean>(observer => {
+              observer.next(true);
+              observer.complete();
+            });
+          }
+          
+          // Even if logout API fails, clear local auth
+          this.clearAuth();
+          return throwError(() => error);
+        })
+      );
+    } else {
+      console.log('No user found, clearing auth locally');
+      this.clearAuth();
+      return new Observable<boolean>(observer => {
+        observer.next(true);
+        observer.complete();
+      });
     }
-    this.clearAuth();
+  }
+
+  refreshToken(): Observable<AuthResponse> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      return throwError(() => new Error('No refresh token available'));
+    }
+
+    return this.http.post<ApiResponseDto<AuthResponse>>(`${this.apiUrl}/auth/refresh`, { refreshToken })
+      .pipe(
+        map(response => {
+          if (response.success && response.data) {
+            this.setAuth(response.data);
+            return response.data;
+          } else {
+            throw new Error(response.message || 'Token refresh failed');
+          }
+        }),
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  // Password Reset Flow with 6-digit tokens
+  requestPasswordReset(email: string): Observable<boolean> {
+    return this.http.post<ApiResponseDto<boolean>>(`${this.apiUrl}/auth/forgot-password`, { email })
+      .pipe(
+        map(response => {
+          if (response.success) {
+            this.toastService.showSuccess('If the email exists, a reset code has been sent to your email.');
+            return true;
+          } else {
+            throw new Error(response.message || 'Password reset request failed');
+          }
+        }),
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  verifyResetToken(email: string, token: string): Observable<boolean> {
+    return this.http.post<ApiResponseDto<boolean>>(`${this.apiUrl}/auth/verify-reset-token`, { email, token })
+      .pipe(
+        map(response => {
+          if (response.success && response.data) {
+            this.toastService.showSuccess('Token verified successfully');
+            return true;
+          } else {
+            throw new Error(response.message || 'Invalid or expired reset token');
+          }
+        }),
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  confirmPasswordReset(email: string, token: string, newPassword: string): Observable<boolean> {
+    return this.http.post<ApiResponseDto<boolean>>(`${this.apiUrl}/auth/reset-password`, { 
+      email, 
+      token, 
+      newPassword 
+    })
+      .pipe(
+        map(response => {
+          if (response.success) {
+            this.toastService.showSuccess('Password reset successfully. You can now login with your new password.');
+            return true;
+          } else {
+            throw new Error(response.message || 'Password reset failed');
+          }
+        }),
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<boolean> {
+    return this.http.post<ApiResponseDto<boolean>>(`${this.apiUrl}/auth/change-password`, {
+      currentPassword,
+      newPassword
+    })
+      .pipe(
+        map(response => {
+          if (response.success) {
+            this.toastService.showSuccess('Password changed successfully');
+            return true;
+          } else {
+            throw new Error(response.message || 'Password change failed');
+          }
+        }),
+        catchError(this.handleError.bind(this))
+      );
   }
 
   private setAuth(response: AuthResponse): void {
@@ -87,8 +319,44 @@ export class AuthService {
     this.currentUserSubject.next(null);
   }
 
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    let errorMessage = 'An unexpected error occurred';
+    
+    if (error.error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Error: ${error.error.message}`;
+    } else {
+      // Server-side error
+      if (error.error?.message) {
+        errorMessage = error.error.message;
+      } else if (error.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+        this.clearAuth();
+      } else if (error.status === 403) {
+        errorMessage = 'Access denied. You do not have permission to perform this action.';
+      } else if (error.status === 404) {
+        errorMessage = 'Resource not found.';
+      } else if (error.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else {
+        errorMessage = `Error Code: ${error.status}`;
+      }
+    }
+
+    this.toastService.showError(errorMessage);
+    return throwError(() => new Error(errorMessage));
+  }
+
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
+  }
+
+  updateCurrentUser(user: User): void {
+    // Update the current user in memory
+    this.currentUserSubject.next(user);
+    
+    // Update the user in localStorage to prevent caching issues
+    localStorage.setItem('currentUser', JSON.stringify(user));
   }
 
   isAuthenticated(): boolean {
@@ -128,7 +396,7 @@ export class AuthService {
 
   // Permission-based methods
   canCreateParcel(): boolean {
-    return this.hasRole('ADMIN');
+    return this.hasAnyRole(['CUSTOMER', 'ADMIN']);
   }
 
   canViewAllParcels(): boolean {
@@ -170,17 +438,5 @@ export class AuthService {
   // Get token for HTTP requests
   getToken(): string | null {
     return localStorage.getItem('accessToken');
-  }
-
-  // Refresh token
-  refreshToken(): Observable<AuthResponse> {
-    const refreshToken = localStorage.getItem('refreshToken');
-    return this.http.post<AuthResponse>('/api/auth/refresh', { refreshToken })
-      .pipe(
-        map(response => {
-          this.setAuth(response);
-          return response;
-        })
-      );
   }
 } 

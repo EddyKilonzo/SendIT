@@ -65,6 +65,11 @@
   margin-bottom: 15px;
 }
 
+.login-form.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 .form-group {
   margin-bottom: 15px;
 }
@@ -95,6 +100,13 @@
   box-shadow: 0 0 0 3px rgba(219, 187, 2, 0.1);
 }
 
+.form-group input:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .form-group input::placeholder {
   color: #999;
 }
@@ -123,13 +135,18 @@
   transition: color 0.3s ease;
 }
 
-.password-toggle:hover {
+.password-toggle:hover:not(:disabled) {
   color: #DBBB02;
 }
 
 .password-toggle:focus {
   outline: none;
   color: #DBBB02;
+}
+
+.password-toggle:disabled {
+  color: #ccc;
+  cursor: not-allowed;
 }
 
 .form-options {
@@ -180,13 +197,21 @@
   box-shadow: rgba(0, 0, 0, 0.2) 0px 8px 24px;
 }
 
-.login-btn:hover {
+.login-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 5px 15px rgba(219, 187, 2, 0.3);
 }
 
-.login-btn:active {
+.login-btn:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.login-btn:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .signup-link {
@@ -207,6 +232,26 @@
 
 .signup-link a:hover {
   color: #000;
+}
+
+.loading-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading-text i {
+  font-size: 0.9rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.fa-spin {
+  animation: spin 1s linear infinite;
 }
 
 .image-section {

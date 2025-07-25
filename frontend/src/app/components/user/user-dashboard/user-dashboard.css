@@ -1,65 +1,17 @@
 /* User Dashboard Container */
 .user-dashboard {
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  min-height: 100vh;
+  display: flex;
+  min-height: calc(100vh - 80px);
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   overflow-x: hidden;
 }
 
-/* Sidebar Styles */
-.sidebar {
-  background-color: #f8f9fa;
-  border-right: 1px solid #e9ecef;
-  padding: 20px 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 15px 25px;
-  color: #6c757d;
-  text-decoration: none;
-  border-radius: 0 25px 25px 0;
-  margin-right: 15px;
-  border-left: 3px solid transparent;
-}
-
-.nav-item:hover {
-  background-color: #fef7e0;
-  color: #333;
-  border-left: 3px solid #DBBB02;
-}
-
-.nav-item.active {
-  background-color: #fef7e0;
-  color: #333;
-  font-weight: 500;
-  border-left: 3px solid #DBBB02;
-}
-
-.nav-item i {
-  margin-right: 12px;
-  width: 16px;
-  text-align: center;
-  color: #333;
-  font-size: 14px;
-}
+/* Shared Sidebar - Styles are now in sidebar.css */
 
 /* Main Content */
 .main-content {
+  flex: 1;
   padding: 30px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -493,15 +445,116 @@
   padding: 0 2px;
 }
 
+/* Loading States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #DBBB02;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Empty States */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 2px dashed #e0e0e0;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+}
+
+.empty-state p {
+  color: #666;
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.empty-subtitle {
+  font-size: 0.9rem !important;
+  color: #999 !important;
+}
+
+/* Stats Breakdown */
+.stats-breakdown {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #DBBB02;
+}
+
+/* Tab Counts */
+.tab-button {
+  position: relative;
+}
+
+.tab-button::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #DBBB02;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .user-dashboard {
-    grid-template-columns: 1fr;
+    display: flex;
   }
-  
-  .sidebar {
-    display: none;
-  }
+
+  /* Sidebar responsive styles handled by shared component */
   
   .stats-content {
     grid-template-columns: 1fr;
@@ -514,7 +567,14 @@
 }
 
 @media (max-width: 768px) {
+  .user-dashboard {
+    display: flex;
+  }
+  
+  /* Sidebar mobile styles handled by shared component */
+  
   .main-content {
+    margin-left: 0; /* Remove left margin on mobile */
     padding: 20px;
   }
   
@@ -558,5 +618,28 @@
     width: 40px;
     height: 40px;
     font-size: 14px;
+  }
+} 
+
+@media (max-width: 768px) {
+  .stats-breakdown {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .parcels-table {
+    font-size: 0.9rem;
+  }
+  
+  .parcels-table th,
+  .parcels-table td {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .address {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 } 

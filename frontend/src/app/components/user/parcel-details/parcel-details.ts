@@ -6,6 +6,7 @@ import { MapComponent } from '../../shared/map/map.component';
 import { MapService } from '../../../services/map.service';
 import { MapLocation, MapCoordinates, MapError, MapMarkerType } from '../../../types/map.types';
 import { ToastService } from '../../shared/toast/toast.service';
+import { SidebarComponent } from '../../shared/sidebar/sidebar';
 import * as L from 'leaflet';
 
 interface Parcel {
@@ -46,7 +47,7 @@ interface Review {
 @Component({
   selector: 'app-parcel-details',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MapComponent],
+  imports: [CommonModule, RouterModule, FormsModule, MapComponent, SidebarComponent],
   templateUrl: './parcel-details.html',
   styleUrls: ['./parcel-details.css']
 })

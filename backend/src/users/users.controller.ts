@@ -50,41 +50,27 @@ export class UsersController {
     return this.usersService.findAll(query);
   }
 
-  @Get(':id')
-  @Roles('ADMIN')
-  findOne(@Param() params: IdParamDto) {
-    return this.usersService.findOne(params.id);
-  }
-
   @Get('profile/me')
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
-  getProfile(@Request() req: { user: { id: string } }) {
-    return this.usersService.findOne(req.user.id);
+  async getProfile(@Request() req: { user: { sub: string } }) {
+    const user = await this.usersService.getProfile(req.user.sub);
+    return {
+      success: true,
+      data: user,
+      message: 'Profile retrieved successfully'
+    };
   }
 
-  @Patch(':id')
-  @HttpCode(HttpStatus.OK)
-  @UsePipes(createJoiValidationPipe(updateUserSchema))
+  @Get('dashboard')
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
-  update(@Param() params: IdParamDto, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(params.id, updateUserDto);
+  getDashboard(@Request() req: { user: { sub: string } }) {
+    return this.usersService.getDashboard(req.user.sub);
   }
 
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @Get(':id')
   @Roles('ADMIN')
-  remove(@Param() params: IdParamDto) {
-    return this.usersService.remove(params.id);
-  }
-
-  @Patch(':id/change-password')
-  @HttpCode(HttpStatus.OK)
-  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
-  changePassword(
-    @Param() params: IdParamDto,
-    @Body() changePasswordDto: ChangePasswordDto,
-  ) {
-    return this.usersService.changePassword(params.id, changePasswordDto);
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
   }
 
   @Post('profile/upload-picture')
@@ -98,6 +84,55 @@ export class UsersController {
     if (!file) {
       throw new Error('No file uploaded');
     }
-    return this.usersService.uploadProfilePicture(req.user.sub, file);
+    const result = await this.usersService.uploadProfilePicture(req.user.sub, file);
+    return {
+      success: true,
+      data: {
+        profilePicture: result.profilePicture
+      },
+      message: result.message
+    };
+  }
+
+  @Patch('profile/deactivate')
+  @HttpCode(HttpStatus.OK)
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
+  deactivateAccount(@Request() req: { user: { sub: string } }) {
+    return this.usersService.deactivateAccount(req.user.sub);
+  }
+
+  @Delete('profile/delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
+  deleteAccount(@Request() req: { user: { sub: string } }) {
+    return this.usersService.deleteAccount(req.user.sub);
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
+  update(
+    @Param('id') id: string, 
+    @Body(createJoiValidationPipe(updateUserSchema)) updateUserDto: UpdateUserDto, 
+    @Request() req: any
+  ) {
+    return this.usersService.update(id, updateUserDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles('ADMIN')
+  remove(@Param('id') id: string) {
+    return this.usersService.remove(id);
+  }
+
+  @Patch(':id/change-password')
+  @HttpCode(HttpStatus.OK)
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
+  changePassword(
+    @Param('id') id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(id, changePasswordDto);
   }
 }

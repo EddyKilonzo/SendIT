@@ -1,48 +1,6 @@
 <div class="profile-container">
-  <!-- Left Sidebar -->
-  <aside class="sidebar">
-    <nav class="sidebar-nav">
-      <ul class="nav-menu">
-        <li class="nav-item">
-          <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-home"></i>
-            <span>Dashboard</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-plus"></i>
-            <span>Create Delivery</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-box"></i>
-            <span>Manage Parcels</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-users"></i>
-            <span>Users</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/profile" routerLinkActive="active" class="nav-link active">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-    
-    <div class="sidebar-footer">
-      <a routerLink="/login" class="logout-link">
-        <i class="fas fa-arrow-left"></i>
-        <span>Logout</span>
-      </a>
-    </div>
-  </aside>
+  <!-- Shared Sidebar -->
+  <app-sidebar></app-sidebar>
 
   <!-- Main Content -->
   <main class="main-content">
@@ -50,8 +8,12 @@
       <h1 class="page-title">Profile</h1>
     </div>
 
-    <div class="profile-content">
-      <!-- Loading Overlay -->
+                 <div class="profile-content">
+        
+       
+       
+
+       <!-- Loading Overlay -->
       <div class="loading-overlay" *ngIf="isLoading">
         <div class="loading-spinner">
           <i class="fas fa-spinner fa-spin"></i>
@@ -60,11 +22,11 @@
       </div>
 
       <!-- Profile Picture Section -->
-      <div class="profile-section">
+      <div class="profile-section scroll-animate" #profilePictureSection>
         <div class="profile-picture-section">
           <div class="profile-picture-container">
             <img 
-              [src]="imagePreview || userProfile.profileImage || '/images/premium_photo-1681487863055-6e87-removebg-preview.jpg'" 
+              [src]="imagePreview || userProfile?.profilePicture || '/images/premium_photo-1681487863055-6e87-removebg-preview.jpg'" 
               alt="Profile Picture" 
               class="profile-picture"
             >
@@ -82,7 +44,7 @@
             </div>
           </div>
           <div class="profile-info">
-            <h2 class="user-name">{{ userProfile.name }}</h2>
+            <h2 class="user-name">{{ userProfile?.name || 'Loading...' }}</h2>
             <p class="profile-label">Profile Picture</p>
             <button 
               class="btn-upload-picture" 
@@ -97,7 +59,7 @@
       </div>
 
       <!-- User Information Section -->
-      <div class="profile-section">
+      <div class="profile-section scroll-animate" #personalInfoSection>
         <h2 class="section-title">Personal Information</h2>
         <form [formGroup]="profileForm" (ngSubmit)="saveProfileChanges()" class="profile-form">
           <div class="form-grid">
@@ -156,48 +118,6 @@
                 {{ getFieldError(profileForm, 'address') }}
               </div>
             </div>
-            
-            <div class="form-group">
-              <label for="city">City</label>
-              <input 
-                type="text" 
-                id="city" 
-                formControlName="city"
-                placeholder="Enter your city"
-                [class.error]="isFieldInvalid(profileForm, 'city')"
-              >
-              <div class="error-message" *ngIf="getFieldError(profileForm, 'city')">
-                {{ getFieldError(profileForm, 'city') }}
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="state">State</label>
-              <input 
-                type="text" 
-                id="state" 
-                formControlName="state"
-                placeholder="Enter your state"
-                [class.error]="isFieldInvalid(profileForm, 'state')"
-              >
-              <div class="error-message" *ngIf="getFieldError(profileForm, 'state')">
-                {{ getFieldError(profileForm, 'state') }}
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="zipCode">Zip code</label>
-              <input 
-                type="text" 
-                id="zipCode" 
-                formControlName="zipCode"
-                placeholder="Enter your zip code"
-                [class.error]="isFieldInvalid(profileForm, 'zipCode')"
-              >
-              <div class="error-message" *ngIf="getFieldError(profileForm, 'zipCode')">
-                {{ getFieldError(profileForm, 'zipCode') }}
-              </div>
-            </div>
           </div>
           
           <div class="form-actions">
@@ -210,7 +130,7 @@
       </div>
 
       <!-- Change Password Section -->
-      <div class="profile-section">
+      <div class="profile-section scroll-animate" #passwordSection>
         <h2 class="section-title">Change Password</h2>
         <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="password-form">
           <div class="form-grid">
@@ -296,38 +216,94 @@
         </form>
       </div>
 
-      <!-- Driver Application Section -->
-      <div class="profile-section driver-application" *ngIf="userProfile.role === 'CUSTOMER'">
-        <h2 class="section-title">Become a Driver</h2>
+                      <!-- Driver Application Section -->
+         <div class="profile-section driver-application scroll-animate" #driverApplicationSection
+              *ngIf="true">
+          
         
-        <!-- Application Status Display -->
-        <div class="application-status" *ngIf="driverApplicationStatus">
-          <div class="status-card" [ngClass]="getStatusClass(driverApplicationStatus)">
+        
+                 <h2 class="section-title">
+           <span *ngIf="userProfile?.role === 'CUSTOMER'">Become a Driver</span>
+           <span *ngIf="userProfile?.role === 'DRIVER'">Driver Status & Vehicle Information</span>
+           <span *ngIf="userProfile?.role === 'ADMIN'">Driver Application</span>
+         </h2>
+        
+                 <!-- Application Status Display -->
+         <div class="application-status" *ngIf="(driverApplicationStatus && (driverApplicationStatus !== 'PENDING' || userProfile?.driverApplicationDate)) || userProfile?.role === 'DRIVER'">
+          <div class="status-card" [ngClass]="getStatusClass(driverApplicationStatus || 'APPROVED')">
             <div class="status-icon">
-              <i [class]="getStatusIcon(driverApplicationStatus)"></i>
+              <i [class]="getStatusIcon(driverApplicationStatus || 'APPROVED')"></i>
             </div>
             <div class="status-content">
-              <h3>Application Status: {{ getStatusText(driverApplicationStatus) }}</h3>
-              <p *ngIf="driverApplicationStatus === 'PENDING'">
-                Your driver application is under review. We'll notify you once a decision is made.
-              </p>
-              <p *ngIf="driverApplicationStatus === 'APPROVED'">
+                             <h3 *ngIf="driverApplicationStatus && (driverApplicationStatus !== 'PENDING' || userProfile?.driverApplicationDate)">Application Status: {{ getStatusText(driverApplicationStatus) }}</h3>
+                             <h3 *ngIf="!driverApplicationStatus && userProfile?.role === 'DRIVER'">Driver Status: Active</h3>
+                             <p *ngIf="driverApplicationStatus === 'PENDING' && userProfile?.driverApplicationDate">
+                 Your driver application is under review. We'll notify you once a decision is made.
+               </p>
+                             <p *ngIf="driverApplicationStatus === 'APPROVED' || (!driverApplicationStatus && userProfile?.role === 'DRIVER')">
                 Congratulations! Your application has been approved. You can now start accepting delivery assignments.
               </p>
               <p *ngIf="driverApplicationStatus === 'REJECTED'">
                 Your application was not approved. Reason: {{ driverRejectionReason || 'No reason provided' }}
               </p>
-              <div class="application-details" *ngIf="driverApplication">
-                <p><strong>Applied on:</strong> {{ driverApplication.applicationDate | date:'medium' }}</p>
-                <p *ngIf="driverApplication.approvalDate"><strong>Processed on:</strong> {{ driverApplication.approvalDate | date:'medium' }}</p>
+                             <div class="application-details" *ngIf="(driverApplication || userProfile?.role === 'DRIVER') && (driverApplicationStatus !== 'PENDING' || userProfile?.driverApplicationDate)">
+                <p *ngIf="driverApplication?.applicationDate"><strong>Applied on:</strong> {{ driverApplication?.applicationDate | date:'medium' }}</p>
+                <p *ngIf="driverApplication?.approvalDate"><strong>Processed on:</strong> {{ driverApplication?.approvalDate | date:'medium' }}</p>
                 <p *ngIf="driverRejectionReason"><strong>Rejection Reason:</strong> {{ driverRejectionReason }}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Application Form -->
-        <div class="application-form" *ngIf="!driverApplicationStatus || driverApplicationStatus === 'REJECTED'">
+        <!-- Vehicle Information Section - Only for DRIVER role -->
+                 <div class="vehicle-information" *ngIf="userProfile?.role === 'DRIVER'">
+          <h3 class="vehicle-section-title">
+            <i class="fas fa-car"></i>
+            Vehicle Details
+          </h3>
+          <div class="vehicle-details-grid">
+            <div class="vehicle-detail-card">
+              <div class="detail-icon">
+                <i class="fas fa-id-card"></i>
+              </div>
+              <div class="detail-content">
+                <h4>Driver's License</h4>
+                                 <p>{{ userProfile?.licenseNumber || 'Not provided' }}</p>
+              </div>
+            </div>
+            
+            <div class="vehicle-detail-card">
+              <div class="detail-icon">
+                <i class="fas fa-car-side"></i>
+              </div>
+              <div class="detail-content">
+                <h4>Vehicle Type</h4>
+                                 <p>{{ getVehicleTypeDisplay(userProfile?.vehicleType) || 'Not specified' }}</p>
+              </div>
+            </div>
+            
+            <div class="vehicle-detail-card">
+              <div class="detail-icon">
+                <i class="fas fa-hashtag"></i>
+              </div>
+              <div class="detail-content">
+                <h4>Registration Number</h4>
+                                 <p>{{ userProfile?.vehicleNumber || 'Not provided' }}</p>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+                 <!-- Application Form - Only show for CUSTOMER role -->
+         <div class="application-form" *ngIf="userProfile?.role === 'CUSTOMER' && (!driverApplicationStatus || driverApplicationStatus === 'REJECTED' || (driverApplicationStatus === 'PENDING' && !userProfile?.driverApplicationDate))">
+         
+         <!-- Admin Message - Show for ADMIN role -->
+         <div class="admin-message" *ngIf="userProfile?.role === 'ADMIN'" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; text-align: center;">
+           <i class="fas fa-info-circle" style="color: #6c757d; font-size: 24px; margin-bottom: 10px;"></i>
+           <h3 style="color: #6c757d; margin-bottom: 10px;">Admin Access</h3>
+           <p style="color: #6c757d; margin: 0;">Driver applications are not available for admin users.</p>
+         </div>
           <p class="form-description">
              Fill out the application below and we'll review your information.
           </p>
@@ -405,8 +381,11 @@
         </div>
       </div>
 
-      <!-- Account Management Section -->
-      <div class="profile-section account-management" *ngIf="userProfile.role !== 'ADMIN'">
+                      <!-- Account Management Section -->
+         <div class="profile-section account-management scroll-animate" #accountManagementSection *ngIf="true">
+          
+        
+        
         <h2 class="section-title">Account Management</h2>
         <div class="account-actions">
           <div class="action-card">
@@ -414,9 +393,10 @@
               <i class="fas fa-pause-circle"></i>
             </div>
             <div class="action-content">
-              <h3>Deactivate Account</h3>
-                <p>Temporarily disable your account. Reactivate via support.</p>
-              <button class="btn-deactivate" (click)="deactivateAccount()" [disabled]="isLoading">
+                             <h3>Deactivate Account</h3>
+                 <p *ngIf="userProfile?.role !== 'ADMIN'">Temporarily disable your account. Reactivate via support.</p>
+                 <p *ngIf="userProfile?.role === 'ADMIN'" style="color: #6c757d; font-style: italic;">Account management actions are not available for admin users.</p>
+                             <button class="btn-deactivate" (click)="deactivateAccount()" [disabled]="isLoading || userProfile?.role === 'ADMIN'">
                 <i class="fas fa-pause"></i>
                 Deactivate Account
               </button>
@@ -428,9 +408,10 @@
               <i class="fas fa-trash-alt"></i>
             </div>
             <div class="action-content">
-              <h3>Delete Account</h3>
-                <p>Permanently delete your account. This cannot be undone.</p>
-              <button class="btn-delete" (click)="deleteAccount()" [disabled]="isLoading">
+                             <h3>Delete Account</h3>
+                 <p *ngIf="userProfile?.role !== 'ADMIN'">Permanently delete your account. This cannot be undone.</p>
+                 <p *ngIf="userProfile?.role === 'ADMIN'" style="color: #6c757d; font-style: italic;">Account management actions are not available for admin users.</p>
+                             <button class="btn-delete" (click)="deleteAccount()" [disabled]="isLoading || userProfile?.role === 'ADMIN'">
                 <i class="fas fa-trash"></i>
                 Delete Account
               </button>

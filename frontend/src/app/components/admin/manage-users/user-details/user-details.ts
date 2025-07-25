@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../../../shared/toast/toast.service';
+import { SidebarComponent } from '../../../shared/sidebar/sidebar';
 
 interface User {
   id: string;
@@ -47,7 +48,7 @@ interface Activity {
   templateUrl: './user-details.html',
   styleUrl: './user-details.css',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule]
+  imports: [CommonModule, FormsModule, RouterModule, SidebarComponent]
 })
 export class UserDetails implements OnInit {
   activeTab = 'overview';
@@ -352,26 +353,10 @@ export class UserDetails implements OnInit {
   openStatusModal() {
     this.selectedStatus = this.user?.status || 'Active';
     this.showStatusModal = true;
-    
-    // Show info toast message
-    if (this.user) {
-      this.toastService.showInfo(
-        `Managing status for ${this.user.name} (${this.user.role})`,
-        3000
-      );
-    }
   }
 
   closeStatusModal() {
     this.showStatusModal = false;
-    
-    // Show warning toast message if status was changed but not confirmed
-    if (this.user && this.selectedStatus !== this.user.status) {
-      this.toastService.showWarning(
-        'Status change was cancelled. No changes were made.',
-        3000
-      );
-    }
   }
 
   confirmStatusUpdate() {
@@ -380,7 +365,7 @@ export class UserDetails implements OnInit {
       this.updateUserStatus(this.user.id, this.selectedStatus);
       this.closeStatusModal();
       
-      // Show success toast message
+      // Show success toast message only
       const statusText = this.selectedStatus.toLowerCase();
       const userName = this.user.name;
       this.toastService.showSuccess(

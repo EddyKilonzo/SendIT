@@ -59,7 +59,7 @@ export interface DriverApplicationResponseDto {
   id: string;
   email: string;
   name: string;
-  driverApplicationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationStatus: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverApplicationDate?: Date;
   driverApprovalDate?: Date;
   driverRejectionReason?: string;
@@ -103,7 +103,7 @@ export interface UserResponseDto {
   preferredPaymentMethod?: string;
 
   // Driver application fields
-  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverApplicationDate?: Date;
   driverApprovalDate?: Date;
   driverRejectionReason?: string;
@@ -136,7 +136,7 @@ export interface UsersQueryDto {
   isActive?: boolean;
   isAvailable?: boolean;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   sortBy?: 'name' | 'email' | 'createdAt' | 'averageRating' | 'totalDeliveries';
   sortOrder?: 'asc' | 'desc';
   minimumRating?: number;

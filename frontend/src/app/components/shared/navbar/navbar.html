@@ -3,18 +3,59 @@
     <div class="logo">
       <img src="/images/1logo-removebg-preview.png" alt="SendIT Logo" class="logo-image">
     </div>
-    <div class="nav-links">
-      <a routerLink="/" class="nav-link">Home</a>
+    
+    <!-- Navigation links - show only when not authenticated -->
+    <div class="nav-links" *ngIf="!isAuthenticated">
       <a routerLink="/signup" class="nav-link">Signup</a>
       <a routerLink="/login" class="nav-link">Login</a>
     </div>
-    <div class="nav-actions">
+    
+    <!-- Navigation actions - show when authenticated -->
+    <div class="nav-actions" *ngIf="isAuthenticated">
+      <!-- Home link moved next to bell icon -->
+      <a routerLink="/" class="nav-link home-link">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+      </a>
+      
       <button class="notification-btn">
         <i class="fas fa-bell"></i>
         <span class="notification-badge">3</span>
       </button>
-      <div class="user-avatar">
-        <i class="fas fa-user"></i>
+      
+      <!-- User avatar with dropdown menu -->
+      <div class="user-menu-container">
+        <div class="user-avatar" (click)="toggleUserMenu($event)">
+          <ng-container *ngIf="currentUser?.profilePicture && currentUser.profilePicture.trim() !== ''; else initialsFallback">
+            <img 
+              [src]="currentUser.profilePicture" 
+              [alt]="currentUser?.name || 'Profile Picture'"
+              class="user-profile-picture"
+              (error)="onImageError($event)"
+            >
+          </ng-container>
+          <ng-template #initialsFallback>
+            <span class="user-initials">{{ getUserInitials() }}</span>
+          </ng-template>
+        </div>
+        
+        <!-- User dropdown menu -->
+        <div class="user-dropdown" *ngIf="showUserMenu">
+          <div class="user-info">
+            <div class="welcome-message">Welcome back,</div>
+            <div class="user-name">{{ currentUser?.name || 'User' }}</div>
+            <div class="user-role">{{ getUserRole() }}</div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" (click)="navigateToProfile()">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </button>
+          <button class="dropdown-item" (click)="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -1,0 +1,4 @@
+### Test User Dashboard Endpoint
+GET http://localhost:3000/users/dashboard
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json 

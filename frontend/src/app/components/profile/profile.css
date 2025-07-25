@@ -1,106 +1,31 @@
 /* Profile Container */
 .profile-container {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  grid-template-rows: 1fr;
+  display: flex;
   min-height: calc(100vh - 80px);
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin-top: 0;
+  overflow: hidden;
 }
 
-/* Sidebar Styles */
-.sidebar {
-  width: 100%;
-  background-color: white;
-  border-right: 1px solid #e9ecef;
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: calc(100vh - 80px);
-  z-index: 1000;
-  overflow-y: auto;
-  align-self: start;
-}
-
-.sidebar-nav {
-  flex: 1;
-  padding: 20px 0;
-}
-
-.nav-menu {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.nav-item {
-  margin-bottom: 5px;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  color: #6c757d;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border-radius: 0 25px 25px 0;
-  margin-right: 15px;
-}
-
-.nav-link:hover {
-  background-color: #f8f9fa;
-  color: #DBBB02;
-}
-
-.nav-link.active {
-  background-color: rgba(219, 187, 2, 0.3);
-  color: black;
-  font-weight: 500;
-}
-
-.nav-link i {
-  margin-right: 12px;
-  width: 20px;
-  text-align: center;
-}
-
-.sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid #e9ecef;
-}
-
-.logout-link {
-  display: flex;
-  align-items: center;
-  color: #6c757d;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-.logout-link:hover {
-  color: #dc3545;
-}
-
-.logout-link i {
-  margin-right: 12px;
-}
+/* Shared Sidebar - Styles are now in sidebar.css */
 
 /* Main Content Styles */
 .main-content {
+  flex: 1;
+  padding: 20px 30px 30px 30px;
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 80px);
-  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .content-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: 20px 30px;
+  padding: 0 0 20px 0;
   background-color: transparent;
   border-bottom: none;
   margin-bottom: 20px;
@@ -113,8 +38,7 @@
   font-weight: bold;
   color: #2c3e50;
   margin: 0;
-  flex: 1;
-  text-align: center;
+  text-align: left;
 }
 
 .profile-content {
@@ -655,9 +579,7 @@
     grid-template-columns: 1fr;
   }
   
-  .sidebar {
-    display: none;
-  }
+  /* Sidebar responsive styles handled by shared component */
   
   .form-grid {
     grid-template-columns: 1fr;
@@ -669,6 +591,10 @@
 }
 
 @media (max-width: 768px) {
+  .main-content {
+    margin-left: 0; /* Remove left margin on mobile */
+  }
+  
   .content-header {
     padding: 15px 20px;
   }
@@ -907,6 +833,97 @@
   margin-bottom: 0;
 }
 
+/* Vehicle Information Styles */
+.vehicle-information {
+  margin-top: 25px;
+  padding-top: 25px;
+  border-top: 1px solid #e9ecef;
+}
+
+.vehicle-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vehicle-section-title i {
+  color: #DBBB02;
+  font-size: 20px;
+}
+
+.vehicle-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.vehicle-detail-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: all 0.3s ease;
+}
+
+.vehicle-detail-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.detail-icon {
+  width: 50px;
+  height: 50px;
+  background-color: #DBBB02;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.detail-icon i {
+  color: white;
+  font-size: 20px;
+}
+
+.detail-content {
+  flex: 1;
+}
+
+.detail-content h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6c757d;
+  margin: 0 0 5px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-content p {
+  font-size: 16px;
+  font-weight: 500;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.status-available {
+  color: #28a745 !important;
+  font-weight: 600;
+}
+
+.status-unavailable {
+  color: #dc3545 !important;
+  font-weight: 600;
+}
+
 /* Responsive Design for Driver Application */
 @media (max-width: 768px) {
   .driver-form .form-grid {
@@ -927,5 +944,104 @@
   .form-description {
     font-size: 0.9rem;
     padding: 12px;
+  }
+
+  .vehicle-details-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .vehicle-detail-card {
+    padding: 15px;
+  }
+
+  .detail-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .detail-icon i {
+    font-size: 16px;
+  }
+}
+
+/* === Enhanced Vehicle Information Section === */
+.vehicle-information {
+  background: #fffbe6; /* light yellow */
+  border-radius: 18px;
+  padding: 32px 28px 24px 28px;
+  margin-top: 32px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.04);
+  border: 1.5px solid #f5e7a1;
+}
+
+.vehicle-section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #DBBB02;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vehicle-section-title i {
+  color: #888;
+  font-size: 22px;
+}
+
+.vehicle-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 22px;
+}
+
+.vehicle-detail-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px 0 rgba(0,0,0,0.03);
+  border: 1px solid #f0e6b2;
+  padding: 20px 18px 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: box-shadow 0.2s, border 0.2s;
+}
+.vehicle-detail-card:hover {
+  box-shadow: 0 4px 16px 0 rgba(219,187,2,0.10);
+  border: 1.5px solid #DBBB02;
+}
+.detail-icon {
+  flex-shrink: 0;
+  color: #888;
+  font-size: 2rem;
+  margin-top: 2px;
+}
+.detail-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #222;
+}
+.detail-content p {
+  margin: 0;
+  color: #444;
+  font-size: 0.98rem;
+}
+.status-available {
+  color: #27ae60;
+  font-weight: 600;
+}
+.status-unavailable {
+  color: #c0392b;
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  .vehicle-information {
+    padding: 18px 8px 14px 8px;
+  }
+  .vehicle-details-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 }

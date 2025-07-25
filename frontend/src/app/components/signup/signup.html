@@ -7,9 +7,9 @@
           <p>Join SendIT and start delivering with confidence</p>
         </div>
         
-        <form (ngSubmit)="onSubmit()" class="signup-form">
+        <form (ngSubmit)="onSubmit()" class="signup-form" [class.loading]="isLoading">
           <div class="form-group">
-            <label for="name">Full Name</label>
+            <label for="name">Full Name *</label>
             <input 
               type="text" 
               id="name" 
@@ -17,11 +17,12 @@
               [(ngModel)]="signupData.name" 
               required 
               placeholder="Enter your full name"
+              [disabled]="isLoading"
             >
           </div>
           
           <div class="form-group">
-            <label for="email">Email Address</label>
+            <label for="email">Email Address *</label>
             <input 
               type="email" 
               id="email" 
@@ -29,11 +30,24 @@
               [(ngModel)]="signupData.email" 
               required 
               placeholder="Enter your email"
+              [disabled]="isLoading"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input 
+              type="tel" 
+              id="phone" 
+              name="phone" 
+              [(ngModel)]="signupData.phone" 
+              placeholder="Enter your phone number"
+              [disabled]="isLoading"
             >
           </div>
           
           <div class="form-group">
-            <label for="password">Password</label>
+            <label for="password">Password *</label>
             <div class="password-input-container">
               <input 
                 [type]="showPassword ? 'text' : 'password'"
@@ -41,20 +55,28 @@
                 name="password" 
                 [(ngModel)]="signupData.password" 
                 required 
-                placeholder="Create a password"
+                placeholder="Create a password (min 6 characters)"
+                [disabled]="isLoading"
               >
               <button 
                 type="button" 
                 class="password-toggle" 
                 (click)="togglePassword()"
                 [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                [disabled]="isLoading"
               >
                 <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
               </button>
             </div>
           </div>
           
-          <button type="submit" class="signup-btn">Create Account</button>
+          <button type="submit" class="signup-btn" [disabled]="isLoading">
+            <span *ngIf="!isLoading">Create Account</span>
+            <span *ngIf="isLoading" class="loading-text">
+              <i class="fas fa-spinner fa-spin"></i>
+              Creating Account...
+            </span>
+          </button>
         </form>
         
         <div class="login-link">

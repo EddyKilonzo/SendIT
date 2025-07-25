@@ -1,69 +1,45 @@
 /* Parcel Details Container */
 .parcel-details {
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  min-height: 100vh;
+  display: flex;
+  min-height: calc(100vh - 80px);
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   width: 100%;
   max-width: none;
-}
-
-/* Sidebar Styles */
-.sidebar {
-  background-color: #f8f9fa;
-  border-right: 1px solid #e9ecef;
-  padding: 20px 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 15px 25px;
-  color: #6c757d;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border-radius: 0 25px 25px 0;
-  margin-right: 15px;
-  border-left: 3px solid transparent;
-}
-
-.nav-item:hover {
-  background-color: #fef7e0;
-  color: #333;
-  border-left: 3px solid #DBBB02;
-}
-
-.nav-item.active {
-  background-color: #e3f2fd;
-  color: #333;
-  font-weight: 500;
-  border-left: 3px solid #2196f3;
-}
-
-.nav-item i {
-  margin-right: 12px;
-  width: 16px;
-  text-align: center;
-  color: #333;
-  font-size: 14px;
+  margin-top: 0;
+  overflow: hidden;
 }
 
 /* Main Content */
 .main-content {
+  flex: 1;
   padding: 30px;
   overflow-y: auto;
-  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Content Header */
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  background-color: transparent;
+  border-bottom: none;
+  margin-bottom: 20px;
+}
+
+.header-left h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.dashboard-content {
+  padding: 30px;
+  flex: 1;
+  margin-top: 0;
 }
 
 /* Header Section */
@@ -857,11 +833,7 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .parcel-details {
-    grid-template-columns: 1fr;
-  }
-  
-  .sidebar {
-    display: none;
+    display: flex;
   }
   
   .content-grid {
@@ -960,6 +932,10 @@
 }
 
 @media (max-width: 768px) {
+  .parcel-details {
+    display: flex;
+  }
+  
   .main-content {
     padding: 20px;
   }

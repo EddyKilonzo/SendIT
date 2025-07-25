@@ -15,10 +15,34 @@
       <a (click)="scrollToSection('partnerships')" class="home-nav-link">Partners</a>
     </div>
     
-    <!-- Action Buttons -->
-    <div class="home-nav-actions">
+    <!-- Action Buttons - show only when not authenticated -->
+    <div class="home-nav-actions" *ngIf="!isAuthenticated">
       <button class="home-login-btn" routerLink="/login">Login</button>
       <button class="home-signup-btn" routerLink="/signup">Sign Up</button>
+    </div>
+    
+    <!-- User menu - show when authenticated -->
+    <div class="home-nav-actions" *ngIf="isAuthenticated">
+      <!-- User avatar with dropdown menu -->
+      <div class="user-menu-container">
+        <div class="user-avatar" (click)="toggleUserMenu($event)">
+          <span class="user-initials">{{ getUserInitials() }}</span>
+        </div>
+        
+        <!-- User dropdown menu -->
+        <div class="user-dropdown" *ngIf="showUserMenu">
+          <div class="user-info">
+            <div class="welcome-message">Welcome back,</div>
+            <div class="user-name">{{ currentUser?.name || 'User' }}</div>
+            <div class="user-role">{{ getUserRole() }}</div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" (click)="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
     </div>
     
     <!-- Mobile Menu Toggle -->

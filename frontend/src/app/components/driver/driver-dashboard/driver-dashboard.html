@@ -1,34 +1,13 @@
 <div class="driver-dashboard">
-  <!-- Left Sidebar -->
-  <aside class="sidebar">
-    <nav class="sidebar-nav">
-      <a routerLink="/driver-dashboard" class="nav-item active" routerLinkActive="active">
-        <i class="fas fa-home"></i>
-        <span>Dashboard</span>
-      </a>
-      <a routerLink="/driver-my-parcels" class="nav-item">
-        <i class="fas fa-box"></i>
-        <span>My Parcels</span>
-      </a>
-      <a routerLink="/driver-history" class="nav-item">
-        <i class="fas fa-history"></i>
-        <span>Delivery History</span>
-      </a>
-      <a routerLink="/profile" class="nav-item">
-        <i class="fas fa-user"></i>
-        <span>Profile</span>
-      </a>
-    </nav>
-    
-    
-  </aside>
+  <!-- Shared Sidebar -->
+  <app-sidebar></app-sidebar>
 
   <!-- Main Content -->
   <main class="main-content">
     <!-- Header -->
     <div class="content-header">
       <div class="header-left">
-        <h1 class="welcome-title">Welcome back, <span class="highlight">Driver!</span></h1>
+        <h1 class="welcome-title">Welcome back, <span class="highlight">{{ currentUser?.name || 'Driver' }}!</span></h1>
       </div>
       
     </div>

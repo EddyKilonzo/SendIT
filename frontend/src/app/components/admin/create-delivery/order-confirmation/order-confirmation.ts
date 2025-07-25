@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { ToastService } from '../../../shared/toast/toast.service';
 import { MapService } from '../../../../services/map.service';
 import { MapMarkerType } from '../../../../types/map.types';
+import { SidebarComponent } from '../../../shared/sidebar/sidebar';
 import * as L from 'leaflet';
 
 interface OrderDetails {
@@ -27,7 +28,7 @@ interface OrderDetails {
 @Component({
   selector: 'app-order-confirmation',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, SidebarComponent],
   templateUrl: './order-confirmation.html',
   styleUrls: ['./order-confirmation.css']
 })

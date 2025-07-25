@@ -1,108 +1,13 @@
 <div class="create-delivery">
-  <!-- Left Sidebar -->
-  <aside class="sidebar">
-    
-    <nav class="sidebar-nav">
-      <ul class="nav-menu">
-        <!-- Common Navigation Items -->
-        <li class="nav-item">
-          <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-home"></i>
-            <span>Dashboard</span>
-          </a>
-        </li>
-        
-        
-        <!-- Admin-Only Navigation Items -->
-        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
-          <a routerLink="/admin-create-delivery" routerLinkActive="active" class="nav-link admin-nav">
-            <i class="fas fa-plus"></i>
-            <span>Create Delivery</span>
-          </a>
-        </li>
-        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
-          <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="nav-link admin-nav">
-            <i class="fas fa-box"></i>
-            <span>Manage Parcels</span>
-          </a>
-        </li>
-        <li class="nav-item" *ngIf="userRole === 'ADMIN'">
-          <a routerLink="/admin-manage-users" routerLinkActive="active" class="nav-link admin-nav">
-            <i class="fas fa-users"></i>
-            <span>Manage Users</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/profile" routerLinkActive="active" class="nav-link">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-    
-    <div class="sidebar-footer">
-      <a routerLink="/login" class="logout-link">
-        <i class="fas fa-arrow-left"></i>
-        <span>Logout</span>
-      </a>
-    </div>
-  </aside>
+  <!-- Shared Sidebar -->
+  <app-sidebar></app-sidebar>
 
-  <!-- Mobile Menu Overlay -->
-  <div class="mobile-menu-overlay" *ngIf="isMobileView && showMobileMenu" (click)="closeMobileMenu()">
-    <div class="mobile-menu-content" (click)="$event.stopPropagation()">
-      <div class="mobile-menu-header">
-        <h3>Navigation</h3>
-        <button class="mobile-menu-close" (click)="closeMobileMenu()">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <nav class="mobile-nav">
-        <ul class="mobile-nav-menu">
-          <li class="mobile-nav-item">
-            <a routerLink="/admin-dashboard" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
-              <i class="fas fa-home"></i>
-              <span>Dashboard</span>
-            </a>
-          </li>
-          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
-            <a routerLink="/admin-create-delivery" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
-              <i class="fas fa-plus"></i>
-              <span>Create Delivery</span>
-            </a>
-          </li>
-          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
-            <a routerLink="/admin-manage-parcels" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
-              <i class="fas fa-box"></i>
-              <span>Manage Parcels</span>
-            </a>
-          </li>
-          <li class="mobile-nav-item" *ngIf="userRole === 'ADMIN'">
-            <a routerLink="/admin-manage-users" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
-              <i class="fas fa-users"></i>
-              <span>Manage Users</span>
-            </a>
-          </li>
-          <li class="mobile-nav-item">
-            <a routerLink="/profile" routerLinkActive="active" class="mobile-nav-link" (click)="closeMobileMenu()">
-              <i class="fas fa-user"></i>
-              <span>Profile</span>
-            </a>
-          </li>
-          <li class="mobile-nav-item">
-            <a routerLink="/login" class="mobile-nav-link logout-link" (click)="closeMobileMenu()">
-              <i class="fas fa-arrow-left"></i>
-              <span>Logout</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-  </div>
+
 
   <!-- Main Content -->
   <main class="main-content">
+    <!-- Dashboard Content -->
+    <div class="dashboard-content">
     <div class="content-header">
       <h1 class="page-title">Create Delivery</h1>
       <!-- Mobile Menu Toggle -->
@@ -509,6 +414,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
   </main>
 </div>

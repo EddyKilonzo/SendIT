@@ -7,7 +7,7 @@
           <p>Sign in to your SendIT account</p>
         </div>
         
-        <form (ngSubmit)="onSubmit()" class="login-form">
+        <form (ngSubmit)="onSubmit()" class="login-form" [class.loading]="isLoading">
           <div class="form-group">
             <label for="email">Email Address</label>
             <input 
@@ -17,6 +17,7 @@
               [(ngModel)]="loginData.email" 
               required 
               placeholder="Enter your email"
+              [disabled]="isLoading"
             >
           </div>
           
@@ -30,12 +31,14 @@
                 [(ngModel)]="loginData.password" 
                 required 
                 placeholder="Enter your password"
+                [disabled]="isLoading"
               >
               <button 
                 type="button" 
                 class="password-toggle" 
                 (click)="togglePassword()"
                 [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                [disabled]="isLoading"
               >
                 <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
               </button>
@@ -43,14 +46,16 @@
           </div>
           
           <div class="form-options">
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="loginData.rememberMe" name="rememberMe">
-              <span>Remember me</span>
-            </label>
             <a routerLink="/reset" class="forgot-link">Forgot password?</a>
           </div>
           
-          <button type="submit" class="login-btn">Sign In</button>
+          <button type="submit" class="login-btn" [disabled]="isLoading">
+            <span *ngIf="!isLoading">Sign In</span>
+            <span *ngIf="isLoading" class="loading-text">
+              <i class="fas fa-spinner fa-spin"></i>
+              Signing In...
+            </span>
+          </button>
         </form>
         
         <div class="signup-link">

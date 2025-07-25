@@ -1,8 +1,8 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withRouterConfig } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
-
+import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { routes } from './app.routes';
+import { AuthInterceptor } from './guards/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -14,6 +14,9 @@ export const appConfig: ApplicationConfig = {
         onSameUrlNavigation: 'reload'
       })
     ),
-    provideHttpClient()
+    provideHttpClient(
+      withInterceptors([AuthInterceptor]),
+      withFetch()
+    )
   ]
 };

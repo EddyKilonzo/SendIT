@@ -1,173 +1,82 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { AuthService } from '../../../services/auth.service';
+import { AdminService, DashboardStats, SystemStats, Review, Driver, AnalyticsData } from '../../../services/admin.service';
+import { SidebarComponent } from '../../shared/sidebar/sidebar';
+import { catchError, forkJoin, of } from 'rxjs';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, SidebarComponent],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.css'
 })
 export class AdminDashboard implements OnInit, OnDestroy {
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private adminService: AdminService
+  ) {}
   
   userRole: string = 'ADMIN';
+  currentUser: any = null;
   
   isMobileView: boolean = false;
   showMobileMenu: boolean = false;
   
   activeTab = 'overview'; 
   
-  // Dashboard metrics matching the image
-  dashboardStats = {
-    totalParcels: 1200,
-    deliveriesInProgress: 30,
-    revenue: 57544
-  };
+  // Loading states
+  isLoading = true;
+  isLoadingAnalytics = false;
+  
+  // Dashboard metrics from real data
+  dashboardStats: DashboardStats | null = null;
+  systemStats: SystemStats | null = null;
  
   // Delivery status data
   deliveryStatus = {
-    total: 120,
-    delivered: 70,
-    inProgress: 20,
-    pending: 10
+    total: 0,
+    delivered: 0,
+    inProgress: 0,
+    pending: 0
   };
 
   // Average delivery time data
   deliveryTime = {
-    average: 2.5,
-    weeklyData: [40, 60, 30, 50] // Heights for the line chart
+    average: 0,
+    weeklyData: [0, 0, 0, 0] // Heights for the line chart
   };
 
-  // Analytics Data
-  analyticsData = {
-    // Revenue Trends Data
+  // Analytics Data - will be populated from real API
+  analyticsData: AnalyticsData = {
     revenueTrends: {
-      currentMonth: 57544,
-      previousMonth: 52340,
-      growth: '+9.9%',
-      monthlyData: [
-        { month: 'Jan', revenue: 42000 },
-        { month: 'Feb', revenue: 45000 },
-        { month: 'Mar', revenue: 48000 },
-        { month: 'Apr', revenue: 52000 },
-        { month: 'May', revenue: 49000 },
-        { month: 'Jun', revenue: 57544 },
-        { month: 'Jul', revenue: 52000 },
-        { month: 'Aug', revenue: 55000 },
-        { month: 'Sep', revenue: 58000 },
-        { month: 'Oct', revenue: 62000 },
-        { month: 'Nov', revenue: 65000 },
-        { month: 'Dec', revenue: 68000 }
-      ],
-      dailyData: [
-        { day: 'Mon', revenue: 8200 },
-        { day: 'Tue', revenue: 9100 },
-        { day: 'Wed', revenue: 7800 },
-        { day: 'Thu', revenue: 9500 },
-        { day: 'Fri', revenue: 10200 },
-        { day: 'Sat', revenue: 8800 },
-        { day: 'Sun', revenue: 3944 }
-      ]
+      currentMonth: 0,
+      previousMonth: 0,
+      growth: '0%',
+      monthlyData: [],
+      dailyData: []
     },
-
-    // Delivery Performance Data
     deliveryPerformance: {
-      totalDeliveries: 1200,
-      onTimeDeliveries: 1080,
-      lateDeliveries: 96,
-      failedDeliveries: 24,
-      onTimeRate: 90.0,
-      averageDeliveryTime: 2.5,
-      performanceByDriver: [
-        { name: 'John Doe', deliveries: 45, onTimeRate: 95.6, rating: 4.8 },
-        { name: 'Jane Smith', deliveries: 38, onTimeRate: 92.1, rating: 4.6 },
-        { name: 'Mike Johnson', deliveries: 42, onTimeRate: 88.1, rating: 4.6 },
-        { name: 'Sarah Wilson', deliveries: 35, onTimeRate: 94.3, rating: 4.7 },
-        { name: 'David Brown', deliveries: 40, onTimeRate: 90.0, rating: 4.5 }
-      ],
-      performanceByVehicle: [
-        { type: 'Motorcycle', deliveries: 480, efficiency: 85.2 },
-        { type: 'Car', deliveries: 420, efficiency: 92.1 },
-        { type: 'Van', deliveries: 240, efficiency: 88.5 },
-        { type: 'Truck', deliveries: 60, efficiency: 95.0 }
-      ],
-      deliveryTimeTrends: [
-        { week: 'Week 1', avgTime: 2.8 },
-        { week: 'Week 2', avgTime: 2.6 },
-        { week: 'Week 3', avgTime: 2.4 },
-        { week: 'Week 4', avgTime: 2.5 }
-      ]
+      totalDeliveries: 0,
+      onTimeDeliveries: 0,
+      lateDeliveries: 0,
+      failedDeliveries: 0,
+      onTimeRate: 0,
+      averageDeliveryTime: 0,
+      performanceByDriver: [],
+      performanceByVehicle: [],
+      deliveryTimeTrends: []
     },
-
-    // Customer Reviews & Satisfaction Data
     customerReviews: {
-      overallRating: 4.6,
-      totalReviews: 856,
-      ratingDistribution: [
-        { stars: 5, count: 428, percentage: 50.0 },
-        { stars: 4, count: 257, percentage: 30.0 },
-        { stars: 3, count: 86, percentage: 10.0 },
-        { stars: 2, count: 43, percentage: 5.0 },
-        { stars: 1, count: 42, percentage: 5.0 }
-      ],
-      recentReviews: [
-        {
-          id: 1,
-          customerName: 'Alice Johnson',
-          rating: 5,
-          comment: 'Excellent service! My package was delivered on time and in perfect condition.',
-          date: '2024-01-15',
-          driverName: 'John Doe'
-        },
-        {
-          id: 2,
-          customerName: 'Bob Wilson',
-          rating: 4.5,
-          comment: 'Good delivery service. Driver was professional and courteous.',
-          date: '2024-01-14',
-          driverName: 'Jane Smith'
-        },
-        {
-          id: 3,
-          customerName: 'Carol Davis',
-          rating: 5,
-          comment: 'Amazing experience! Fast delivery and great communication throughout.',
-          date: '2024-01-13',
-          driverName: 'Mike Johnson'
-        },
-        {
-          id: 4,
-          customerName: 'David Miller',
-          rating: 3,
-          comment: 'Delivery was a bit late but package arrived safely.',
-          date: '2024-01-12',
-          driverName: 'Sarah Wilson'
-        },
-        {
-          id: 5,
-          customerName: 'Eva Garcia',
-          rating: 5,
-          comment: 'Outstanding service! Will definitely use again.',
-          date: '2024-01-11',
-          driverName: 'David Brown'
-        }
-      ],
-      satisfactionTrends: [
-        { month: 'Jan', rating: 4.4 },
-        { month: 'Feb', rating: 4.5 },
-        { month: 'Mar', rating: 4.3 },
-        { month: 'Apr', rating: 4.6 },
-        { month: 'May', rating: 4.5 },
-        { month: 'Jun', rating: 4.6 }
-      ],
-      feedbackCategories: [
-        { category: 'Delivery Speed', positive: 78, neutral: 15, negative: 7 },
-        { category: 'Driver Courtesy', positive: 92, neutral: 6, negative: 2 },
-        { category: 'Package Condition', positive: 95, neutral: 4, negative: 1 },
-        { category: 'Communication', positive: 85, neutral: 12, negative: 3 }
-      ]
+      overallRating: 0,
+      totalReviews: 0,
+      ratingDistribution: [],
+      recentReviews: [],
+      satisfactionTrends: [],
+      feedbackCategories: []
     }
   };
 
@@ -201,10 +110,13 @@ export class AdminDashboard implements OnInit, OnDestroy {
 
   switchTab(tab: string) {
     this.activeTab = tab;
+    if (tab === 'analytics' && !this.isLoadingAnalytics) {
+      this.loadAnalyticsData();
+    }
   }
 
   getRatingStars(rating: number): string {
-    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    return '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
   }
 
   getRatingColor(rating: number): string {
@@ -234,7 +146,9 @@ export class AdminDashboard implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.currentUser = this.authService.getCurrentUser();
     this.checkMobileView();
+    this.loadDashboardData();
     
     // Listen for window resize events
     window.addEventListener('resize', () => {
@@ -266,5 +180,92 @@ export class AdminDashboard implements OnInit, OnDestroy {
   closeMobileMenu(): void {
     this.showMobileMenu = false;
     document.body.style.overflow = '';
+  }
+
+  // Load dashboard data from API
+  private loadDashboardData(): void {
+    this.isLoading = true;
+    
+    forkJoin({
+      dashboardStats: this.adminService.getDashboardStats().pipe(
+        catchError(error => {
+          console.error('Error loading dashboard stats:', error);
+          return of(null);
+        })
+      ),
+      systemStats: this.adminService.getSystemStats().pipe(
+        catchError(error => {
+          console.error('Error loading system stats:', error);
+          return of(null);
+        })
+      )
+    }).subscribe({
+      next: (data) => {
+        this.dashboardStats = data.dashboardStats;
+        this.systemStats = data.systemStats;
+        
+        // Update delivery status
+        if (this.dashboardStats) {
+          this.deliveryStatus = {
+            total: this.dashboardStats.totalParcels,
+            delivered: this.dashboardStats.deliveredParcels,
+            inProgress: this.dashboardStats.inTransitParcels,
+            pending: this.dashboardStats.pendingParcels
+          };
+        }
+        
+        // Update delivery time
+        if (this.systemStats) {
+          this.deliveryTime = {
+            average: this.systemStats.averageDeliveryTime,
+            weeklyData: [40, 60, 30, 50] // This could be calculated from real data
+          };
+        }
+        
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading dashboard data:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  // Load analytics data from API
+  private loadAnalyticsData(): void {
+    this.isLoadingAnalytics = true;
+    
+    this.adminService.getAnalyticsData().pipe(
+      catchError(error => {
+        console.error('Error loading analytics data:', error);
+        return of(null);
+      })
+    ).subscribe({
+      next: (data) => {
+        if (data) {
+          this.analyticsData = data;
+        }
+        this.isLoadingAnalytics = false;
+      },
+      error: (error) => {
+        console.error('Error loading analytics data:', error);
+        this.isLoadingAnalytics = false;
+      }
+    });
+  }
+
+  // Helper method to calculate maximum revenue for chart scaling
+  getMaxRevenue(): number {
+    if (!this.analyticsData.revenueTrends.monthlyData || this.analyticsData.revenueTrends.monthlyData.length === 0) {
+      return 1; // Prevent division by zero
+    }
+    return Math.max(...this.analyticsData.revenueTrends.monthlyData.map((d: { revenue: number }) => d.revenue));
+  }
+
+  // Helper method to calculate chart bar height
+  getChartBarHeight(revenue: number): string {
+    const maxRevenue = this.getMaxRevenue();
+    const height = (revenue / maxRevenue) * 200;
+    return height + 'px';
   }
 }

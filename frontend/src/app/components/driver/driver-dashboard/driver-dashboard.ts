@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { AuthService } from '../../../services/auth.service';
+import { SidebarComponent } from '../../shared/sidebar/sidebar';
 
 interface Delivery {
   id: string;
@@ -26,13 +28,14 @@ interface PerformanceMetrics {
 @Component({
   selector: 'app-driver-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, SidebarComponent],
   templateUrl: './driver-dashboard.html',
   styleUrls: ['./driver-dashboard.css']
 })
 export class DriverDashboard implements OnInit {
   // User role for role-based access control
-  userRole: string = 'DRIVER'; // Default role for driver 
+  userRole: string = 'DRIVER'; // Default role for driver
+  currentUser: any = null; 
   
   todayDeliveries: Delivery[] = [
     {
@@ -79,9 +82,13 @@ export class DriverDashboard implements OnInit {
     onTimeChange: 5
   };
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
 
   ngOnInit() {
+    this.currentUser = this.authService.getCurrentUser();
     this.loadTodayDeliveries();
     this.loadPerformanceMetrics();
   }

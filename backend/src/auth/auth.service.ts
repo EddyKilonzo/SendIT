@@ -343,6 +343,139 @@ export class AuthService {
     }
   }
 
+  // Password Reset Methods
+  async forgotPassword(email: string): Promise<ApiResponseDto<boolean>> {
+    try {
+      // Check if user exists
+      const user = await this.prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        this.logger.log(`Password reset requested for email: ${email}`);
+        return ApiResponse.success(
+          true,
+          'If the email exists, a reset code has been sent',
+        );
+      }
+
+      // Generate 6-digit token
+      const resetToken = this.generateSixDigitToken();
+
+      // Store token in database with expiration (15 minutes)
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      await this.prisma.passwordResetToken.create({
+        data: {
+          email,
+          token: resetToken,
+          expiresAt,
+          used: false,
+        },
+      });
+
+      // Send email with token
+      await this.mailerService.sendPasswordResetEmail({
+        to: email,
+        name: user.name,
+        resetToken: resetToken,
+      });
+
+      this.logger.log(`Password reset token sent to: ${email}`);
+      return ApiResponse.success(
+        true,
+        'If the email exists, a reset code has been sent',
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error in forgotPassword: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw error;
+    }
+  }
+
+  async verifyResetToken(
+    email: string,
+    token: string,
+  ): Promise<ApiResponseDto<boolean>> {
+    try {
+      // Find the token in database
+      const resetToken = await this.prisma.passwordResetToken.findFirst({
+        where: {
+          email,
+          token,
+          used: false,
+          expiresAt: {
+            gt: new Date(), // Token not expired
+          },
+        },
+      });
+
+      if (!resetToken) {
+        return ApiResponse.success(false, 'Invalid or expired reset token');
+      }
+
+      return ApiResponse.success(true, 'Token is valid');
+    } catch (error) {
+      this.logger.error(
+        `Error in verifyResetToken: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw error;
+    }
+  }
+
+  async resetPassword(
+    email: string,
+    token: string,
+    newPassword: string,
+  ): Promise<ApiResponseDto<boolean>> {
+    try {
+      // Verify token first
+      const resetToken = await this.prisma.passwordResetToken.findFirst({
+        where: {
+          email,
+          token,
+          used: false,
+          expiresAt: {
+            gt: new Date(), // Token not expired
+          },
+        },
+      });
+
+      if (!resetToken) {
+        throw new InvalidCredentialsException('Invalid or expired reset token');
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+      // Update user password
+      await this.prisma.user.update({
+        where: { email },
+        data: { password: hashedPassword },
+      });
+
+      // Mark token as used
+      await this.prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { used: true },
+      });
+
+      this.logger.log(`Password reset successfully for: ${email}`);
+      return ApiResponse.success(true, 'Password reset successfully');
+    } catch (error) {
+      this.logger.error(
+        `Error in resetPassword: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw error;
+    }
+  }
+
+  private generateSixDigitToken(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
   private async generateTokens(user: {
     id: string;
     email: string;

@@ -56,7 +56,7 @@ export interface DriverResponseDto {
   speed?: number;
 
   // Driver application fields
-  driverApplicationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverApplicationDate?: Date;
   driverApprovalDate?: Date;
   driverRejectionReason?: string;

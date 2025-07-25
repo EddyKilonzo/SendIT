@@ -7,6 +7,7 @@ import { MapComponent } from '../../shared/map/map.component';
 import { MapService } from '../../../services/map.service';
 import { MapLocation, MapCoordinates, MapError, AddressSuggestion } from '../../../types/map.types';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { SidebarComponent } from '../../shared/sidebar/sidebar';
 
 // Custom validators
 function phoneNumberValidator(control: AbstractControl): ValidationErrors | null {
@@ -104,7 +105,7 @@ interface OrderDetails {
 @Component({
   selector: 'app-create-delivery',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, MapComponent],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, MapComponent, SidebarComponent],
   templateUrl: './create-delivery.html',
   styleUrls: ['./create-delivery.css']
 })
