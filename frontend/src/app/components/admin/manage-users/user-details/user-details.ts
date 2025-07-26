@@ -4,44 +4,38 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { SidebarComponent } from '../../../shared/sidebar/sidebar';
+import { AdminService } from '../../../../services/admin.service';
+import { catchError, of } from 'rxjs';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  role: 'Driver' | 'User';
-  status: 'Active' | 'Inactive' | 'Suspended';
-  registered: string;
-  avatar: string;
+  phone?: string;
   address?: string;
-  driverId?: string;
-  vehicleType?: string;
-  licensePlate?: string;
-  startDate?: string;
-  averageDeliveryTime?: string;
-  customerRating?: string;
-  totalSpent?: string;
+  role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  isActive: boolean;
+  createdAt: string;
+  deletedAt?: string;
+  profilePicture?: string;
+  // Driver-specific fields
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  isAvailable?: boolean;
+  averageRating?: number;
+  totalDeliveries: number;
+  completedDeliveries: number;
+  onTimeDeliveryRate?: number;
+  totalEarnings?: number;
+  // Driver application fields
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: string;
+  driverApprovalDate?: string;
+  driverRejectionReason?: string;
 }
 
-interface Parcel {
-  id: string;
-  trackingNumber: string;
-  status: 'In Transit' | 'Delivered' | 'Pending Pickup' | 'Cancelled';
-  pickupDate: string;
-  deliveryDate: string;
-  weight: string;
-  price: string;
-  sender: string;
-  receiver: string;
-  rating?: number;
-}
 
-interface Activity {
-  date: string;
-  activity: string;
-  details: string;
-}
 
 @Component({
   selector: 'app-user-details',
@@ -53,305 +47,237 @@ interface Activity {
 export class UserDetails implements OnInit {
   activeTab = 'overview';
   user: User | null = null;
-  assignedParcels: Parcel[] = [];
-  userParcels: Parcel[] = [];
-  userActivity: Activity[] = [];
+  
+  // Real data for tabs
+  userParcels: any[] = [];
+  assignedParcels: any[] = [];
+  userActivity: any[] = [];
+  isLoadingParcels = false;
+  isLoadingActivity = false;
 
-  // Mock data for demonstration
-  private mockUsers: User[] = [
-    {
-      id: '1',
-      name: 'Sophia Bennett',
-      email: 'sophia.bennett@email.com',
-      phone: '+1-555-123-4567',
-      role: 'User',
-      status: 'Active',
-      registered: '2023-01-15',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=entropy',
-      address: '123 Elm Street, Anytown, USA',
-      totalSpent: '$500'
-    },
-    {
-      id: '2',
-      name: 'Ethan Carter',
-      email: 'ethan.carter@example.com',
-      phone: '+1 (555) 123-4567',
-      role: 'Driver',
-      status: 'Active',
-      registered: '2022-05-15',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=entropy',
-      address: '123 Elm Street, Anytown, USA',
-      driverId: 'DC4567',
-      vehicleType: 'Van',
-      licensePlate: 'ABC-123',
-      startDate: '2022-05-15',
-      averageDeliveryTime: '35 minutes',
-      customerRating: '4.8/5'
-    },
-    {
-      id: '3',
-      name: 'Olivia Hayes',
-      email: 'olivia.hayes@email.com',
-      phone: '123-456-7892',
-      role: 'User',
-      status: 'Active',
-      registered: '2023-09-13',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=entropy',
-      address: '789 Pine Lane, Anytown, USA'
-    },
-    {
-      id: '4',
-      name: 'Liam Foster',
-      email: 'liam.foster@email.com',
-      phone: '123-456-7893',
-      role: 'Driver',
-      status: 'Active',
-      registered: '2023-04-05',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=entropy',
-      address: '101 Maple Drive, Anytown, USA',
-      driverId: 'DC7890',
-      vehicleType: 'Truck',
-      licensePlate: 'XYZ-789',
-      startDate: '2023-04-05',
-      averageDeliveryTime: '42 minutes',
-      customerRating: '4.6/5'
-    }
-  ];
 
-  private mockParcels: Parcel[] = [
-    {
-      id: 'P12345',
-      trackingNumber: 'TRK12345',
-      status: 'In Transit',
-      pickupDate: '2024-07-26',
-      deliveryDate: '2024-07-28',
-      weight: '2.5 kg',
-      price: 'KSH 2,500',
-      sender: 'Ethan Carter',
-      receiver: 'Jane Smith',
-      rating: undefined
-    },
-    {
-      id: 'P67890',
-      trackingNumber: 'TRK67890',
-      status: 'Delivered',
-      pickupDate: '2024-07-25',
-      deliveryDate: '2024-07-27',
-      weight: '1.8 kg',
-      price: 'KSH 1,800',
-      sender: 'Alice Johnson',
-      receiver: 'Ethan Carter',
-      rating: 5
-    },
-    {
-      id: 'P11223',
-      trackingNumber: 'TRK11223',
-      status: 'Pending Pickup',
-      pickupDate: '2024-07-27',
-      deliveryDate: '2024-07-29',
-      weight: '3.2 kg',
-      price: 'KSH 3,200',
-      sender: 'Charlie Brown',
-      receiver: 'Diana Prince',
-      rating: undefined
-    },
-    {
-      id: 'P33445',
-      trackingNumber: 'TRK33445',
-      status: 'Delivered',
-      pickupDate: '2024-07-20',
-      deliveryDate: '2024-07-22',
-      weight: '4.0 kg',
-      price: 'KSH 4,000',
-      sender: 'Ethan Carter',
-      receiver: 'Mike Johnson',
-      rating: 4
-    },
-    {
-      id: 'P55667',
-      trackingNumber: 'TRK55667',
-      status: 'In Transit',
-      pickupDate: '2024-07-28',
-      deliveryDate: '2024-07-30',
-      weight: '1.5 kg',
-      price: 'KSH 1,500',
-      sender: 'Sarah Davis',
-      receiver: 'Ethan Carter',
-      rating: undefined
-    }
-  ];
 
-  private mockUserParcels: Parcel[] = [
-    {
-      id: '789012',
-      trackingNumber: 'TRK789012',
-      status: 'Delivered',
-      pickupDate: '2024-03-15',
-      deliveryDate: '2024-03-17',
-      weight: '1.5 kg',
-      price: 'KSH 1,500',
-      sender: 'Sophia Bennett',
-      receiver: 'Frank Miller'
-    },
-    {
-      id: '345678',
-      trackingNumber: 'TRK345678',
-      status: 'In Transit',
-      pickupDate: '2024-03-10',
-      deliveryDate: '2024-03-12',
-      weight: '2.8 kg',
-      price: 'KSH 2,800',
-      sender: 'Grace Lee',
-      receiver: 'Sophia Bennett'
-    },
-    {
-      id: '456789',
-      trackingNumber: 'TRK456789',
-      status: 'Pending Pickup',
-      pickupDate: '2024-03-20',
-      deliveryDate: '2024-03-22',
-      weight: '3.2 kg',
-      price: 'KSH 3,200',
-      sender: 'Sophia Bennett',
-      receiver: 'Alice Johnson'
-    },
-    {
-      id: '567890',
-      trackingNumber: 'TRK567890',
-      status: 'Delivered',
-      pickupDate: '2024-03-05',
-      deliveryDate: '2024-03-07',
-      weight: '1.0 kg',
-      price: 'KSH 1,000',
-      sender: 'David Wilson',
-      receiver: 'Sophia Bennett'
-    }
-  ];
 
-  private mockUserActivity: Activity[] = [
-    {
-      date: '2024-03-15',
-      activity: 'Parcel Sent',
-      details: 'Tracking ID: 789012'
-    },
-    {
-      date: '2024-03-10',
-      activity: 'Parcel Received',
-      details: 'Tracking ID: 345678'
-    },
-    {
-      date: '2024-03-05',
-      activity: 'Account Updated',
-      details: 'Profile Information'
-    }
-  ];
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private adminService: AdminService
   ) {}
 
   ngOnInit() {
     this.route.params.subscribe(params => {
       const userId = params['id'];
       this.loadUserDetails(userId);
-      this.loadAssignedParcels(userId);
     });
   }
 
   loadUserDetails(userId: string) {
-    this.user = this.mockUsers.find(user => user.id === userId) || null;
-    if (!this.user) {
-      // Handle user not found
-      this.router.navigate(['/admin-manage-users']);
-    }
+    this.adminService.getUserById(userId)
+      .pipe(
+        catchError(error => {
+          console.error('Error loading user details:', error);
+          this.toastService.showError('Failed to load user details');
+          this.router.navigate(['/admin', 'manage-users']);
+          return of(null);
+        })
+      )
+      .subscribe({
+        next: (user) => {
+          if (user) {
+            this.user = user;
+            // Load additional data based on user role
+            this.loadUserParcels(userId);
+            this.loadUserActivity(userId);
+          } else {
+            this.toastService.showError('User not found');
+            this.router.navigate(['/admin', 'manage-users']);
+          }
+        }
+      });
   }
 
-  loadAssignedParcels(userId: string) {
-    
-    const user = this.mockUsers.find(u => u.id === userId);
-    if (user?.role === 'Driver') {
-      this.assignedParcels = this.mockParcels;
-      this.userParcels = [];
-      this.userActivity = [];
-    } else {
-      this.assignedParcels = [];
-      this.userParcels = this.mockUserParcels;
-      this.userActivity = this.mockUserActivity;
-    }
+  loadUserParcels(userId: string) {
+    this.isLoadingParcels = true;
+    // Load parcels where user is sender or recipient
+    this.adminService.getUserParcels(userId)
+      .pipe(
+        catchError(error => {
+          console.error('Error loading user parcels:', error);
+          this.toastService.showError('Failed to load user parcels');
+          return of({ parcels: [] });
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          this.userParcels = response.parcels || [];
+          this.isLoadingParcels = false;
+        }
+      });
   }
 
-  getUserRoleInParcel(parcel: Parcel, userName: string): string {
-    if (parcel.sender === userName) {
-      return 'Sender';
-    } else if (parcel.receiver === userName) {
-      return 'Receiver';
-    }
-    return 'Unknown';
+  loadUserActivity(userId: string) {
+    this.isLoadingActivity = true;
+    // Load user activity/transactions
+    this.adminService.getUserActivity(userId)
+      .pipe(
+        catchError(error => {
+          console.error('Error loading user activity:', error);
+          this.toastService.showError('Failed to load user activity');
+          return of({ activities: [] });
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          this.userActivity = response.activities || [];
+          this.isLoadingActivity = false;
+        }
+      });
   }
 
-  getUserRoleClass(role: string): string {
-    switch (role.toLowerCase()) {
-      case 'sender':
-        return 'role-sender';
-      case 'receiver':
-        return 'role-receiver';
-      default:
-        return 'role-unknown';
-    }
-  }
+
+
+
 
   setActiveTab(tab: string) {
     this.activeTab = tab;
   }
 
-  getTimeSinceJoined(registeredDate: string): string {
-    const registered = new Date(registeredDate);
+  // Helper method to get user initials
+  getUserInitials(name: string): string {
+    if (!name) return '?';
+    
+    const names = name.trim().split(' ');
+    if (names.length === 1) {
+      return names[0].charAt(0).toUpperCase();
+    } else {
+      return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    }
+  }
+
+  getTimeSinceJoined(createdAt: string): string {
+    const registered = new Date(createdAt);
     const now = new Date();
+    
+    // Calculate the difference in months
+    const yearDiff = now.getFullYear() - registered.getFullYear();
+    const monthDiff = now.getMonth() - registered.getMonth();
+    const totalMonths = yearDiff * 12 + monthDiff;
+    
+    // Calculate the difference in days for more precise calculation
     const diffTime = Math.abs(now.getTime() - registered.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays < 365) {
-      const months = Math.floor(diffDays / 30);
-      return `${months} month${months !== 1 ? 's' : ''} ago`;
+    if (diffDays < 30) {
+      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    } else if (totalMonths < 12) {
+      return `${totalMonths} month${totalMonths !== 1 ? 's' : ''} ago`;
     } else {
-      const years = Math.floor(diffDays / 365);
-      return `${years} year${years !== 1 ? 's' : ''} ago`;
+      const years = Math.floor(totalMonths / 12);
+      const remainingMonths = totalMonths % 12;
+      if (remainingMonths === 0) {
+        return `${years} year${years !== 1 ? 's' : ''} ago`;
+      } else {
+        return `${years} year${years !== 1 ? 's' : ''}, ${remainingMonths} month${remainingMonths !== 1 ? 's' : ''} ago`;
+      }
     }
   }
 
-  getStatusClass(status: string): string {
-    return status.toLowerCase().replace(' ', '-');
+  getStatusClass(isActive: boolean, deletedAt?: string): string {
+    if (deletedAt) {
+      return 'suspended';
+    }
+    return isActive ? 'active' : 'inactive';
+  }
+
+  getParcelStatusClass(status: string): string {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'status-pending';
+      case 'in_transit':
+      case 'in-transit':
+        return 'status-in-transit';
+      case 'delivered':
+        return 'status-delivered';
+      case 'cancelled':
+        return 'status-cancelled';
+      default:
+        return 'status-pending';
+    }
+  }
+
+  getActivityStatusClass(status: string): string {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'status-completed';
+      case 'pending':
+        return 'status-pending';
+      case 'failed':
+        return 'status-failed';
+      default:
+        return 'status-pending';
+    }
   }
 
   viewParcelDetails(parcelId: string) {
-    this.router.navigate(['/admin-parcel-details', parcelId]);
+    this.router.navigate(['/admin', 'parcel-details', parcelId]);
   }
 
-  getRatingStars(rating?: number): string {
-    if (!rating) return 'Not rated';
-    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
-  }
 
-  updateUserStatus(userId: string, newStatus: 'Active' | 'Inactive' | 'Suspended') {
-    // In a real application, this would make an API call to update the user status
-    if (this.user) {
-      this.user.status = newStatus;
-    }
-    
-    // Update the mock data as well
-    const userIndex = this.mockUsers.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-      this.mockUsers[userIndex].status = newStatus;
-    }
+
+
+
+  updateUserStatus(userId: string, newStatus: string) {
+    // Make API call to update user status
+    this.adminService.updateUserStatus(userId, newStatus)
+      .pipe(
+        catchError(error => {
+          console.error('Error updating user status:', error);
+          this.toastService.showError('Failed to update user status');
+          return of(null);
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          if (response && this.user) {
+            // Update user object based on new status
+            if (newStatus === 'active') {
+              this.user.isActive = true;
+              this.user.deletedAt = undefined;
+            } else if (newStatus === 'inactive') {
+              this.user.isActive = false;
+              this.user.deletedAt = undefined;
+            } else if (newStatus === 'suspended') {
+              this.user.isActive = false;
+              this.user.deletedAt = new Date().toISOString();
+            }
+            
+            const statusText = newStatus === 'active' ? 'activated' : 
+                             newStatus === 'inactive' ? 'deactivated' : 'suspended';
+            const userName = this.user.name;
+            this.toastService.showSuccess(
+              `${userName}'s account has been ${statusText} successfully.`,
+              4000
+            );
+          }
+        }
+      });
   }
 
   showStatusModal = false;
-  selectedStatus: 'Active' | 'Inactive' | 'Suspended' = 'Active';
+  selectedStatus: string = 'active';
 
   openStatusModal() {
-    this.selectedStatus = this.user?.status || 'Active';
+    if (this.user) {
+      if (this.user.isActive && !this.user.deletedAt) {
+        this.selectedStatus = 'active';
+      } else if (this.user.deletedAt) {
+        this.selectedStatus = 'suspended';
+      } else {
+        this.selectedStatus = 'inactive';
+      }
+    }
     this.showStatusModal = true;
   }
 
@@ -361,17 +287,33 @@ export class UserDetails implements OnInit {
 
   confirmStatusUpdate() {
     if (this.user) {
-      const previousStatus = this.user.status;
       this.updateUserStatus(this.user.id, this.selectedStatus);
       this.closeStatusModal();
-      
-      // Show success toast message only
-      const statusText = this.selectedStatus.toLowerCase();
-      const userName = this.user.name;
-      this.toastService.showSuccess(
-        `${userName}'s account has been ${statusText === 'active' ? 'activated' : statusText === 'inactive' ? 'deactivated' : 'suspended'} successfully.`,
-        4000
-      );
+    }
+  }
+
+  // Handle image loading errors
+  onImageError(event: any): void {
+    // Hide the broken image and show initials instead
+    event.target.style.display = 'none';
+    const avatarContainer = event.target.parentElement;
+    const initialsDiv = avatarContainer.querySelector('.avatar-initials');
+    if (initialsDiv) {
+      initialsDiv.style.display = 'flex';
+    }
+  }
+
+  // Helper method to get role icon
+  getRoleIcon(role: string): string {
+    switch (role) {
+      case 'ADMIN':
+        return 'fa-shield-alt';
+      case 'DRIVER':
+        return 'fa-truck';
+      case 'CUSTOMER':
+        return 'fa-user';
+      default:
+        return 'fa-user';
     }
   }
 } 

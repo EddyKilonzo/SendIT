@@ -5,6 +5,7 @@ import { RouterModule, Router } from '@angular/router';
 import { ToastService } from '../../shared/toast/toast.service';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
 import { AdminService } from '../../../services/admin.service';
+import { AuthService } from '../../../services/auth.service';
 import { catchError, of } from 'rxjs';
 
 interface User {
@@ -15,6 +16,7 @@ interface User {
   role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   isActive: boolean;
   createdAt: string;
+  deletedAt?: string;
   profilePicture?: string;
   // Driver-specific fields
   licenseNumber?: string;
@@ -58,11 +60,12 @@ export class ManageUsers implements OnInit {
   constructor(
     private router: Router,
     private toastService: ToastService,
-    private adminService: AdminService
+    private adminService: AdminService,
+    private authService: AuthService
   ) {}
   
   // User role for role-based access control
-  userRole: string = 'ADMIN';
+  userRole: string = '';
   
   // Tab management
   activeTab = 'users';
@@ -97,7 +100,16 @@ export class ManageUsers implements OnInit {
   totalApplications = 0;
 
   ngOnInit(): void {
-    console.log('ManageUsers component initialized');
+    // Get the actual user role from authentication service
+    const currentUser = this.authService.getCurrentUser();
+    this.userRole = currentUser?.role || '';
+    
+    // Check if user is admin
+    if (this.userRole !== 'ADMIN') {
+      this.toastService.showError('Access denied. Admin privileges required.');
+      return;
+    }
+    
     this.loadUsers();
     this.loadDriverApplications();
   }
@@ -109,12 +121,45 @@ export class ManageUsers implements OnInit {
       .subscribe({
         next: (response) => {
           console.log('✅ API connection successful:', response);
+          console.log('✅ Response details:');
+          console.log('  - Users array:', response.users);
+          console.log('  - Users count:', response.users?.length || 0);
+          console.log('  - Total count:', response.total);
+          console.log('  - Full response object:', response);
         },
         error: (error) => {
           console.error('❌ API connection failed:', error);
+          console.error('❌ Error details:', error.error);
           this.toastService.showError('API connection failed. Please check your backend server.');
         }
       });
+  }
+
+  // Debug authentication method
+  debugAuth() {
+    const currentUser = this.authService.getCurrentUser();
+    const isAuthenticated = this.authService.isAuthenticated();
+    const token = this.authService.getToken();
+    
+    console.log('🔍 Debug Authentication:');
+    console.log('Current user:', currentUser);
+    console.log('Is authenticated:', isAuthenticated);
+    console.log('Token exists:', !!token);
+    console.log('Token (first 50 chars):', token ? token.substring(0, 50) + '...' : 'No token');
+    console.log('User role:', currentUser?.role);
+    console.log('Component userRole:', this.userRole);
+    
+    // Show alert with auth info
+    const authInfo = `
+Authentication Debug Info:
+- Is Authenticated: ${isAuthenticated}
+- User Role: ${currentUser?.role || 'None'}
+- Component Role: ${this.userRole}
+- Token: ${token ? 'Present' : 'Missing'}
+- User Email: ${currentUser?.email || 'None'}
+    `;
+    
+    alert(authInfo);
   }
 
   loadUsers() {
@@ -122,11 +167,14 @@ export class ManageUsers implements OnInit {
     
     const query: any = {};
     if (this.searchTerm) query.search = this.searchTerm;
-    if (this.selectedStatus) query.isActive = this.selectedStatus === 'Active';
+    if (this.selectedStatus && this.selectedStatus !== '') {
+      if (this.selectedStatus === 'Suspended') {
+        query.showSuspended = true;
+      } else {
+        query.isActive = this.selectedStatus === 'Active';
+      }
+    }
     if (this.selectedRole) query.role = this.selectedRole;
-    
-    console.log('Loading users with query:', query);
-    console.log('Page:', this.currentPage, 'Limit:', this.usersPerPage);
     
     this.adminService.getUsers(this.currentPage, this.usersPerPage, query)
       .pipe(
@@ -138,14 +186,17 @@ export class ManageUsers implements OnInit {
       )
       .subscribe({
         next: (response) => {
-          console.log('Users API response:', response);
+          console.log('✅ Debug - Users API response:', response);
           this.users = response.users || [];
           this.totalUsers = response.total || 0;
           this.isLoadingUsers = false;
-          console.log('Loaded users:', this.users.length, 'Total:', this.totalUsers);
+          console.log('✅ Debug - Loaded users:', this.users.length, 'Total:', this.totalUsers);
+          console.log('✅ Debug - Users data:', this.users);
         },
         error: (error) => {
-          console.error('Subscription error:', error);
+          console.error('❌ Debug - Error loading users:', error);
+          console.error('❌ Debug - Error details:', error.error);
+          this.toastService.showError('Failed to load users. Please try again.');
           this.isLoadingUsers = false;
         }
       });
@@ -157,8 +208,7 @@ export class ManageUsers implements OnInit {
     const query: any = {};
     if (this.selectedApplicationStatus) query.status = this.selectedApplicationStatus; // Changed from driverApplicationStatus to status
     
-    console.log('Loading driver applications with query:', query);
-    console.log('Page:', this.currentApplicationPage, 'Limit:', this.applicationsPerPage);
+
     
     this.adminService.getDriverApplications(this.currentApplicationPage, this.applicationsPerPage, query)
       .pipe(
@@ -170,14 +220,13 @@ export class ManageUsers implements OnInit {
       )
       .subscribe({
         next: (response) => {
-          console.log('Driver applications API response:', response);
           this.driverApplications = response.applications || [];
           this.totalApplications = response.total || 0;
           this.isLoadingApplications = false;
-          console.log('Loaded applications:', this.driverApplications.length, 'Total:', this.totalApplications);
         },
         error: (error) => {
-          console.error('Subscription error for applications:', error);
+          console.error('Error loading driver applications:', error);
+          this.toastService.showError('Failed to load driver applications. Please try again.');
           this.isLoadingApplications = false;
         }
       });
@@ -235,7 +284,25 @@ export class ManageUsers implements OnInit {
   }
 
   viewUserDetails(userId: string) {
-    this.router.navigate(['/admin-user-details', userId]);
+    console.log('Navigating to user details:', userId);
+    console.log('Current route:', this.router.url);
+    console.log('User ID type:', typeof userId);
+    console.log('User ID value:', userId);
+    
+    if (!userId) {
+      console.error('User ID is empty or undefined');
+      this.toastService.showError('Invalid user ID');
+      return;
+    }
+    
+    this.router.navigate(['/admin', 'user-details', userId])
+      .then(() => {
+        console.log('Navigation successful');
+      })
+      .catch((error) => {
+        console.error('Navigation failed:', error);
+        this.toastService.showError('Failed to navigate to user details');
+      });
   }
 
   // Tab Management
@@ -285,6 +352,44 @@ export class ManageUsers implements OnInit {
       return names[0].charAt(0).toUpperCase();
     } else {
       return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    }
+  }
+
+  // Helper method to get avatar color based on name
+  getAvatarColor(name: string): string {
+    const colors = [
+      '#DBBB02', '#f0c800', '#FFD700', '#FFA500', '#FF8C00',
+      '#FF7F50', '#FF6347', '#FF4500', '#FFD700', '#FFA500',
+      '#FF8C00', '#FF7F50', '#FF6347', '#FF4500', '#FFD700'
+    ];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  }
+
+  // Helper method to get role icon
+  getRoleIcon(role: string): string {
+    switch (role) {
+      case 'ADMIN':
+        return 'fa-shield-alt';
+      case 'DRIVER':
+        return 'fa-truck';
+      case 'CUSTOMER':
+        return 'fa-user';
+      default:
+        return 'fa-user';
+    }
+  }
+
+
+
+  // Handle image loading errors
+  onImageError(event: any): void {
+    // Hide the broken image and show initials instead
+    event.target.style.display = 'none';
+    const avatarContainer = event.target.parentElement;
+    const initialsDiv = avatarContainer.querySelector('.avatar-initials');
+    if (initialsDiv) {
+      initialsDiv.style.display = 'flex';
     }
   }
 
@@ -428,5 +533,17 @@ export class ManageUsers implements OnInit {
     this.rejectionReason = '';
     this.showRejectionModal = true;
     this.closeApplicationDetailsModal();
+  }
+
+  // Helper method to get status text and icon
+  getStatusInfo(user: any): { text: string; icon: string; class: string } {
+    console.log('Getting status info for user:', user.name, 'isActive:', user.isActive, 'deletedAt:', user.deletedAt);
+    if (user.deletedAt) {
+      return { text: 'Suspended', icon: 'fa-exclamation-triangle', class: 'suspended' };
+    } else if (user.isActive) {
+      return { text: 'Active', icon: 'fa-check-circle', class: 'active' };
+    } else {
+      return { text: 'Inactive', icon: 'fa-times-circle', class: 'inactive' };
+    }
   }
 }

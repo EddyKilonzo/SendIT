@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsNumber, IsBoolean, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsBoolean, IsEnum, IsNotEmpty, IsIn, MaxLength } from 'class-validator';
 
 export class DashboardStatsDto {
   totalUsers: number;
@@ -53,8 +53,17 @@ export class DriverManagementDto {
 }
 
 export class UserManagementDto {
+  @IsString()
+  @IsNotEmpty()
   userId: string;
+
+  @IsString()
+  @IsIn(['activate', 'deactivate', 'suspend', 'unsuspend'])
   action: 'activate' | 'deactivate' | 'suspend' | 'unsuspend';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   reason?: string;
 }
 
@@ -117,18 +126,38 @@ export class UserFilterDto {
   role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return value === 'true' || value === true;
+  })
   @IsBoolean()
   isActive?: boolean;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return value === 'true' || value === true;
+  })
   @IsBoolean()
   hasParcels?: boolean;
 
   @IsOptional()
   @IsEnum(['NOT_APPLIED', 'PENDING', 'APPROVED', 'REJECTED'])
   driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return value === 'true' || value === true;
+  })
+  @IsBoolean()
+  showSuspended?: boolean;
 }
 
 export class DriverApplicationFilterDto {

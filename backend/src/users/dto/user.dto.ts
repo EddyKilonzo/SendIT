@@ -77,6 +77,7 @@ export interface UserResponseDto {
   profilePicture?: string;
   role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   isActive: boolean;
+  deletedAt?: Date;
 
   // Driver-specific fields (only for DRIVER role)
   licenseNumber?: string;

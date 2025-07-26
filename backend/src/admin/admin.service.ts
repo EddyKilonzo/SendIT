@@ -507,15 +507,24 @@ export class AdminService {
       isActive,
       hasParcels,
       driverApplicationStatus,
+      showSuspended,
     } = query;
 
     const skip = (page - 1) * limit;
 
+    console.log('🔍 Backend Debug - findAllUsers called with query:', query);
+
     // Build where clause
-    const where: Prisma.UserWhereInput = {
-      // Temporarily removing deletedAt filter to debug
-      // deletedAt: null,
-    };
+    const where: Prisma.UserWhereInput = {};
+
+    // Handle suspended users filter
+    if (showSuspended) {
+      // Show only suspended users (deletedAt is not null)
+      where.deletedAt = { not: null };
+    } else {
+      // Show only non-suspended users (deletedAt is null)
+      where.deletedAt = null;
+    }
 
     if (role) {
       where.role = role;
@@ -538,34 +547,19 @@ export class AdminService {
     }
 
     if (hasParcels) {
-      where.OR = [
-        { sentParcels: { some: { deletedAt: null } } },
-        { receivedParcels: { some: { deletedAt: null } } },
-      ];
+      // Temporarily comment out hasParcels filter to debug
+      // where.AND = [
+      //   {
+      //     OR: [
+      //       { sentParcels: { some: { deletedAt: null } } },
+      //       { receivedParcels: { some: { deletedAt: null } } },
+      //     ]
+      //   }
+      // ];
     }
 
-    console.log('AdminService - findAllUsers query:', query);
-    console.log('AdminService - where clause:', JSON.stringify(where, null, 2));
-    console.log('AdminService - skip:', skip, 'limit:', limit);
-
-    // First, let's check if there are any users at all in the database
-    const totalUsersInDb = await this.prisma.user.count();
-    console.log('AdminService - Total users in database:', totalUsersInDb);
-
-    // Check users without deletedAt filter
-    const usersWithoutDeletedFilter = await this.prisma.user.findMany({
-      take: 5,
-      select: { id: true, name: true, email: true, deletedAt: true, role: true, isActive: true }
-    });
-    console.log('AdminService - Sample users without deletedAt filter:', usersWithoutDeletedFilter);
-
-    // Check users with deletedAt filter
-    const usersWithDeletedFilter = await this.prisma.user.findMany({
-      where: { deletedAt: null },
-      take: 5,
-      select: { id: true, name: true, email: true, deletedAt: true, role: true, isActive: true }
-    });
-    console.log('AdminService - Sample users with deletedAt filter:', usersWithDeletedFilter);
+    console.log('🔍 Backend Debug - Final where clause:', JSON.stringify(where, null, 2));
+    console.log('🔍 Backend Debug - Skip:', skip, 'Limit:', limit);
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -585,9 +579,9 @@ export class AdminService {
       this.prisma.user.count({ where }),
     ]);
 
-    console.log('AdminService - Found users with filter:', users.length);
-    console.log('AdminService - Total count with filter:', total);
-    console.log('AdminService - Sample users found:', users.slice(0, 2).map(u => ({ id: u.id, name: u.name, email: u.email })));
+    console.log('🔍 Backend Debug - Found users:', users.length);
+    console.log('🔍 Backend Debug - Total count:', total);
+    console.log('🔍 Backend Debug - Sample users:', users.slice(0, 2).map(u => ({ id: u.id, name: u.name, email: u.email })));
 
     return {
       users: users.map((user) => this.mapToUserResponse(user)),
@@ -601,7 +595,8 @@ export class AdminService {
     const user = await this.prisma.user.findFirst({
       where: {
         id,
-        deletedAt: null,
+        // Allow access to both active and suspended users
+        // deletedAt: null, // Removed this filter to allow access to suspended users
       },
       include: {
         sentParcels: {
@@ -632,6 +627,109 @@ export class AdminService {
     return this.mapToUserResponse(user);
   }
 
+  async getUserParcels(userId: string): Promise<{ parcels: any[] }> {
+    const parcels = await this.prisma.parcel.findMany({
+      where: {
+        OR: [
+          { senderId: userId },
+          { recipientId: userId },
+          { driverId: userId }
+        ],
+        deletedAt: null,
+      },
+      include: {
+        sender: {
+          select: { name: true, email: true }
+        },
+        recipient: {
+          select: { name: true, email: true }
+        },
+        driver: {
+          select: { name: true, email: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    const formattedParcels = parcels.map(parcel => ({
+      id: parcel.id,
+      trackingNumber: parcel.trackingNumber,
+      status: parcel.status,
+      senderName: parcel.sender?.name || 'Unknown',
+      recipientName: parcel.recipient?.name || 'Unknown',
+      estimatedPickupTime: parcel.estimatedPickupTime,
+      estimatedDeliveryTime: parcel.estimatedDeliveryTime,
+      weight: parcel.weight,
+      deliveryFee: parcel.deliveryFee,
+      createdAt: parcel.createdAt,
+    }));
+
+    return { parcels: formattedParcels };
+  }
+
+  async getUserActivity(userId: string): Promise<{ activities: any[] }> {
+    // Get user's parcel activities
+    const parcels = await this.prisma.parcel.findMany({
+      where: {
+        OR: [
+          { senderId: userId },
+          { recipientId: userId },
+          { driverId: userId }
+        ],
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        trackingNumber: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    // Get user's review activities
+    const reviews = await this.prisma.review.findMany({
+      where: {
+        OR: [
+          { reviewerId: userId },
+          { revieweeId: userId }
+        ],
+      },
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
+    // Combine and format activities
+    const activities = [
+      ...parcels.map(parcel => ({
+        id: `parcel-${parcel.id}`,
+        activityType: 'Parcel',
+        description: `Parcel ${parcel.trackingNumber} - ${parcel.status}`,
+        status: parcel.status,
+        createdAt: parcel.createdAt,
+      })),
+      ...reviews.map(review => ({
+        id: `review-${review.id}`,
+        activityType: 'Review',
+        description: `Rating: ${review.rating}/5 - ${review.comment?.substring(0, 50)}...`,
+        status: 'completed',
+        createdAt: review.createdAt,
+      }))
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 20);
+
+    return { activities };
+  }
+
   async manageUser(
     userId: string,
     managementDto: UserManagementDto,
@@ -641,7 +739,8 @@ export class AdminService {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        deletedAt: null,
+        // Allow access to both active and suspended users for management
+        // deletedAt: null, // Removed this filter to allow access to suspended users
       },
     });
 
@@ -825,7 +924,9 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {
-      driverApplicationStatus: { not: null },
+      driverApplicationStatus: { 
+        in: ['PENDING', 'APPROVED', 'REJECTED'] 
+      },
       deletedAt: null,
     };
 
@@ -1228,6 +1329,7 @@ export class AdminService {
       address: user.address || undefined,
       role: user.role,
       isActive: user.isActive,
+      profilePicture: user.profilePicture || undefined,
       licenseNumber: user.licenseNumber || undefined,
       vehicleNumber: user.vehicleNumber || undefined,
       vehicleType: user.vehicleType || undefined,
@@ -1250,6 +1352,7 @@ export class AdminService {
       driverApplicationDate: user.driverApplicationDate || undefined,
       driverApprovalDate: user.driverApprovalDate || undefined,
       driverRejectionReason: user.driverRejectionReason || undefined,
+      deletedAt: user.deletedAt || undefined,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

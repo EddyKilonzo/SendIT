@@ -64,54 +64,51 @@
           </div>
         </div>
 
-        <!-- Performance Insights -->
-        <div class="performance-insights">
-          <h2>Performance Insights</h2>
-          <div class="insights-grid">
-            <!-- Delivery Status Card -->
-            <div class="insight-card">
-              <h3>Delivery Status</h3>
-              <p class="insight-value">120</p>
-              <p class="insight-subtitle">Last 30 Days</p>
-              <div class="status-bars">
-                <div class="status-bar">
-                  <span class="bar-label">Delivered</span>
-                  <div class="bar-container">
-                    <div class="bar delivered"></div>
-                  </div>
-                </div>
-                <div class="status-bar">
-                  <span class="bar-label">In Progress</span>
-                  <div class="bar-container">
-                    <div class="bar in-progress"></div>
-                  </div>
-                </div>
-                <div class="status-bar">
-                  <span class="bar-label">Pending</span>
-                  <div class="bar-container">
-                    <div class="bar pending"></div>
-                  </div>
+        <!-- Top Drivers Section -->
+        <div class="top-drivers-section">
+          <h2>Top Performing Drivers</h2>
+          <div class="drivers-grid-compact">
+            <div 
+              *ngFor="let driver of topDrivers.slice(0, 3)" 
+              class="driver-card-compact"
+              (click)="viewDriverProfile(driver.id)"
+            >
+              <div class="driver-avatar-compact">
+                <img 
+                  *ngIf="driver.profilePicture" 
+                  [src]="driver.profilePicture" 
+                  [alt]="driver.name"
+                  (error)="onImageError($event)"
+                />
+                <div 
+                  *ngIf="!driver.profilePicture" 
+                  class="driver-initials-compact"
+                  [style.background-color]="getAvatarColor(driver.name)"
+                >
+                  {{ getInitials(driver.name) }}
                 </div>
               </div>
-            </div>
-
-            <!-- Average Delivery Time Card -->
-            <div class="insight-card">
-              <h3>Average Delivery Time</h3>
-              <p class="insight-value">2.5 days</p>
-              <p class="insight-subtitle">Last 30 Days</p>
-              <div class="line-chart">
-                <div class="chart-labels">
-                  <span>Week 1</span>
-                  <span>Week 2</span>
-                  <span>Week 3</span>
-                  <span>Week 4</span>
+              <div class="driver-info-compact">
+                <h3 class="driver-name-compact">{{ driver.name }}</h3>
+                <div class="driver-rating-compact">
+                  <span class="rating-stars-compact" [style.color]="getRatingColor(driver.averageRating)">
+                    {{ getRatingStars(driver.averageRating) }}
+                  </span>
+                  <span class="rating-value-compact">{{ driver.averageRating.toFixed(1) }}</span>
                 </div>
-                <div class="chart-line">
-                  <div class="line-segment"></div>
-                  <div class="line-segment"></div>
-                  <div class="line-segment"></div>
-                  <div class="line-segment"></div>
+                <div class="driver-stats-compact">
+                  <span class="stat-item">
+                    <i class="fas fa-box"></i>
+                    {{ driver.totalDeliveries }}
+                  </span>
+                  <span class="stat-item">
+                    <i class="fas fa-clock"></i>
+                    {{ driver.averageDeliveryTime }}h
+                  </span>
+                  <span class="stat-item">
+                    <i class="fas fa-percentage"></i>
+                    {{ driver.onTimeDeliveryRate }}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -121,110 +118,208 @@
 
         <!-- Analytics Tab Content -->
         <div class="tab-content" *ngIf="activeTab === 'analytics'">
-          <div class="analytics-content improved-analytics-layout">
+          <!-- Loading State -->
+          <div *ngIf="isLoadingAnalytics" class="loading-state">
+            <div class="loading-spinner">
+              <i class="fas fa-spinner fa-spin"></i>
+              <p>Loading analytics data...</p>
+            </div>
+          </div>
+          
+          <!-- Analytics Content -->
+          <div *ngIf="!isLoadingAnalytics" class="analytics-content modern-analytics-layout">
             <h2>Analytics Dashboard</h2>
-            <div class="analytics-sections-grid">
-              <!-- Revenue Trends Section -->
-              <div class="analytics-section">
-                <h3>Revenue Trends</h3>
-                <div class="revenue-overview">
-                  <div class="revenue-chart">
-                    <h4>Monthly Revenue Trend</h4>
-                    <!-- Revenue Stats at Top of Chart -->
-                    <div class="revenue-stats-top">
-                      <div class="revenue-stat">
-                        <span class="stat-label">Current Month</span>
-                        <span class="stat-value">{{ formatCurrency(analyticsData.revenueTrends.currentMonth) }}</span>
-                      </div>
-                      <div class="revenue-stat">
-                        <span class="stat-label">Previous Month</span>
-                        <span class="stat-value">{{ formatCurrency(analyticsData.revenueTrends.previousMonth) }}</span>
-                      </div>
-                      <div class="revenue-stat">
-                        <span class="stat-label">Growth</span>
-                        <span class="stat-value growth">{{ analyticsData.revenueTrends.growth }}</span>
-                      </div>
+
+            <!-- Revenue Analytics Section (always rendered) -->
+            <div class="analytics-section revenue-section">
+              <div class="section-header">
+                <h3>Revenue Analytics</h3>
+                <div class="revenue-summary revenue-cards-grid">
+                  <div class="revenue-card primary">
+                    <div class="revenue-icon">
+                      <i class="fas fa-chart-line"></i>
                     </div>
-                    <div class="chart-container">
-                      <div class="chart-bars">
-                        <div 
-                          *ngFor="let data of analyticsData.revenueTrends.monthlyData" 
-                          class="chart-bar"
-                          [style.height]="(data.revenue / 60000 * 200) + 'px'"
-                          [title]="data.month + ': ' + formatCurrency(data.revenue)"
-                        >
-                          <span class="bar-value">{{ formatCurrency(data.revenue) }}</span>
-                        </div>
-                      </div>
-                      <div class="chart-labels">
-                        <span *ngFor="let data of analyticsData.revenueTrends.monthlyData">{{ data.month }}</span>
-                      </div>
+                    <div class="revenue-content">
+                      <span class="revenue-label">Current Month</span>
+                      <span class="revenue-value">{{ analyticsData.revenueTrends.currentMonth || 0 | currency }}</span>
+                      <span class="revenue-growth" [class.positive]="analyticsData.revenueTrends.growth.includes('+')" [class.negative]="analyticsData.revenueTrends.growth.includes('-')">
+                        {{ analyticsData.revenueTrends.growth }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="revenue-card secondary">
+                    <div class="revenue-icon">
+                      <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="revenue-content">
+                      <span class="revenue-label">Previous Month</span>
+                      <span class="revenue-value">{{ analyticsData.revenueTrends.previousMonth || 0 | currency }}</span>
+                    </div>
+                  </div>
+                  <div class="revenue-card tertiary">
+                    <div class="revenue-icon">
+                      <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="revenue-content">
+                      <span class="revenue-label">Daily Average</span>
+                      <span class="revenue-value">{{ (analyticsData.revenueTrends.currentMonth / 30) || 0 | currency }}</span>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <!-- Customer Reviews Section -->
-              <div class="analytics-section">
-                <h3>Customer Reviews & Satisfaction</h3>
-                <div class="reviews-overview">
-                  <div class="overall-rating">
-                    <div class="rating-summary">
-                      <span class="rating-value" [style.color]="getRatingColor(analyticsData.customerReviews.overallRating)">
-                        {{ analyticsData.customerReviews.overallRating }}
-                      </span>
-                      <span class="rating-stars" [style.color]="getRatingColor(analyticsData.customerReviews.overallRating)">
-                        {{ getRatingStars(round(analyticsData.customerReviews.overallRating)) }}
-                      </span>
-                      <span class="total-reviews">{{ analyticsData.customerReviews.totalReviews }} reviews</span>
-                    </div>
+              <div class="revenue-chart-modern">
+                <div class="chart-header">
+                  <h4>{{ chartPeriod === 'monthly' ? 'Monthly' : 'Weekly' }} Revenue Trend</h4>
+                  <div class="chart-controls">
+                    <button 
+                      class="chart-btn" 
+                      [class.active]="chartPeriod === 'monthly'"
+                      (click)="switchChartPeriod('monthly')"
+                    >
+                      Monthly
+                    </button>
+                    <button 
+                      class="chart-btn" 
+                      [class.active]="chartPeriod === 'weekly'"
+                      (click)="switchChartPeriod('weekly')"
+                    >
+                      Weekly
+                    </button>
                   </div>
-                  
-                  <div class="reviews-content">
-                    <div class="recent-reviews">
-                      <h4>Recent Reviews</h4>
-                      <div class="reviews-list">
-                        <div 
-                          *ngFor="let review of analyticsData.customerReviews.recentReviews.slice(0, 3)" 
-                          class="review-item"
-                        >
-                          <div class="review-header">
-                            <span class="customer-name">{{ review.customerName }}</span>
-                            <span class="review-date">{{ review.date | date:'shortDate' }}</span>
-                          </div>
-                          <div class="review-rating" [style.color]="getRatingColor(review.rating)">
-                            {{ getRatingStars(review.rating) }}
-                          </div>
-                          <p class="review-comment">{{ review.comment }}</p>
-                          <span class="driver-name">Driver: {{ review.driverName }}</span>
-                        </div>
+                </div>
+                <div class="chart-container-modern">
+                  <ng-container *ngIf="hasRevenueData(); else noRevenueData">
+                    <div class="chart-bars-modern">
+                      <div 
+                        *ngFor="let data of getChartData(); let i = index" 
+                        class="chart-bar-modern"
+                        [style.height]="(data.revenue / getMaxRevenue() * 200) + 'px'"
+                        [title]="data.label + ': ' + formatCurrency(data.revenue)"
+                      >
+                        <div class="bar-fill"></div>
+                        <span class="bar-value">{{ formatCurrency(data.revenue) }}</span>
                       </div>
                     </div>
-                  </div>
+                    <div class="chart-labels-modern">
+                      <span *ngFor="let data of getChartData()">
+                        {{ data.label }}
+                      </span>
+                    </div>
+                  </ng-container>
+                  <ng-template #noRevenueData>
+                    <div style="text-align:center; color:#b45309; background:#fffbe6; border:1px solid #ffe58f; border-radius:8px; padding:2rem; margin-top:1rem;">
+                      <i class="fas fa-info-circle" style="font-size:2rem;"></i>
+                      <div style="margin-top:0.5rem; font-size:1.1rem; font-weight:500;">No revenue data yet.</div>
+                      <div style="font-size:0.95rem; margin-top:0.25rem;">Start creating and completing deliveries to see your revenue analytics!</div>
+                    </div>
+                  </ng-template>
                 </div>
               </div>
             </div>
 
-            <!-- Top Drivers Section at Bottom -->
-            <div class="analytics-section drivers-section-bottom">
-              <h3>Top Performing Drivers</h3>
-              <div class="drivers-overview">
-                <div class="driver-list">
-                  <div 
-                    *ngFor="let driver of analyticsData.deliveryPerformance.performanceByDriver" 
-                    class="driver-item"
-                  >
-                    <div class="driver-info">
-                      <span class="driver-name">{{ driver.name }}</span>
-                      <span class="driver-deliveries">{{ driver.deliveries }} deliveries</span>
-                    </div>
-                    <div class="driver-metrics">
-                      <span class="driver-rating" [style.color]="getRatingColor(driver.rating)">
-                        {{ getRatingStars(driver.rating) }}
+            <!-- Customer Reviews Section (always rendered) -->
+            <div class="analytics-section reviews-section">
+              <div class="section-header">
+                <h3>Customer Reviews & Satisfaction</h3>
+                <div class="reviews-summary">
+                  <div class="overall-rating-modern">
+                    <div class="rating-circle">
+                      <span class="rating-value" style="color: #000;">
+                        {{ analyticsData.customerReviews.overallRating.toFixed(1) }}
                       </span>
+                    </div>
+                    <div class="rating-info">
+                      <span class="rating-stars" [style.color]="getRatingColor(analyticsData.customerReviews.overallRating)">
+                        {{ getRatingStars(round(analyticsData.customerReviews.overallRating)) }}
+                      </span>
+                      <span class="total-reviews">{{ analyticsData.customerReviews.totalReviews || 0 }} reviews</span>
                     </div>
                   </div>
                 </div>
+              </div>
+              <div class="reviews-content-modern">
+                <ng-container *ngIf="hasReviewsData(); else noReviewsData">
+                  <div class="reviews-header">
+                    <h4>Latest Reviews</h4>
+                    <div class="reviews-filter">
+                      <button 
+                        *ngFor="let rating of [5, 4, 3, 2, 1]" 
+                        class="filter-btn"
+                        [class.active]="selectedRatingFilter === rating"
+                        (click)="filterReviewsByRating(rating)"
+                      >
+                        {{ rating }}★
+                      </button>
+                      <button 
+                        class="filter-btn"
+                        [class.active]="selectedRatingFilter === 0"
+                        (click)="filterReviewsByRating(0)"
+                      >
+                        All
+                      </button>
+                    </div>
+                  </div>
+                  <div class="reviews-grid">
+                    <div 
+                      *ngFor="let review of filteredReviews.slice(0, 3)" 
+                      class="review-card"
+                    >
+                      <div class="review-header-modern">
+                        <div class="reviewer-info">
+                          <div class="reviewer-avatar">
+                            <img 
+                              *ngIf="review.customerProfilePicture" 
+                              [src]="review.customerProfilePicture" 
+                              [alt]="review.customerName"
+                              (error)="onImageError($event)"
+                            />
+                            <div 
+                              *ngIf="!review.customerProfilePicture" 
+                              class="reviewer-initials"
+                              [style.background-color]="getAvatarColor(review.customerName)"
+                            >
+                              {{ getInitials(review.customerName) }}
+                            </div>
+                          </div>
+                          <div class="reviewer-details">
+                            <span class="reviewer-name" (click)="viewUserProfile(review.customerId)">{{ review.customerName }}</span>
+                            <span class="review-date">{{ review.createdAt | date:'MMM dd, yyyy' }}</span>
+                          </div>
+                        </div>
+                        <div class="review-rating-modern" [style.color]="getRatingColor(review.rating)">
+                          {{ getRatingStars(review.rating) }}
+                        </div>
+                      </div>
+                      <p class="review-comment-modern">{{ review.comment }}</p>
+                      <div class="review-footer">
+                        <span class="driver-info">
+                          <i class="fas fa-truck"></i>
+                          Driver: <span class="driver-link" (click)="viewDriverProfile(review.driverId)">{{ review.driverName }}</span>
+                        </span>
+                        <span class="parcel-info">
+                          <i class="fas fa-box"></i>
+                          Parcel #{{ review.parcelId }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="reviews-pagination">
+                    <button class="pagination-btn" [disabled]="currentReviewPage === 1" (click)="previousReviewPage()">
+                      <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="page-info">Page {{ currentReviewPage }} of {{ totalReviewPages }}</span>
+                    <button class="pagination-btn" [disabled]="currentReviewPage === totalReviewPages" (click)="nextReviewPage()">
+                      <i class="fas fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </ng-container>
+                <ng-template #noReviewsData>
+                  <div style="text-align:center; color:#b45309; background:#fffbe6; border:1px solid #ffe58f; border-radius:8px; padding:2rem; margin-top:1rem;">
+                    <i class="fas fa-info-circle" style="font-size:2rem;"></i>
+                    <div style="margin-top:0.5rem; font-size:1.1rem; font-weight:500;">No reviews yet.</div>
+                    <div style="font-size:0.95rem; margin-top:0.25rem;">Once customers leave reviews, they will appear here!</div>
+                  </div>
+                </ng-template>
               </div>
             </div>
           </div>

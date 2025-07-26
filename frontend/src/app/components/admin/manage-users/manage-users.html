@@ -12,9 +12,7 @@
         <p class="subtitle">Manage all users registered in the system</p>
       </div>
       <div class="header-right">
-        <button class="btn-debug" (click)="testApiConnection()" style="background: #6c757d; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
-          Test API
-        </button>
+        <!-- Header actions can be added here -->
       </div>
     </div>
 
@@ -27,6 +25,7 @@
         <button class="tab-button" [class.active]="activeTab === 'users'" (click)="switchTab('users')">
           <i class="fas fa-users"></i>
           All Users
+          <span class="badge" *ngIf="totalUsers > 0">{{ totalUsers }}</span>
         </button>
         <button class="tab-button" [class.active]="activeTab === 'applications'" (click)="switchTab('applications')">
           <i class="fas fa-truck"></i>
@@ -53,6 +52,7 @@
             <option value="">Account Status</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
+            <option value="Suspended">Suspended</option>
           </select>
             <select class="filter-select" [(ngModel)]="selectedRole" (change)="onRoleChange()">
             <option value="">Role</option>
@@ -64,21 +64,77 @@
         </div>
 
         <div class="users-grid" *ngIf="filteredUsers.length > 0">
-          <div class="user-card" *ngFor="let user of paginatedUsers" (click)="viewUserDetails(user.id)" style="cursor: pointer;">
-            <div class="user-card-image">
-                <img *ngIf="user.profilePicture" class="avatar" [src]="user.profilePicture" [alt]="user.name" />
-                <div *ngIf="!user.profilePicture" class="avatar-initials">
-                  {{ getUserInitials(user.name) }}
-                </div>
-            </div>
-            <div class="user-info">
-              <div class="user-name">{{ user.name }}</div>
-              <div class="user-email">{{ user.email }}</div>
-              <div class="user-role">{{ user.role }}</div>
-                <div class="user-meta">Registered: {{ user.createdAt | date:'shortDate' }}</div>
-                <div class="user-meta">Status: <span [ngClass]="{'active': user.isActive, 'inactive': !user.isActive}">{{ user.isActive ? 'Active' : 'Inactive' }}</span></div>
-                <div class="user-meta" *ngIf="user.phone">Phone: {{ user.phone }}</div>
+          <div class="user-card" *ngFor="let user of paginatedUsers" (click)="viewUserDetails(user.id)" style="cursor: pointer;" [attr.data-user-id]="user.id">
+            <!-- Top Section with Gradient Background -->
+            <div class="card-top-section">
+              <!-- Status Badge - Always Show -->
+              <div class="status-badge" [ngClass]="getStatusInfo(user).class">
+                <i class="fas" [ngClass]="getStatusInfo(user).icon"></i>
+                {{ getStatusInfo(user).text }}
               </div>
+              
+              <!-- Profile Picture/Initials -->
+              <div class="profile-section">
+                <div class="profile-image-container">
+                  <img 
+                    *ngIf="user.profilePicture && user.profilePicture !== ''" 
+                    class="profile-image" 
+                    [src]="user.profilePicture" 
+                    [alt]="user.name"
+                    (error)="onImageError($event)"
+                  />
+                  <div 
+                    *ngIf="!user.profilePicture || user.profilePicture === ''" 
+                    class="profile-initials"
+                    [style.background-color]="getAvatarColor(user.name)"
+                  >
+                    <div class="initials-content">
+                      <i class="fas fa-user"></i>
+                      <span>{{ getUserInitials(user.name) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Bottom Section with User Info -->
+            <div class="card-bottom-section">
+              <!-- User Name with Verification -->
+              <div class="user-header">
+                <h3 class="user-name">{{ user.name }}</h3>
+                <i class="fas fa-check-circle verification-icon" *ngIf="user.isActive"></i>
+              </div>
+              
+              <!-- User Role -->
+              <div class="user-role-section">
+                <div class="role-badge" [ngClass]="'role-' + user.role.toLowerCase()">
+                  <i class="fas" [ngClass]="getRoleIcon(user.role)"></i>
+                  {{ user.role }}
+                </div>
+              </div>
+              
+              <!-- User Statistics -->
+              <div class="user-stats">
+                <div class="stat-item" *ngIf="user.phone">
+                  <i class="fas fa-phone"></i>
+                  <span>{{ user.phone }}</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>Joined {{ user.createdAt | date:'MMM yyyy' }}</span>
+                </div>
+                <div class="stat-item" *ngIf="user.totalDeliveries > 0">
+                  <i class="fas fa-truck"></i>
+                  <span>{{ user.totalDeliveries }} deliveries</span>
+                </div>
+              </div>
+              
+              <!-- Action Button -->
+              <button class="view-profile-btn" (click)="$event.stopPropagation(); viewUserDetails(user.id)">
+                <i class="fas fa-eye"></i>
+                View Profile
+              </button>
+            </div>
           </div>
         </div>
 
@@ -131,7 +187,6 @@
         <div class="applications-filter-row">
             <select class="filter-select" [(ngModel)]="selectedApplicationStatus" (change)="onApplicationStatusChange()">
             <option value="">All Applications</option>
-              <option value="NOT_APPLIED">Not Applied</option>
             <option value="PENDING">Pending</option>
             <option value="APPROVED">Approved</option>
             <option value="REJECTED">Rejected</option>

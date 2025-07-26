@@ -40,7 +40,10 @@ export interface Review {
   comment: string;
   createdAt: string;
   customerName: string;
+  customerId: string;
+  customerProfilePicture?: string;
   driverName: string;
+  driverId: string;
   parcelId: string;
 }
 
@@ -58,6 +61,7 @@ export interface Driver {
   averageDeliveryTime: number;
   totalEarnings: number;
   lastActiveAt: string;
+  profilePicture?: string;
 }
 
 export interface RevenueData {
@@ -156,6 +160,43 @@ export class AdminService {
   getUsers(page: number = 1, limit: number = 10, query?: any): Observable<{ users: any[]; total: number }> {
     const params = { page: page.toString(), limit: limit.toString(), ...query };
     return this.http.get<{ users: any[]; total: number }>(`${this.apiUrl}/admin/users`, { params });
+  }
+
+  getUserById(userId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}`);
+  }
+
+  getUserParcels(userId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}/parcels`);
+  }
+
+  getUserActivity(userId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}/activity`);
+  }
+
+  updateUserStatus(userId: string, status: string): Observable<any> {
+    // Map frontend status values to backend action values
+    let action: string;
+    switch (status) {
+      case 'active':
+        // If user was suspended, use unsuspend, otherwise use activate
+        action = 'activate';
+        break;
+      case 'inactive':
+        action = 'deactivate';
+        break;
+      case 'suspended':
+        action = 'suspend';
+        break;
+      default:
+        action = 'activate';
+    }
+    
+    // Send request body with action and userId (to satisfy validation)
+    return this.http.patch(`${this.apiUrl}/admin/users/${userId}/manage`, { 
+      action,
+      userId 
+    });
   }
 
   // Driver Applications

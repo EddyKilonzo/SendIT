@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="content-header">
       <div class="header-left">
-        <h1>{{ user?.role === 'Driver' ? 'Driver' : 'User' }} Profile</h1>
+        <h1>{{ user?.role === 'DRIVER' ? 'Driver' : user?.role === 'ADMIN' ? 'Admin' : 'User' }} Profile</h1>
       </div>
     </div>
 
@@ -17,18 +17,36 @@
       <div class="user-details-container" *ngIf="user">
         <!-- User Profile Header -->
         <div class="profile-header">
-          <div class="profile-avatar">
-            <img [src]="user.avatar" [alt]="user.name" class="avatar-image" />
-          </div>
           <div class="profile-info">
             <div class="profile-header-row">
               <div class="profile-name-section">
-                <h1 class="user-name">{{ user.name }}</h1>
-                <div class="user-meta">
-                  <span class="user-id" *ngIf="user.driverId">{{ user.role }} ID: {{ user.driverId }}</span>
-                  <span class="user-id" *ngIf="!user.driverId">User ID: #{{ user.id }}</span>
-                  <span class="join-date" *ngIf="user.role === 'Driver'">Joined {{ getTimeSinceJoined(user.registered) }}</span>
-                  <span class="join-date" *ngIf="user.role === 'User'">Registered on: {{ user.registered }}</span>
+                <div class="name-avatar-row">
+                  <div class="profile-avatar">
+                    <img *ngIf="user.profilePicture" [src]="user.profilePicture" [alt]="user.name" class="avatar-image" (error)="onImageError($event)" />
+                    <div class="avatar-initials" [style.display]="!user.profilePicture ? 'flex' : 'none'">
+                      <span>{{ getUserInitials(user.name) }}</span>
+                    </div>
+                  </div>
+                                      <div class="name-status-section">
+                      <div class="user-header-row">
+                        <h1 class="user-name" *ngIf="user">{{ user.name }}</h1>
+                        <span class="role-badge" [ngClass]="'role-' + user.role.toLowerCase()">
+                          <i class="fas" [ngClass]="getRoleIcon(user.role)"></i>
+                          {{ user.role }}
+                        </span>
+                      </div>
+                      <div class="user-meta" *ngIf="user">
+                        <span class="user-id" *ngIf="user.licenseNumber">{{ user.role }} ID: {{ user.licenseNumber }}</span>
+                        <span class="user-id" *ngIf="!user.licenseNumber">User ID: #{{ user.id }}</span>
+                        <span class="join-date">Joined {{ getTimeSinceJoined(user.createdAt) }}</span>
+                      </div>
+                      <div class="status-indicator">
+                        <span class="status-badge" [ngClass]="getStatusClass(user.isActive, user.deletedAt)">
+                          <i class="fas" [ngClass]="user.deletedAt ? 'fa-exclamation-triangle' : (user.isActive ? 'fa-check-circle' : 'fa-times-circle')"></i>
+                          {{ user.deletedAt ? 'Suspended' : (user.isActive ? 'Active' : 'Inactive') }}
+                        </span>
+                      </div>
+                    </div>
                 </div>
               </div>
               <div class="profile-actions">
@@ -49,28 +67,28 @@
                 class="tab-button" 
                 [class.active]="activeTab === 'performance'"
                 (click)="setActiveTab('performance')"
-                *ngIf="user.role === 'Driver'">
+                *ngIf="user && user.role === 'DRIVER'">
                 Performance
               </button>
               <button 
                 class="tab-button" 
                 [class.active]="activeTab === 'parcels'"
                 (click)="setActiveTab('parcels')"
-                *ngIf="user.role === 'User'">
+                *ngIf="user && user.role === 'CUSTOMER'">
                 Parcels
               </button>
               <button 
                 class="tab-button" 
                 [class.active]="activeTab === 'parcels'"
                 (click)="setActiveTab('parcels')"
-                *ngIf="user.role === 'Driver'">
+                *ngIf="user && user.role === 'DRIVER'">
                 Assigned Parcels
               </button>
               <button 
                 class="tab-button" 
                 [class.active]="activeTab === 'activity'"
                 (click)="setActiveTab('activity')"
-                *ngIf="user.role === 'User'">
+                *ngIf="user && user.role === 'CUSTOMER'">
                 Activity
               </button>
             </div>
@@ -83,7 +101,7 @@
           <div class="tab-panel" *ngIf="activeTab === 'overview'">
             <div class="info-sections">
               <!-- Contact Information -->
-              <div class="info-section">
+              <div class="info-section" *ngIf="user">
                 <h2 class="section-title">Contact Information</h2>
                 <div class="contact-info-grid">
                   <div class="contact-item">
@@ -92,7 +110,7 @@
                   </div>
                   <div class="contact-item">
                     <label class="info-label">Phone</label>
-                    <span class="info-value">{{ user.phone }}</span>
+                    <span class="info-value">{{ user.phone || 'Not provided' }}</span>
                   </div>
                   <div class="contact-item">
                     <label class="info-label">Address</label>
@@ -102,9 +120,9 @@
               </div>
 
               <!-- Driver-specific sections -->
-              <div *ngIf="user.role === 'Driver'">
+              <div *ngIf="user && user.role === 'DRIVER'">
                 <!-- Vehicle Information -->
-                <div class="info-section" *ngIf="user.vehicleType">
+                <div class="info-section" *ngIf="user && user.vehicleType">
                   <h2 class="section-title">Vehicle Information</h2>
                   <div class="info-grid">
                     <div class="info-item">
@@ -112,65 +130,55 @@
                       <span class="info-value">{{ user.vehicleType }}</span>
                     </div>
                     <div class="info-item">
-                      <label class="info-label">License Plate</label>
-                      <span class="info-value">{{ user.licensePlate }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Employment History -->
-                <div class="info-section" *ngIf="user.startDate">
-                  <h2 class="section-title">Employment History</h2>
-                  <div class="info-grid">
-                    <div class="info-item">
-                      <label class="info-label">Start Date</label>
-                      <span class="info-value">{{ user.startDate }}</span>
+                      <label class="info-label">Vehicle Number</label>
+                      <span class="info-value">{{ user.vehicleNumber || 'Not provided' }}</span>
                     </div>
                     <div class="info-item">
-                      <label class="info-label">Status</label>
-                      <span class="info-value status-badge" [ngClass]="getStatusClass(user.status)">
-                        {{ user.status }}
-                      </span>
+                      <label class="info-label">License Number</label>
+                      <span class="info-value">{{ user.licenseNumber || 'Not provided' }}</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- Performance Metrics -->
-                <div class="info-section" *ngIf="user.averageDeliveryTime">
+                <div class="info-section" *ngIf="user && user.totalDeliveries > 0">
                   <h2 class="section-title">Performance Metrics</h2>
                   <div class="info-grid">
                     <div class="info-item">
-                      <label class="info-label">Average Delivery Time</label>
-                      <span class="info-value">{{ user.averageDeliveryTime }}</span>
+                      <label class="info-label">Total Deliveries</label>
+                      <span class="info-value">{{ user.totalDeliveries }}</span>
                     </div>
                     <div class="info-item">
-                      <label class="info-label">Customer Rating</label>
-                      <span class="info-value">{{ user.customerRating }}</span>
+                      <label class="info-label">Completed Deliveries</label>
+                      <span class="info-value">{{ user.completedDeliveries }}</span>
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label">Average Rating</label>
+                      <span class="info-value">{{ user.averageRating || 'Not rated' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label">On-Time Delivery Rate</label>
+                      <span class="info-value">{{ user.onTimeDeliveryRate || 0 }}%</span>
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label">Total Earnings</label>
+                      <span class="info-value">{{ user.totalEarnings || 0 | currency:'KSH ' }}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               <!-- User-specific sections -->
-              <div *ngIf="user.role === 'User'">
-                <!-- Account Status and Total Spent -->
+              <div *ngIf="user.role === 'CUSTOMER'">
+                <!-- Account Status -->
                 <div class="info-section">
-                  <div class="account-status-grid">
-                    <div class="account-status-item">
-                      <h2 class="section-title">Account Status</h2>
-                      <div class="status-item">
-                        <label class="info-label">Status</label>
-                        <span class="info-value status-badge" [ngClass]="getStatusClass(user.status)">
-                          {{ user.status }}
-                        </span>
-                      </div>
-                    </div>
-                    <div class="account-status-item">
-                      <h2 class="section-title">Total Spent</h2>
-                      <div class="status-item">
-                        <label class="info-label">Total Spent</label>
-                        <span class="info-value">{{ user.totalSpent || '$0' }}</span>
-                      </div>
+                  <h2 class="section-title">Account Status</h2>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <label class="info-label">Status</label>
+                      <span class="info-value status-badge" [ngClass]="getStatusClass(user.isActive)">
+                        {{ user.isActive ? 'Active' : 'Inactive' }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -179,99 +187,56 @@
           </div>
 
           <!-- Performance Tab (Drivers Only) -->
-          <div class="tab-panel" *ngIf="activeTab === 'performance' && user.role === 'Driver'">
+          <div class="tab-panel" *ngIf="activeTab === 'performance' && user.role === 'DRIVER'">
             <div class="performance-content">
               <h2 class="section-title">Performance Overview</h2>
               <div class="performance-metrics">
                 <div class="metric-card">
-                  <div class="metric-value">{{ user.averageDeliveryTime }}</div>
-                  <div class="metric-label">Average Delivery Time</div>
+                  <div class="metric-value">{{ user.totalDeliveries }}</div>
+                  <div class="metric-label">Total Deliveries</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{{ user.customerRating }}</div>
-                  <div class="metric-label">Customer Rating</div>
+                  <div class="metric-value">{{ user.completedDeliveries }}</div>
+                  <div class="metric-label">Completed Deliveries</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{{ assignedParcels.length }}</div>
-                  <div class="metric-label">Total Parcels Handled</div>
+                  <div class="metric-value">{{ user.averageRating || 'N/A' }}</div>
+                  <div class="metric-label">Average Rating</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value">{{ user.onTimeDeliveryRate || 0 }}%</div>
+                  <div class="metric-label">On-Time Rate</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value">{{ user.totalEarnings || 0 | currency:'KSH ' }}</div>
+                  <div class="metric-label">Total Earnings</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Assigned Parcels Tab (Drivers Only) -->
-          <div class="tab-panel" *ngIf="activeTab === 'parcels' && user.role === 'Driver'">
+          <!-- Parcels Tab -->
+          <div class="tab-panel" *ngIf="activeTab === 'parcels'">
             <div class="parcels-content">
-              <h2 class="section-title">Assigned Parcels</h2>
-              <div class="parcels-table-container" *ngIf="assignedParcels.length > 0">
-                <table class="parcels-table">
-                  <thead>
-                    <tr>
-                      <th>Parcel ID</th>
-                      <th>Status</th>
-                      <th>Sender</th>
-                      <th>Receiver</th>
-                      <th>Rating</th>
-                      <th>Pickup Date</th>
-                      <th>Delivery Date</th>
-                      <th>Weight</th>
-                      <th>Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let parcel of assignedParcels">
-                      <td>
-                        <a class="parcel-link" (click)="viewParcelDetails(parcel.id)">
-                          {{ parcel.id }}
-                        </a>
-                      </td>
-                      
-                      <td>
-                        <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
-                          {{ parcel.status }}
-                        </span>
-                      </td>
-                      <td>{{ parcel.sender }}</td>
-                      <td>{{ parcel.receiver }}</td>
-                      <td>
-                        <span class="rating-stars" *ngIf="parcel.rating">
-                          {{ getRatingStars(parcel.rating) }}
-                        </span>
-                        <span class="no-rating" *ngIf="!parcel.rating">
-                          Not rated
-                        </span>
-                      </td>
-                      <td>{{ parcel.pickupDate }}</td>
-                      <td>{{ parcel.deliveryDate }}</td>
-                      <td>{{ parcel.weight }}</td>
-                      <td>{{ parcel.price }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="no-parcels" *ngIf="assignedParcels.length === 0">
-                <div class="no-parcels-icon">
-                  <i class="fas fa-box-open"></i>
+              <h2 class="section-title" *ngIf="user">{{ user.role === 'DRIVER' ? 'Assigned Parcels' : 'User Parcels' }}</h2>
+              
+              <!-- Loading State -->
+              <div *ngIf="isLoadingParcels" class="loading-state">
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
                 </div>
-                <h3>No Assigned Parcels</h3>
-                <p>This driver currently has no parcels assigned.</p>
+                <p>Loading parcels...</p>
               </div>
-            </div>
-          </div>
 
-          <!-- Parcels Tab (Users Only) -->
-          <div class="tab-panel" *ngIf="activeTab === 'parcels' && user.role === 'User'">
-            <div class="parcels-content">
-              <h2 class="section-title">User Parcels</h2>
-              <div class="parcels-table-container" *ngIf="userParcels.length > 0">
+              <!-- Parcels Table -->
+              <div class="parcels-table-container" *ngIf="!isLoadingParcels && userParcels.length > 0">
                 <table class="parcels-table">
                   <thead>
                     <tr>
-                      <th>Parcel ID</th>
+                      <th>Tracking Number</th>
                       <th>Status</th>
                       <th>Sender</th>
                       <th>Receiver</th>
-                      <th>User Role</th>
                       <th>Pickup Date</th>
                       <th>Delivery Date</th>
                       <th>Weight</th>
@@ -282,63 +247,76 @@
                     <tr *ngFor="let parcel of userParcels">
                       <td>
                         <a class="parcel-link" (click)="viewParcelDetails(parcel.id)">
-                          {{ parcel.id }}
+                          {{ parcel.trackingNumber }}
                         </a>
                       </td>
-                      
                       <td>
-                        <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
+                        <span class="status-badge" [ngClass]="getParcelStatusClass(parcel.status)">
                           {{ parcel.status }}
                         </span>
                       </td>
-                      <td>{{ parcel.sender }}</td>
-                      <td>{{ parcel.receiver }}</td>
-                      <td>
-                        <span class="role-badge" [ngClass]="getUserRoleClass(getUserRoleInParcel(parcel, user.name))">
-                          {{ getUserRoleInParcel(parcel, user.name) }}
-                        </span>
-                      </td>
-                      <td>{{ parcel.pickupDate }}</td>
-                      <td>{{ parcel.deliveryDate }}</td>
-                      <td>{{ parcel.weight }}</td>
-                      <td>{{ parcel.price }}</td>
+                      <td>{{ parcel.senderName }}</td>
+                      <td>{{ parcel.recipientName }}</td>
+                      <td>{{ parcel.estimatedPickupTime | date:'short' }}</td>
+                      <td>{{ parcel.estimatedDeliveryTime | date:'short' }}</td>
+                      <td>{{ parcel.weight }} kg</td>
+                      <td>{{ parcel.deliveryFee | currency:'KSH ' }}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <div class="no-parcels" *ngIf="userParcels.length === 0">
+
+              <!-- No Parcels State -->
+              <div class="no-parcels" *ngIf="!isLoadingParcels && userParcels.length === 0">
                 <div class="no-parcels-icon">
                   <i class="fas fa-box-open"></i>
                 </div>
                 <h3>No Parcels Found</h3>
-                <p>This user has not sent any parcels yet.</p>
+                <p *ngIf="user">{{ user.role === 'DRIVER' ? 'This driver has no assigned parcels.' : 'This user has not sent or received any parcels.' }}</p>
               </div>
             </div>
           </div>
-
-          <!-- Activity Tab (Users Only) -->
-          <div class="tab-panel" *ngIf="activeTab === 'activity' && user.role === 'User'">
+          <!-- Activity Tab -->
+          <div class="tab-panel" *ngIf="activeTab === 'activity'">
             <div class="activity-content">
               <h2 class="section-title">Recent Activity</h2>
-              <div class="activity-table-container" *ngIf="userActivity.length > 0">
+              
+              <!-- Loading State -->
+              <div *ngIf="isLoadingActivity" class="loading-state">
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <p>Loading activity...</p>
+              </div>
+
+              <!-- Activity Table -->
+              <div class="activity-table-container" *ngIf="!isLoadingActivity && userActivity.length > 0">
                 <table class="activity-table">
                   <thead>
                     <tr>
                       <th>Date</th>
                       <th>Activity</th>
                       <th>Details</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let activity of userActivity">
-                      <td>{{ activity.date }}</td>
-                      <td>{{ activity.activity }}</td>
-                      <td>{{ activity.details }}</td>
+                      <td>{{ activity.createdAt | date:'short' }}</td>
+                      <td>{{ activity.activityType }}</td>
+                      <td>{{ activity.description }}</td>
+                      <td>
+                        <span class="status-badge" [ngClass]="getActivityStatusClass(activity.status)">
+                          {{ activity.status }}
+                        </span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <div class="no-activity" *ngIf="userActivity.length === 0">
+
+              <!-- No Activity State -->
+              <div class="no-activity" *ngIf="!isLoadingActivity && userActivity.length === 0">
                 <div class="no-activity-icon">
                   <i class="fas fa-history"></i>
                 </div>
@@ -374,24 +352,24 @@
         
         <div class="status-options">
           <label class="status-option">
-            <input type="radio" name="status" value="Active" [(ngModel)]="selectedStatus">
+            <input type="radio" name="status" value="active" [(ngModel)]="selectedStatus">
             <span class="status-option-label">
               <span class="status-badge active">✓ Active</span>
               <span class="status-description">User can access the system normally.</span>
             </span>
           </label>
           <label class="status-option">
-            <input type="radio" name="status" value="Inactive" [(ngModel)]="selectedStatus">
+            <input type="radio" name="status" value="inactive" [(ngModel)]="selectedStatus">
             <span class="status-option-label">
               <span class="status-badge inactive">✗ Inactive</span>
-              <span class="status-description">Account permanently disabled. User cannot access the system.</span>
+              <span class="status-description">Account temporarily disabled. User cannot access the system.</span>
             </span>
           </label>
           <label class="status-option">
-            <input type="radio" name="status" value="Suspended" [(ngModel)]="selectedStatus">
+            <input type="radio" name="status" value="suspended" [(ngModel)]="selectedStatus">
             <span class="status-option-label">
               <span class="status-badge suspended">⚠ Suspended</span>
-              <span class="status-description">Account temporarily suspended for review.</span>
+              <span class="status-description">Account suspended (soft delete). User data preserved but cannot access the system.</span>
             </span>
           </label>
         </div>
@@ -400,10 +378,10 @@
           <h4>Status Information</h4>
           <div class="info-grid">
             <div class="info-item">
-              <strong>Current Status:</strong> {{ user?.status }}
+              <strong>Current Status:</strong> {{ user?.deletedAt ? 'Suspended' : (user?.isActive ? 'Active' : 'Inactive') }}
             </div>
             <div class="info-item">
-              <strong>Last Updated:</strong> {{ user?.registered }}
+              <strong>Joined:</strong> {{ user?.createdAt | date:'medium' }}
             </div>
             <div class="info-item">
               <strong>Account Type:</strong> {{ user?.role }}

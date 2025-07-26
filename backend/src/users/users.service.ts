@@ -313,7 +313,8 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: {
         id,
-        deletedAt: null,
+        // Allow suspended users to access their profile
+        // deletedAt: null, // Removed this filter to allow suspended users
       },
     });
 
@@ -329,7 +330,8 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: {
         id: userId,
-        deletedAt: null,
+        // Allow suspended users to access their dashboard
+        // deletedAt: null, // Removed this filter to allow suspended users
       },
       include: {
         sentParcels: {
