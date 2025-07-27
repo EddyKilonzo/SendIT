@@ -439,4 +439,15 @@ export class AuthService {
   getToken(): string | null {
     return localStorage.getItem('accessToken');
   }
+
+  getAuthHeaders(): { [key: string]: string } {
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  }
 } 

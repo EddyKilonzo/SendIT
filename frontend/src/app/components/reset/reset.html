@@ -21,7 +21,12 @@
                 placeholder="Enter your email address"
               >
             </div>
-            <button type="submit" class="reset-btn">Send Verification Code</button>
+            <button type="submit" class="reset-btn" [disabled]="isSendingCode">
+              <span *ngIf="!isSendingCode">Send Verification Code</span>
+              <span *ngIf="isSendingCode" class="loading-text">
+                <i class="fas fa-spinner fa-spin"></i> Sending Code...
+              </span>
+            </button>
           </div>
 
           <!-- Step 2: Verification Code -->
@@ -38,8 +43,18 @@
                 maxlength="6"
               >
             </div>
-            <button type="submit" class="reset-btn">Verify Code</button>
-            <button type="button" class="resend-btn" (click)="resendCode()">Resend Code</button>
+            <button type="submit" class="reset-btn" [disabled]="isVerifyingCode">
+              <span *ngIf="!isVerifyingCode">Verify Code</span>
+              <span *ngIf="isVerifyingCode" class="loading-text">
+                <i class="fas fa-spinner fa-spin"></i> Verifying...
+              </span>
+            </button>
+            <button type="button" class="resend-btn" (click)="resendCode()" [disabled]="isResendingCode">
+              <span *ngIf="!isResendingCode">Resend Code</span>
+              <span *ngIf="isResendingCode" class="loading-text">
+                <i class="fas fa-spinner fa-spin"></i> Resending...
+              </span>
+            </button>
           </div>
 
           <!-- Step 3: New Password -->
@@ -88,7 +103,12 @@
               </div>
             </div>
             
-            <button type="submit" class="reset-btn">Reset Password</button>
+            <button type="submit" class="reset-btn" [disabled]="isResettingPassword">
+              <span *ngIf="!isResettingPassword">Reset Password</span>
+              <span *ngIf="isResettingPassword" class="loading-text">
+                <i class="fas fa-spinner fa-spin"></i> Resetting Password...
+              </span>
+            </button>
           </div>
         </form>
         

@@ -92,31 +92,32 @@
           </div>
         </div>
         <div class="map-container">
-          <app-map
-            [height]="'400px'"
-            [markers]="mapMarkers"
-            [center]="mapCenter"
-            [showRoute]="mapMarkers.length >= 2"
-            [zoom]="mapMarkers.length > 1 ? 11 : 13"
-            [showControls]="true"
-            (mapReady)="onMapReady($event)"
-            (markerClick)="onMarkerClick($event)"
-            (mapClick)="onMapClick($event)"
-            (mapErrorEvent)="onMapError($event)"
-            (routeUpdated)="onRouteUpdated($event)">
-          </app-map>
+                      <app-map
+              #mapComponent
+              [height]="'400px'"
+              [markers]="mapMarkers"
+              [center]="mapCenter"
+              [showRoute]="mapMarkers.length >= 2"
+              [zoom]="mapMarkers.length > 1 ? 11 : 13"
+              [showControls]="true"
+              (mapReady)="onMapReady($event)"
+              (markerClick)="onMarkerClick($event)"
+              (mapClick)="onMapClick($event)"
+              (mapErrorEvent)="onMapError($event)"
+              (routeUpdated)="onRouteUpdated($event)">
+            </app-map>
           <div class="map-overlay">
             <div class="map-legend">
               <div class="legend-item">
-                <div class="legend-pin blue"></div>
+                <div class="legend-marker current-marker"></div>
                 <span>Your Location</span>
               </div>
               <div class="legend-item">
-                <div class="legend-pin orange"></div>
+                <div class="legend-marker pickup-marker"></div>
                 <span>Pickup Location</span>
               </div>
               <div class="legend-item">
-                <div class="legend-pin green"></div>
+                <div class="legend-marker delivery-marker"></div>
                 <span>Delivery Location</span>
               </div>
             </div>
@@ -153,7 +154,7 @@
           [disabled]="!canMarkAsCompleted()"
         >
           <i class="fas fa-check"></i>
-          Mark as Completed
+          Mark as Delivered
         </button>
       </div>
     </div>

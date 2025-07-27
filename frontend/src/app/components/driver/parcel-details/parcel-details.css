@@ -349,24 +349,24 @@
   color: #2c3e50;
 }
 
-.legend-pin {
-  width: 12px;
-  height: 12px;
+.legend-marker {
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.legend-pin.blue {
-  background-color: #007bff;
+.current-marker {
+  background: #007bff;
 }
 
-.legend-pin.orange {
-  background-color: #fd7e14;
+.pickup-marker {
+  background: #28a745;
 }
 
-.legend-pin.green {
-  background-color: #28a745;
+.delivery-marker {
+  background: #dc3545;
 }
 
 /* Bottom Actions */

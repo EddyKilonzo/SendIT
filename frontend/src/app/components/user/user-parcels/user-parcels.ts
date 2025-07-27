@@ -3,18 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
-
-interface Parcel {
-  id: string;
-  weight: number;
-  status: 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled';
-  pickupAddress: string;
-  deliveryAddress: string;
-  expectedDelivery: string;
-  deliveredDate?: string;
-  scheduledPickup?: string;
-  type: 'sent' | 'received';
-}
+import { BaseApiService, Parcel } from '../../../services/base-api.service';
+import { ToastService } from '../../shared/toast/toast.service';
 
 interface Notification {
   id: string;
@@ -39,93 +29,15 @@ export class UserParcels implements OnInit {
   searchQuery: string = '';
   
   // Summary data
-  totalParcelsSent = 5;
-  mostRecentShipment = '2024-07-20';
+  totalParcelsSent = 0;
+  totalParcelsReceived = 0;
+  mostRecentShipment = '';
+  mostRecentDelivery = '';
   
-  // Sample data
-  sentParcels: Parcel[] = [
-    {
-      id: '#12345',
-      weight: 2,
-      status: 'In Transit',
-      pickupAddress: '123 Maple Street, Anytown',
-      deliveryAddress: '456 Oak Avenue, Anytown',
-      expectedDelivery: '2024-07-20',
-      type: 'sent'
-    },
-    {
-      id: '#11223',
-      weight: 3,
-      status: 'Pending',
-      pickupAddress: '322 Cedar Drive, Anytown',
-      deliveryAddress: '333 Birch Court, Anytown',
-      expectedDelivery: '2024-07-22',
-      scheduledPickup: '2024-07-22',
-      type: 'sent'
-    },
-    {
-      id: '#44508',
-      weight: 2.5,
-      status: 'In Transit',
-      pickupAddress: '444 Spruce Way, Anytown',
-      deliveryAddress: '555 Willow Place, Anytown',
-      expectedDelivery: '2024-07-21',
-      type: 'sent'
-    },
-    {
-      id: '#77889',
-      weight: 1,
-      status: 'Delivered',
-      pickupAddress: '890 Aspen Circle, Anytown',
-      deliveryAddress: '777 Redwood Boulevard, Anytown',
-      expectedDelivery: '2024-07-18',
-      deliveredDate: '2024-07-18',
-      type: 'sent'
-    },
-    {
-      id: '#67890',
-      weight: 1.5,
-      status: 'Delivered',
-      pickupAddress: '789 Pine Lane, Anytown',
-      deliveryAddress: '101 Elm Road, Anytown',
-      expectedDelivery: '2024-07-18',
-      deliveredDate: '2024-07-18',
-      type: 'sent'
-    }
-  ];
-
-  receivedParcels: Parcel[] = [
-    {
-      id: '#99887',
-      weight: 2.5,
-      status: 'Delivered',
-      pickupAddress: '666 Oak Drive, Anytown',
-      deliveryAddress: '777 Maple Street, Anytown',
-      expectedDelivery: '2024-07-10',
-      deliveredDate: '2024-07-10',
-      type: 'received'
-    },
-    {
-      id: '#55443',
-      weight: 0.8,
-      status: 'Delivered',
-      pickupAddress: '111 Cedar Lane, Anytown',
-      deliveryAddress: '222 Birch Road, Anytown',
-      expectedDelivery: '2024-07-05',
-      deliveredDate: '2024-07-05',
-      type: 'received'
-    },
-    {
-      id: '#33221',
-      weight: 1.2,
-      status: 'Delivered',
-      pickupAddress: '333 Pine Avenue, Anytown',
-      deliveryAddress: '444 Elm Lane, Anytown',
-      expectedDelivery: '2024-07-01',
-      deliveredDate: '2024-07-01',
-      type: 'received'
-    }
-  ];
+  // Real data
+  sentParcels: Parcel[] = [];
+  receivedParcels: Parcel[] = [];
+  loading = false;
 
   notifications: Notification[] = [
     {
@@ -147,20 +59,77 @@ export class UserParcels implements OnInit {
   // Filter options
   statusOptions = [
     { value: '', label: 'All Status' },
-    { value: 'Pending', label: 'Pending' },
-    { value: 'In Transit', label: 'In Transit' },
-    { value: 'Delivered', label: 'Delivered' },
-    { value: 'Cancelled', label: 'Cancelled' }
+    { value: 'pending', label: 'Pending' },
+    { value: 'assigned', label: 'Assigned' },
+    { value: 'picked_up', label: 'Picked Up' },
+    { value: 'in_transit', label: 'In Transit' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'cancelled', label: 'Cancelled' }
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private baseApiService: BaseApiService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit() {
-    // Initialize component
+    this.loadParcels();
+  }
+
+  async loadParcels() {
+    this.loading = true;
+    try {
+      // Load sent parcels
+      const sentResponse = await this.baseApiService.getUserParcels('sent').toPromise();
+      this.sentParcels = sentResponse?.parcels || [];
+      this.totalParcelsSent = this.sentParcels.length;
+      
+      // Load received parcels
+      const receivedResponse = await this.baseApiService.getUserParcels('received').toPromise();
+      this.receivedParcels = receivedResponse?.parcels || [];
+      this.totalParcelsReceived = this.receivedParcels.length;
+      
+      // Calculate most recent dates
+      this.calculateMostRecentDates();
+      
+    } catch (error) {
+      console.error('Error loading parcels:', error);
+      this.toastService.showError('Failed to load parcels. Please try again.');
+      // Set default values on error
+      this.sentParcels = [];
+      this.receivedParcels = [];
+      this.totalParcelsSent = 0;
+      this.totalParcelsReceived = 0;
+      this.mostRecentShipment = '';
+      this.mostRecentDelivery = '';
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  calculateMostRecentDates() {
+    // Most recent sent parcel
+    if (this.sentParcels.length > 0) {
+      const mostRecentSent = this.sentParcels
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      this.mostRecentShipment = new Date(mostRecentSent.createdAt).toISOString().split('T')[0];
+    }
+
+    // Most recent received parcel
+    if (this.receivedParcels.length > 0) {
+      const mostRecentReceived = this.receivedParcels
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      this.mostRecentDelivery = new Date(mostRecentReceived.createdAt).toISOString().split('T')[0];
+    }
   }
 
   switchTab(tab: 'sent' | 'received') {
     this.activeTab = tab;
+  }
+
+  refreshParcels() {
+    this.loadParcels();
   }
 
   clearFilters() {
@@ -185,9 +154,11 @@ export class UserParcels implements OnInit {
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         return (
-          parcel.id.toLowerCase().includes(query) ||
+          parcel.trackingNumber.toLowerCase().includes(query) ||
           parcel.pickupAddress.toLowerCase().includes(query) ||
-          parcel.deliveryAddress.toLowerCase().includes(query)
+          parcel.deliveryAddress.toLowerCase().includes(query) ||
+          parcel.senderName.toLowerCase().includes(query) ||
+          parcel.recipientName.toLowerCase().includes(query)
         );
       }
       
@@ -197,11 +168,25 @@ export class UserParcels implements OnInit {
 
   getStatusClass(status: string): string {
     switch (status) {
-      case 'Pending': return 'status-pending';
-      case 'In Transit': return 'status-transit';
-      case 'Delivered': return 'status-delivered';
-      case 'Cancelled': return 'status-cancelled';
+      case 'pending': return 'status-pending';
+      case 'assigned': return 'status-pending';
+      case 'picked_up': return 'status-transit';
+      case 'in_transit': return 'status-transit';
+      case 'delivered': return 'status-delivered';
+      case 'cancelled': return 'status-cancelled';
       default: return '';
+    }
+  }
+
+  getStatusDisplayName(status: string): string {
+    switch (status) {
+      case 'pending': return 'Pending';
+      case 'assigned': return 'Assigned';
+      case 'picked_up': return 'Picked Up';
+      case 'in_transit': return 'In Transit';
+      case 'delivered': return 'Delivered';
+      case 'cancelled': return 'Cancelled';
+      default: return status;
     }
   }
 
@@ -216,5 +201,13 @@ export class UserParcels implements OnInit {
       case 'pending': return 'notification-pending';
       default: return '';
     }
+  }
+
+  getCurrentTotalParcels(): number {
+    return this.activeTab === 'sent' ? this.totalParcelsSent : this.totalParcelsReceived;
+  }
+
+  getCurrentMostRecentDate(): string {
+    return this.activeTab === 'sent' ? this.mostRecentShipment : this.mostRecentDelivery;
   }
 } 

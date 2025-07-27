@@ -34,6 +34,46 @@
   color: #2c3e50;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #DBBB02 0%, #f0c800 100%);
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px -1px rgba(219, 187, 2, 0.3), 0 1px 2px -1px rgba(219, 187, 2, 0.2);
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f0c800 0%, #e6b800 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(219, 187, 2, 0.4), 0 2px 4px -1px rgba(219, 187, 2, 0.3);
+}
+
+.refresh-btn:disabled {
+  background: #e9ecef;
+  color: #adb5bd;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.refresh-btn i {
+  font-size: 14px;
+}
+
 .dashboard-content {
   padding: 30px;
   flex: 1;
@@ -95,6 +135,7 @@
 /* Summary Section */
 .summary-section {
   margin-bottom: 30px;
+  margin-top: 30px; /* Added margin-top for better spacing */
 }
 
 .summary-cards {
@@ -153,6 +194,32 @@
   font-weight: 700;
   color: #2c3e50;
   margin: 0;
+}
+
+/* Loading Section */
+.loading-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  margin: 30px 0;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: #6c757d;
+}
+
+.loading-spinner i {
+  font-size: 2rem;
+  color: #DBBB02;
+  margin-bottom: 15px;
+}
+
+.loading-spinner p {
+  margin: 0;
+  font-size: 1rem;
+  color: #6c757d;
 }
 
 /* Filters Section */
@@ -392,6 +459,40 @@
   font-weight: 500;
   color: #2c3e50;
   font-size: 0.8rem;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-state-content {
+  color: #6c757d;
+}
+
+.empty-state-content i {
+  font-size: 3rem;
+  color: #DBBB02;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.empty-state-content h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.5rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.empty-state-content p {
+  margin: 0;
+  font-size: 1rem;
+  color: #6c757d;
+  line-height: 1.5;
 }
 
 /* Notifications Section */

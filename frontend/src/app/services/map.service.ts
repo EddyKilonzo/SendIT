@@ -362,8 +362,50 @@ export class MapService {
    */
   fitMapToMarkers(map: L.Map, markers: L.Marker[]): void {
     if (markers.length > 0) {
-      const group = new L.FeatureGroup(markers);
-      map.fitBounds(group.getBounds().pad(0.1));
+      try {
+        // Ensure map is properly rendered
+        map.invalidateSize();
+        
+        // Wait a bit for the map to be fully rendered
+        setTimeout(() => {
+          if (map && markers.length > 0) {
+            const group = new L.FeatureGroup(markers);
+            const bounds = group.getBounds();
+            
+            // Check if bounds are valid
+            if (bounds.isValid()) {
+              // Add padding and fit bounds
+              const paddedBounds = bounds.pad(0.1);
+              map.fitBounds(paddedBounds, {
+                maxZoom: 16, // Prevent excessive zoom
+                animate: true,
+                duration: 0.5
+              });
+            } else {
+              // Fallback: fit to first marker with some zoom
+              const firstMarker = markers[0];
+              if (firstMarker) {
+                map.setView(firstMarker.getLatLng(), 13, {
+                  animate: true,
+                  duration: 0.5
+                });
+              }
+            }
+          }
+        }, 100); // Increased delay for better rendering
+      } catch (error) {
+        console.error('Error fitting map to markers:', error);
+        // Fallback: fit to first marker
+        if (markers.length > 0) {
+          const firstMarker = markers[0];
+          if (firstMarker) {
+            map.setView(firstMarker.getLatLng(), 13, {
+              animate: true,
+              duration: 0.5
+            });
+          }
+        }
+      }
     }
   }
 } 

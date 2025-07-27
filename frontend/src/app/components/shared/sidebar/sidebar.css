@@ -75,6 +75,20 @@
   color: #6c757d;
 }
 
+
+
+/* Sidebar overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .sidebar {
@@ -82,22 +96,59 @@
     left: -250px;
     width: 250px;
     min-width: 250px;
-    transition: left 0.3s ease;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1001;
     top: 0;
     height: 100vh;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
   }
   
   .sidebar.open {
     left: 0;
   }
 
+  .sidebar-overlay {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
   .nav-item {
     margin-right: 0;
     border-radius: 0;
+    padding: 16px 25px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
   }
 
   .nav-item:hover {
+    transform: none;
+  }
+
+  .nav-item:active {
+    background-color: #e9ecef;
+  }
+}
+
+/* Animation for overlay */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Touch optimizations for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .nav-item:hover {
+    background-color: transparent;
+    transform: none;
+  }
+  
+  .nav-item:active {
+    background-color: #fef7e0;
     transform: none;
   }
 }

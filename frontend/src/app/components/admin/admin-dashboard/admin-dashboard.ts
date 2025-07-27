@@ -1,45 +1,47 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
-import { AdminService, DashboardStats, SystemStats, Review, Driver, AnalyticsData } from '../../../services/admin.service';
+import { AdminService, DashboardStats, SystemStats, Driver, Review, AnalyticsData } from '../../../services/admin.service';
+import { ToastService } from '../../shared/toast/toast.service';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
-import { catchError, forkJoin, of } from 'rxjs';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, SidebarComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    SidebarComponent
+  ],
   templateUrl: './admin-dashboard.html',
-  styleUrl: './admin-dashboard.css'
+  styleUrls: ['./admin-dashboard.css']
 })
 export class AdminDashboard implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private authService: AuthService,
-    private adminService: AdminService
+    private adminService: AdminService,
+    private toastService: ToastService
   ) {}
-  
+
   userRole: string = 'ADMIN';
   currentUser: any = null;
-  
+
   isMobileView: boolean = false;
   showMobileMenu: boolean = false;
-  
+
   activeTab = 'overview'; 
-  
-  // Chart period state
   chartPeriod = 'monthly'; // 'monthly' or 'weekly'
-  
-  // Loading states
+
   isLoading = true;
   isLoadingAnalytics = false;
-  
-  // Dashboard metrics from real data
+
   dashboardStats: DashboardStats | null = null;
   systemStats: SystemStats | null = null;
- 
-  // Delivery status data
+
   deliveryStatus = {
     total: 0,
     delivered: 0,
@@ -56,130 +58,45 @@ export class AdminDashboard implements OnInit, OnDestroy {
   // Analytics Data - will be populated from real API
   analyticsData: AnalyticsData = {
     revenueTrends: {
-      currentMonth: 125000,
-      previousMonth: 98000,
-      growth: '+27.6%',
-      monthlyData: [
-        { month: 'Jan', revenue: 85000 },
-        { month: 'Feb', revenue: 92000 },
-        { month: 'Mar', revenue: 88000 },
-        { month: 'Apr', revenue: 95000 },
-        { month: 'May', revenue: 102000 },
-        { month: 'Jun', revenue: 98000 },
-        { month: 'Jul', revenue: 110000 },
-        { month: 'Aug', revenue: 118000 },
-        { month: 'Sep', revenue: 125000 },
-        { month: 'Oct', revenue: 132000 },
-        { month: 'Nov', revenue: 128000 },
-        { month: 'Dec', revenue: 135000 }
-      ],
-      dailyData: [
-        { day: 'Mon', revenue: 4500 },
-        { day: 'Tue', revenue: 5200 },
-        { day: 'Wed', revenue: 4800 },
-        { day: 'Thu', revenue: 5500 },
-        { day: 'Fri', revenue: 5800 },
-        { day: 'Sat', revenue: 4200 },
-        { day: 'Sun', revenue: 3800 }
-      ]
+      currentMonth: 0,
+      previousMonth: 0,
+      growth: '0%',
+      monthlyData: [],
+      dailyData: []
     },
     deliveryPerformance: {
-      totalDeliveries: 1250,
-      onTimeDeliveries: 1180,
-      lateDeliveries: 45,
-      failedDeliveries: 25,
-      onTimeRate: 94.4,
-      averageDeliveryTime: 2.8,
+      totalDeliveries: 0,
+      onTimeDeliveries: 0,
+      lateDeliveries: 0,
+      failedDeliveries: 0,
+      onTimeRate: 0,
+      averageDeliveryTime: 0,
       performanceByDriver: [],
-      performanceByVehicle: [
-        { type: 'Motorcycle', deliveries: 850, efficiency: 96 },
-        { type: 'Car', deliveries: 320, efficiency: 92 },
-        { type: 'Van', deliveries: 80, efficiency: 88 }
-      ],
-      deliveryTimeTrends: [
-        { week: 'Week 1', avgTime: 2.5 },
-        { week: 'Week 2', avgTime: 2.8 },
-        { week: 'Week 3', avgTime: 2.6 },
-        { week: 'Week 4', avgTime: 2.9 }
-      ]
+      performanceByVehicle: [],
+      deliveryTimeTrends: []
     },
     customerReviews: {
-      overallRating: 4.6,
-      totalReviews: 342,
-      ratingDistribution: [
-        { stars: 5, count: 180, percentage: 52.6 },
-        { stars: 4, count: 95, percentage: 27.8 },
-        { stars: 3, count: 45, percentage: 13.2 },
-        { stars: 2, count: 15, percentage: 4.4 },
-        { stars: 1, count: 7, percentage: 2.0 }
-      ],
-      recentReviews: [
-        {
-          id: '1',
-          rating: 5,
-          comment: 'Excellent service! My package was delivered on time and in perfect condition.',
-          createdAt: new Date().toISOString(),
-          customerName: 'Alice Johnson',
-          customerId: 'cust1',
-          customerProfilePicture: undefined,
-          driverName: 'John Driver',
-          driverId: '1',
-          parcelId: 'PK001'
-        },
-        {
-          id: '2',
-          rating: 4,
-          comment: 'Good delivery service. Driver was professional and courteous.',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          customerName: 'Bob Smith',
-          customerId: 'cust2',
-          customerProfilePicture: undefined,
-          driverName: 'Sarah Wilson',
-          driverId: '2',
-          parcelId: 'PK002'
-        },
-        {
-          id: '3',
-          rating: 5,
-          comment: 'Amazing experience! Will definitely use this service again.',
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          customerName: 'Carol Davis',
-          customerId: 'cust3',
-          customerProfilePicture: undefined,
-          driverName: 'Mike Johnson',
-          driverId: '3',
-          parcelId: 'PK003'
-        }
-      ],
-      satisfactionTrends: [
-        { month: 'Jul', rating: 4.4 },
-        { month: 'Aug', rating: 4.5 },
-        { month: 'Sep', rating: 4.6 },
-        { month: 'Oct', rating: 4.7 }
-      ],
-      feedbackCategories: [
-        { category: 'Delivery Speed', positive: 85, neutral: 10, negative: 5 },
-        { category: 'Driver Courtesy', positive: 92, neutral: 6, negative: 2 },
-        { category: 'Package Condition', positive: 88, neutral: 8, negative: 4 },
-        { category: 'Communication', positive: 78, neutral: 15, negative: 7 }
-      ]
+      overallRating: 0,
+      totalReviews: 0,
+      ratingDistribution: [],
+      recentReviews: [],
+      satisfactionTrends: [],
+      feedbackCategories: []
     }
   };
 
-  // Top drivers for overview section
   topDrivers: Driver[] = [];
 
-  // Reviews filtering and pagination
   selectedRatingFilter: number = 0; // 0 = all, 1-5 = specific rating
   filteredReviews: Review[] = [];
   currentReviewPage: number = 1;
   reviewsPerPage: number = 3;
 
   menuItems = [
-    { icon: 'fas fa-home', label: 'Dashboard', active: true },
-    { icon: 'fas fa-plus', label: 'Create Delivery', active: false },
-    { icon: 'fas fa-box', label: 'Manage Parcels', active: false },
-    { icon: 'fas fa-users', label: 'Users', active: false }
+    { label: 'Dashboard', icon: 'fas fa-tachometer-alt', route: '/admin/dashboard' },
+    { label: 'Create Delivery', icon: 'fas fa-plus', route: '/admin/create-delivery' },
+    { label: 'Manage Parcels', icon: 'fas fa-box', route: '/admin/manage-parcels' },
+    { label: 'Manage Users', icon: 'fas fa-users', route: '/admin/manage-users' }
   ];
 
   sidebarOpen = true;
@@ -189,27 +106,20 @@ export class AdminDashboard implements OnInit, OnDestroy {
   }
 
   createDelivery() {
-    console.log('Create Delivery clicked');
-    // Add navigation logic here
+    this.router.navigate(['/admin', 'create-delivery']);
   }
 
   manageParcels() {
-    console.log('Manage Parcels clicked');
-    
+    this.router.navigate(['/admin', 'manage-parcels']);
   }
 
   logout() {
-    console.log('Logout clicked');
-    
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 
   switchTab(tab: string) {
     this.activeTab = tab;
-    if (tab === 'analytics') {
-      if (!this.isLoadingAnalytics) {
-        this.loadAnalyticsData();
-      }
-    }
   }
 
   switchChartPeriod(period: string) {
@@ -217,21 +127,21 @@ export class AdminDashboard implements OnInit, OnDestroy {
   }
 
   getRatingStars(rating: number): string {
-    return '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
   }
 
   getRatingColor(rating: number): string {
-    if (rating >= 4.5) return '#28a745';
-    if (rating >= 4.0) return '#ffc107';
-    if (rating >= 3.0) return '#fd7e14';
-    return '#dc3545';
+    if (rating >= 4.5) return '#10B981';
+    if (rating >= 4.0) return '#3B82F6';
+    if (rating >= 3.0) return '#F59E0B';
+    return '#EF4444';
   }
 
   getPerformanceColor(rate: number): string {
-    if (rate >= 90) return '#28a745';
-    if (rate >= 80) return '#ffc107';
-    if (rate >= 70) return '#fd7e14';
-    return '#dc3545';
+    if (rate >= 90) return '#10B981';
+    if (rate >= 80) return '#3B82F6';
+    if (rate >= 70) return '#F59E0B';
+    return '#EF4444';
   }
 
   formatCurrency(amount: number): string {
@@ -261,60 +171,6 @@ export class AdminDashboard implements OnInit, OnDestroy {
     });
   }
 
-  private initializeDefaultDrivers(): void {
-    // Initialize top drivers with default data
-    this.topDrivers = [
-      {
-        id: '1',
-        name: 'John Driver',
-        email: 'john@example.com',
-        phone: '+254700000001',
-        vehicleType: 'Motorcycle',
-        isAvailable: true,
-        averageRating: 4.8,
-        totalDeliveries: 156,
-        completedDeliveries: 150,
-        onTimeDeliveryRate: 95,
-        averageDeliveryTime: 2.5,
-        totalEarnings: 45000,
-        lastActiveAt: new Date().toISOString(),
-        profilePicture: undefined
-      },
-      {
-        id: '2',
-        name: 'Sarah Wilson',
-        email: 'sarah@example.com',
-        phone: '+254700000002',
-        vehicleType: 'Car',
-        isAvailable: true,
-        averageRating: 4.6,
-        totalDeliveries: 142,
-        completedDeliveries: 138,
-        onTimeDeliveryRate: 92,
-        averageDeliveryTime: 3.2,
-        totalEarnings: 42000,
-        lastActiveAt: new Date().toISOString(),
-        profilePicture: undefined
-      },
-      {
-        id: '3',
-        name: 'Mike Johnson',
-        email: 'mike@example.com',
-        phone: '+254700000003',
-        vehicleType: 'Motorcycle',
-        isAvailable: false,
-        averageRating: 4.4,
-        totalDeliveries: 128,
-        completedDeliveries: 125,
-        onTimeDeliveryRate: 89,
-        averageDeliveryTime: 2.8,
-        totalEarnings: 38000,
-        lastActiveAt: new Date().toISOString(),
-        profilePicture: undefined
-      }
-    ];
-  }
-
   ngOnDestroy(): void {
     // Clean up event listeners
     window.removeEventListener('resize', () => {
@@ -341,7 +197,6 @@ export class AdminDashboard implements OnInit, OnDestroy {
     document.body.style.overflow = '';
   }
 
-  // Load dashboard data from API
   private loadDashboardData(): void {
     this.isLoading = true;
     
@@ -359,7 +214,7 @@ export class AdminDashboard implements OnInit, OnDestroy {
         })
       )
     }).subscribe({
-      next: (data) => {
+      next: (data: { dashboardStats: DashboardStats | null; systemStats: SystemStats | null }) => {
         this.dashboardStats = data.dashboardStats;
         this.systemStats = data.systemStats;
         
@@ -377,7 +232,7 @@ export class AdminDashboard implements OnInit, OnDestroy {
         if (this.systemStats) {
           this.deliveryTime = {
             average: this.systemStats.averageDeliveryTime,
-            weeklyData: [40, 60, 30, 50] // This could be calculated from real data
+            weeklyData: this.calculateWeeklyDeliveryData()
           };
         }
         
@@ -398,12 +253,12 @@ export class AdminDashboard implements OnInit, OnDestroy {
     this.adminService.getAnalyticsData().pipe(
       catchError(error => {
         console.error('❌ Error loading analytics data:', error);
-        this.generateMockAnalyticsData();
         this.isLoadingAnalytics = false;
+        this.toastService.showError('Failed to load analytics data');
         return of(null);
       })
     ).subscribe({
-      next: (data) => {
+      next: (data: AnalyticsData | null) => {
         console.log('📊 Analytics API response:', data);
         
         if (data) {
@@ -447,217 +302,62 @@ export class AdminDashboard implements OnInit, OnDestroy {
           // Populate top drivers from real data if available
           if (data.deliveryPerformance && data.deliveryPerformance.performanceByDriver && data.deliveryPerformance.performanceByDriver.length > 0) {
             this.topDrivers = data.deliveryPerformance.performanceByDriver
-              .sort((a, b) => b.averageRating - a.averageRating)
+              .sort((a: Driver, b: Driver) => b.averageRating - a.averageRating)
               .slice(0, 3);
           } else {
-            // If no driver data, use mock drivers
-            this.initializeDefaultDrivers();
+            // Load real drivers from API if no analytics driver data
+            this.loadTopDriversFromAPI();
           }
           
           // Initialize filtered reviews
           this.updateFilteredReviews();
         } else {
-          console.log('⚠️ No analytics data received, using mock data');
-          this.generateMockAnalyticsData();
+          console.log('⚠️ No analytics data received');
+          this.isLoadingAnalytics = false;
         }
         this.isLoadingAnalytics = false;
       }
     });
   }
 
-  // Generate mock data for development/testing
-  private generateMockAnalyticsData(): void {
-    // Mock top drivers
-    this.topDrivers = [
-      {
-        id: '1',
-        name: 'John Driver',
-        email: 'john@example.com',
-        phone: '+254700000001',
-        vehicleType: 'Motorcycle',
-        isAvailable: true,
-        averageRating: 4.8,
-        totalDeliveries: 156,
-        completedDeliveries: 150,
-        onTimeDeliveryRate: 95,
-        averageDeliveryTime: 2.5,
-        totalEarnings: 45000,
-        lastActiveAt: new Date().toISOString(),
-        profilePicture: undefined
+  private loadTopDriversFromAPI(): void {
+    this.adminService.getDrivers({ limit: 3, sortBy: 'averageRating', sortOrder: 'desc' }).subscribe({
+      next: (response: { drivers: Driver[]; total: number }) => {
+        if (response.drivers && response.drivers.length > 0) {
+          this.topDrivers = response.drivers;
+        } else {
+          // If no drivers from API, show empty state
+          this.topDrivers = [];
+        }
       },
-      {
-        id: '2',
-        name: 'Sarah Wilson',
-        email: 'sarah@example.com',
-        phone: '+254700000002',
-        vehicleType: 'Car',
-        isAvailable: true,
-        averageRating: 4.6,
-        totalDeliveries: 142,
-        completedDeliveries: 138,
-        onTimeDeliveryRate: 92,
-        averageDeliveryTime: 3.2,
-        totalEarnings: 42000,
-        lastActiveAt: new Date().toISOString(),
-        profilePicture: undefined
-      },
-      {
-        id: '3',
-        name: 'Mike Johnson',
-        email: 'mike@example.com',
-        phone: '+254700000003',
-        vehicleType: 'Motorcycle',
-        isAvailable: false,
-        averageRating: 4.4,
-        totalDeliveries: 128,
-        completedDeliveries: 125,
-        onTimeDeliveryRate: 89,
-        averageDeliveryTime: 2.8,
-        totalEarnings: 38000,
-        lastActiveAt: new Date().toISOString(),
-        profilePicture: undefined
+      error: (error: any) => {
+        console.error('❌ Error loading top drivers:', error);
+        this.topDrivers = [];
       }
-    ];
+    });
+  }
 
-    // Mock analytics data
-    this.analyticsData = {
-      revenueTrends: {
-        currentMonth: 125000,
-        previousMonth: 98000,
-        growth: '+27.6%',
-        monthlyData: [
-          { month: 'Jan', revenue: 85000 },
-          { month: 'Feb', revenue: 92000 },
-          { month: 'Mar', revenue: 88000 },
-          { month: 'Apr', revenue: 95000 },
-          { month: 'May', revenue: 102000 },
-          { month: 'Jun', revenue: 98000 },
-          { month: 'Jul', revenue: 110000 },
-          { month: 'Aug', revenue: 118000 },
-          { month: 'Sep', revenue: 125000 },
-          { month: 'Oct', revenue: 132000 },
-          { month: 'Nov', revenue: 128000 },
-          { month: 'Dec', revenue: 135000 }
-        ],
-        dailyData: [
-          { day: 'Mon', revenue: 4500 },
-          { day: 'Tue', revenue: 5200 },
-          { day: 'Wed', revenue: 4800 },
-          { day: 'Thu', revenue: 5500 },
-          { day: 'Fri', revenue: 5800 },
-          { day: 'Sat', revenue: 4200 },
-          { day: 'Sun', revenue: 3800 }
-        ]
-      },
-      deliveryPerformance: {
-        totalDeliveries: 1250,
-        onTimeDeliveries: 1180,
-        lateDeliveries: 45,
-        failedDeliveries: 25,
-        onTimeRate: 94.4,
-        averageDeliveryTime: 2.8,
-        performanceByDriver: this.topDrivers,
-        performanceByVehicle: [
-          { type: 'Motorcycle', deliveries: 850, efficiency: 96 },
-          { type: 'Car', deliveries: 320, efficiency: 92 },
-          { type: 'Van', deliveries: 80, efficiency: 88 }
-        ],
-        deliveryTimeTrends: [
-          { week: 'Week 1', avgTime: 2.5 },
-          { week: 'Week 2', avgTime: 2.8 },
-          { week: 'Week 3', avgTime: 2.6 },
-          { week: 'Week 4', avgTime: 2.9 }
-        ]
-      },
-      customerReviews: {
-        overallRating: 4.6,
-        totalReviews: 342,
-        ratingDistribution: [
-          { stars: 5, count: 180, percentage: 52.6 },
-          { stars: 4, count: 95, percentage: 27.8 },
-          { stars: 3, count: 45, percentage: 13.2 },
-          { stars: 2, count: 15, percentage: 4.4 },
-          { stars: 1, count: 7, percentage: 2.0 }
-        ],
-        recentReviews: [
-          {
-            id: '1',
-            rating: 5,
-            comment: 'Excellent service! My package was delivered on time and in perfect condition.',
-            createdAt: new Date().toISOString(),
-            customerName: 'Alice Johnson',
-            customerId: 'cust1',
-            customerProfilePicture: undefined,
-            driverName: 'John Driver',
-            driverId: '1',
-            parcelId: 'PK001'
-          },
-          {
-            id: '2',
-            rating: 4,
-            comment: 'Good delivery service. Driver was professional and courteous.',
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            customerName: 'Bob Smith',
-            customerId: 'cust2',
-            customerProfilePicture: undefined,
-            driverName: 'Sarah Wilson',
-            driverId: '2',
-            parcelId: 'PK002'
-          },
-          {
-            id: '3',
-            rating: 5,
-            comment: 'Amazing experience! Will definitely use this service again.',
-            createdAt: new Date(Date.now() - 172800000).toISOString(),
-            customerName: 'Carol Davis',
-            customerId: 'cust3',
-            customerProfilePicture: undefined,
-            driverName: 'Mike Johnson',
-            driverId: '3',
-            parcelId: 'PK003'
-          },
-          {
-            id: '4',
-            rating: 3,
-            comment: 'Delivery was a bit late but package arrived safely.',
-            createdAt: new Date(Date.now() - 259200000).toISOString(),
-            customerName: 'David Wilson',
-            customerId: 'cust4',
-            customerProfilePicture: undefined,
-            driverName: 'John Driver',
-            driverId: '1',
-            parcelId: 'PK004'
-          },
-          {
-            id: '5',
-            rating: 5,
-            comment: 'Perfect service from start to finish!',
-            createdAt: new Date(Date.now() - 345600000).toISOString(),
-            customerName: 'Emma Brown',
-            customerId: 'cust5',
-            customerProfilePicture: undefined,
-            driverName: 'Sarah Wilson',
-            driverId: '2',
-            parcelId: 'PK005'
-          }
-        ],
-        satisfactionTrends: [
-          { month: 'Jul', rating: 4.4 },
-          { month: 'Aug', rating: 4.5 },
-          { month: 'Sep', rating: 4.6 },
-          { month: 'Oct', rating: 4.7 }
-        ],
-        feedbackCategories: [
-          { category: 'Delivery Speed', positive: 85, neutral: 10, negative: 5 },
-          { category: 'Driver Courtesy', positive: 92, neutral: 6, negative: 2 },
-          { category: 'Package Condition', positive: 88, neutral: 8, negative: 4 },
-          { category: 'Communication', positive: 78, neutral: 15, negative: 7 }
-        ]
-      }
-    };
-
-    // Initialize filtered reviews
-    this.updateFilteredReviews();
+  private calculateWeeklyDeliveryData(): number[] {
+    // Calculate weekly delivery data from real analytics data
+    if (this.analyticsData?.deliveryPerformance?.deliveryTimeTrends) {
+      return this.analyticsData.deliveryPerformance.deliveryTimeTrends
+        .slice(-4) // Get last 4 weeks
+        .map(trend => trend.avgTime * 10); // Scale for chart display
+    }
+    
+    // Fallback to calculated data based on system stats
+    if (this.systemStats?.averageDeliveryTime) {
+      const baseTime = this.systemStats.averageDeliveryTime;
+      return [
+        Math.round(baseTime * 0.9 * 10), // Week 1: 90% of average
+        Math.round(baseTime * 1.1 * 10), // Week 2: 110% of average
+        Math.round(baseTime * 0.95 * 10), // Week 3: 95% of average
+        Math.round(baseTime * 1.05 * 10)  // Week 4: 105% of average
+      ];
+    }
+    
+    // Default fallback
+    return [40, 60, 30, 50];
   }
 
   // Helper method to calculate maximum revenue for chart scaling
@@ -762,19 +462,14 @@ export class AdminDashboard implements OnInit, OnDestroy {
     }
   }
 
-  // Helper methods for template conditions
   hasRevenueData(): boolean {
-    const currentMonth = this.analyticsData.revenueTrends.currentMonth || 0;
-    const previousMonth = this.analyticsData.revenueTrends.previousMonth || 0;
-    const hasData = currentMonth > 0 || previousMonth > 0;
-    console.log('💰 Has revenue data:', hasData, 'Current month:', currentMonth, 'Previous month:', previousMonth);
-    return hasData;
+    const currentMonth = this.analyticsData.revenueTrends.currentMonth;
+    const previousMonth = this.analyticsData.revenueTrends.previousMonth;
+    return currentMonth > 0 || previousMonth > 0;
   }
 
   hasReviewsData(): boolean {
-    const totalReviews = this.analyticsData.customerReviews.totalReviews || 0;
-    const hasData = totalReviews > 0;
-    console.log('📦 Has reviews data:', hasData, 'Total reviews:', totalReviews);
-    return hasData;
+    const totalReviews = this.analyticsData.customerReviews.totalReviews;
+    return totalReviews > 0;
   }
 }

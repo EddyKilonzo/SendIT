@@ -207,15 +207,31 @@ export class AdminService {
 
   approveDriverApplication(userId: string): Observable<any> {
     return this.http.patch(`${this.apiUrl}/admin/driver-applications/${userId}/manage`, {
+      userId: userId,
       action: 'approve'
     });
   }
 
   rejectDriverApplication(userId: string, reason: string): Observable<any> {
     return this.http.patch(`${this.apiUrl}/admin/driver-applications/${userId}/manage`, {
+      userId: userId,
       action: 'reject',
       reason
     });
+  }
+
+  // Get driver statistics and assigned parcels
+  getDriverStats(driverId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/admin/drivers/${driverId}/stats`);
+  }
+
+  getDriverParcels(driverId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/admin/drivers/${driverId}/parcels`);
+  }
+
+  // Get user statistics and activity
+  getUserStats(userId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}/stats`);
   }
 
   // Analytics Data

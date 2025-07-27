@@ -1,25 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { ParcelsService } from '../../../services/parcels.service';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
-
-interface Delivery {
-  id: string;
-  parcelId: string;
-  pickupAddress: string;
-  deliveryAddress: string;
-  scheduledTime: string;
-  status: 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled';
-  customerName?: string;
-  customerPhone?: string;
-  specialInstructions?: string;
-}
 
 interface PerformanceMetrics {
   averageRating: number;
   deliveriesCompleted: number;
   onTimeDeliveryRate: number;
+  totalDeliveries: number;
+  inTransitDeliveries: number;
+  pendingDeliveries: number;
   ratingChange: number;
   deliveriesChange: number;
   onTimeChange: number;
@@ -37,94 +29,58 @@ export class DriverDashboard implements OnInit {
   userRole: string = 'DRIVER'; // Default role for driver
   currentUser: any = null; 
   
-  todayDeliveries: Delivery[] = [
-    {
-      id: '1',
-      parcelId: '#12345',
-      pickupAddress: '123 Elm Street, Anytown',
-      deliveryAddress: '456 Oak Avenue, Anytown',
-      scheduledTime: '10:00 AM',
-      status: 'In Transit',
-      customerName: 'John Smith',
-      customerPhone: '+1-555-123-4567',
-      specialInstructions: 'Please call before delivery'
-    },
-    {
-      id: '2',
-      parcelId: '#67890',
-      pickupAddress: '789 Pine Lane, Anytown',
-      deliveryAddress: '101 Maple Drive, Anytown',
-      scheduledTime: '11:30 AM',
-      status: 'Pending',
-      customerName: 'Jane Doe',
-      customerPhone: '+1-555-987-6543',
-      specialInstructions: 'Leave at front door if no answer'
-    },
-    {
-      id: '3',
-      parcelId: '#24680',
-      pickupAddress: '222 Cedar Road, Anytown',
-      deliveryAddress: '333 Birch Court, Anytown',
-      scheduledTime: '1:00 PM',
-      status: 'Pending',
-      customerName: 'Mike Johnson',
-      customerPhone: '+1-555-456-7890',
-      specialInstructions: 'Ring doorbell twice'
-    }
-  ];
+  isLoading: boolean = false;
+  isLoadingMetrics: boolean = false;
 
   performanceMetrics: PerformanceMetrics = {
-    averageRating: 4.8,
-    deliveriesCompleted: 150,
-    onTimeDeliveryRate: 95,
-    ratingChange: 0.2,
-    deliveriesChange: 10,
-    onTimeChange: 5
+    averageRating: 0,
+    deliveriesCompleted: 0,
+    onTimeDeliveryRate: 0,
+    totalDeliveries: 0,
+    inTransitDeliveries: 0,
+    pendingDeliveries: 0,
+    ratingChange: 0,
+    deliveriesChange: 0,
+    onTimeChange: 0
   };
 
   constructor(
-    private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private parcelsService: ParcelsService
   ) {}
 
   ngOnInit() {
     this.currentUser = this.authService.getCurrentUser();
-    this.loadTodayDeliveries();
-    this.loadPerformanceMetrics();
+    this.loadDriverData();
   }
 
-  loadTodayDeliveries() {
-    // This would typically load from a service
-    console.log('Loading today\'s deliveries...');
-  }
+  loadDriverData() {
+    this.isLoading = true;
+    this.isLoadingMetrics = true;
 
-  loadPerformanceMetrics() {
-    // This would typically load from a service
-    console.log('Loading performance metrics...');
-  }
-
-  getStatusClass(status: string): string {
-    switch (status) {
-      case 'Pending': return 'status-pending';
-      case 'In Transit': return 'status-transit';
-      case 'Delivered': return 'status-delivered';
-      case 'Cancelled': return 'status-cancelled';
-      default: return '';
-    }
-  }
-
-  viewDeliveryDetails(deliveryId: string) {
-    this.router.navigate(['/driver-delivery-details', deliveryId]);
-  }
-
-  startDelivery(deliveryId: string) {
-    console.log('Starting delivery:', deliveryId);
-    // This would update the delivery status to 'In Transit'
-  }
-
-  completeDelivery(deliveryId: string) {
-    console.log('Completing delivery:', deliveryId);
-    // This would update the delivery status to 'Delivered'
+    // Load performance metrics
+    this.parcelsService.getDriverPerformanceMetrics().subscribe({
+      next: (metrics) => {
+        this.performanceMetrics = {
+          averageRating: metrics.averageRating,
+          deliveriesCompleted: metrics.completedDeliveries,
+          onTimeDeliveryRate: metrics.onTimeDeliveryRate,
+          totalDeliveries: metrics.totalDeliveries,
+          inTransitDeliveries: metrics.inTransitDeliveries,
+          pendingDeliveries: metrics.pendingDeliveries,
+          ratingChange: 0,
+          deliveriesChange: 0,
+          onTimeChange: 0
+        };
+        this.isLoadingMetrics = false;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading performance metrics:', error);
+        this.isLoadingMetrics = false;
+        this.isLoading = false;
+      }
+    });
   }
 
   getFormattedRating(): string {
@@ -138,4 +94,6 @@ export class DriverDashboard implements OnInit {
   getFormattedOnTimeRate(): string {
     return `${this.performanceMetrics.onTimeDeliveryRate}%`;
   }
+
+
 }

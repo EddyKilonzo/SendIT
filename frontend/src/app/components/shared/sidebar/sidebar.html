@@ -1,4 +1,4 @@
-<aside class="sidebar">
+<aside class="sidebar" [class.open]="isOpen">
   <nav class="sidebar-nav">
     <a 
       *ngFor="let item of getVisibleNavItems(); let i = index" 
@@ -8,9 +8,13 @@
       [routerLinkActiveOptions]="{exact: false}"
       class="nav-item"
       [class.active]="isRouteActive(item.route)"
+      (click)="onNavItemClick()"
     >
       <i [class]="item.icon" class="nav-icon"></i>
       <span>{{ item.label }}</span>
     </a>
   </nav>
-</aside> 
+</aside>
+
+<!-- Overlay for mobile -->
+<div class="sidebar-overlay" *ngIf="isOpen" (click)="closeSidebar()"></div> 

@@ -10,32 +10,28 @@
     <div class="dashboard-content">
     <div class="content-header">
       <h1 class="page-title">Create Delivery</h1>
-      <!-- Mobile Menu Toggle -->
-      <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" *ngIf="isMobileView">
-        <i class="fas fa-bars"></i>
-      </button>
     </div>
 
     <!-- Tab Navigation -->
     <div class="tab-navigation">
       <button class="tab-button" [class.active]="activeTab === 'delivery'" (click)="switchTab('delivery')">
         <i class="fas fa-user"></i>
-        Sender & Recipient
+        <span>Sender & Recipient</span>
       </button>
       <button class="tab-button" [class.active]="activeTab === 'tracking'" (click)="switchTab('tracking')">
         <i class="fas fa-map-marker-alt"></i>
-        Location & Route
+        <span>Location & Route</span>
       </button>
       <button class="tab-button" [class.active]="activeTab === 'preview'" (click)="switchTab('preview')">
         <i class="fas fa-eye"></i>
-        Review & Submit
+        <span>Review & Submit</span>
       </button>
     </div>
 
     <div class="delivery-content">
       <!-- Delivery Details Tab -->
       <div class="tab-content" *ngIf="activeTab === 'delivery'">
-        <form [formGroup]="deliveryForm" (ngSubmit)="onSubmit()" class="delivery-form">
+        <form [formGroup]="deliveryForm" class="delivery-form">
         
         <!-- Sender Details Section -->
         <div class="form-section">
@@ -43,13 +39,41 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="senderName">Sender Name</label>
-              <input 
-                type="text" 
-                id="senderName" 
-                formControlName="senderName"
-                placeholder="Enter sender's name"
-                [class.error]="isFieldInvalid('senderName')"
-              >
+              <div class="input-with-suggestions">
+                <input 
+                  type="text" 
+                  id="senderName" 
+                  formControlName="senderName"
+                  placeholder="Search for sender by name, email, or phone"
+                  autocomplete="off"
+                  (keydown)="onSenderKeyDown($event)"
+                  (focus)="showSenderSuggestions = true"
+                  (blur)="onSenderBlur()"
+                  [class.error]="isFieldInvalid('senderName')"
+                >
+                <!-- Sender Suggestions Dropdown -->
+                <div *ngIf="showSenderSuggestions && senderSuggestions.length > 0" class="suggestions-dropdown">
+                  <div
+                    *ngFor="let suggestion of senderSuggestions; let i = index"
+                    class="suggestion-item"
+                    [class.selected]="i === selectedSenderIndex"
+                    (click)="selectSenderSuggestion(suggestion)"
+                    (mouseenter)="selectedSenderIndex = i"
+                  >
+                    <div class="suggestion-content">
+                      <div class="suggestion-name">{{ suggestion.name }}</div>
+                      <div class="suggestion-details">
+                        <span class="suggestion-email">{{ suggestion.email }}</span>
+                        <span *ngIf="suggestion.phone" class="suggestion-phone">{{ suggestion.phone }}</span>
+                      </div>
+                    </div>
+                    <div class="suggestion-badge" [class.registered]="suggestion.isRegistered">
+                      <i class="fas" [class.fa-user]="suggestion.isRegistered" [class.fa-user-plus]="!suggestion.isRegistered"></i>
+                      <span>{{ suggestion.isRegistered ? 'Registered' : 'Contact' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="error-message" *ngIf="getFieldError('senderName')">
                 {{ getFieldError('senderName') }}
               </div>
@@ -105,13 +129,41 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="recipientName">Recipient Name</label>
-              <input 
-                type="text" 
-                id="recipientName" 
-                formControlName="recipientName"
-                placeholder="Enter recipient's name"
-                [class.error]="isFieldInvalid('recipientName')"
-              >
+              <div class="input-with-suggestions">
+                <input 
+                  type="text" 
+                  id="recipientName" 
+                  formControlName="recipientName"
+                  placeholder="Search for recipient by name, email, or phone"
+                  autocomplete="off"
+                  (keydown)="onRecipientKeyDown($event)"
+                  (focus)="showRecipientSuggestions = true"
+                  (blur)="onRecipientBlur()"
+                  [class.error]="isFieldInvalid('recipientName')"
+                >
+                <!-- Recipient Suggestions Dropdown -->
+                <div *ngIf="showRecipientSuggestions && recipientSuggestions.length > 0" class="suggestions-dropdown">
+                  <div
+                    *ngFor="let suggestion of recipientSuggestions; let i = index"
+                    class="suggestion-item"
+                    [class.selected]="i === selectedRecipientIndex"
+                    (click)="selectRecipientSuggestion(suggestion)"
+                    (mouseenter)="selectedRecipientIndex = i"
+                  >
+                    <div class="suggestion-content">
+                      <div class="suggestion-name">{{ suggestion.name }}</div>
+                      <div class="suggestion-details">
+                        <span class="suggestion-email">{{ suggestion.email }}</span>
+                        <span *ngIf="suggestion.phone" class="suggestion-phone">{{ suggestion.phone }}</span>
+                      </div>
+                    </div>
+                    <div class="suggestion-badge" [class.registered]="suggestion.isRegistered">
+                      <i class="fas" [class.fa-user]="suggestion.isRegistered" [class.fa-user-plus]="!suggestion.isRegistered"></i>
+                      <span>{{ suggestion.isRegistered ? 'Registered' : 'Contact' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="error-message" *ngIf="getFieldError('recipientName')">
                 {{ getFieldError('recipientName') }}
               </div>
@@ -232,6 +284,14 @@
           </div>
         </div>
 
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="switchTab('tracking')" [disabled]="!isDeliveryTabValid()">
+            Next: Location & Route
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+
         <!-- Map Section -  -->
 
       </form>
@@ -255,6 +315,7 @@
                   id="pickupLocation" 
                   formControlName="pickupLocation"
                   placeholder="Enter pickup address..."
+                  autocomplete="off"
                   [class.error]="isFieldInvalid('pickupLocation')"
                   (input)="searchAddresses($any($event.target).value, true)"
                   (focus)="showPickupSuggestions = pickupSuggestions.length > 0"
@@ -267,8 +328,11 @@
                   <div class="address-suggestions" *ngIf="showPickupSuggestions && pickupSuggestions.length > 0">
                     <div class="suggestion-item" 
                          *ngFor="let suggestion of pickupSuggestions"
+                         [class.no-results]="suggestion.type === 'no-results' || suggestion.type === 'error'"
                          (click)="selectAddress(suggestion, true)">
-                      <i class="fas fa-map-marker-alt"></i>
+                      <i class="fas" [class.fa-map-marker-alt]="suggestion.type !== 'no-results' && suggestion.type !== 'error'"
+                         [class.fa-info-circle]="suggestion.type === 'no-results'"
+                         [class.fa-exclamation-triangle]="suggestion.type === 'error'"></i>
                       <div class="suggestion-text">
                         <div class="suggestion-name">{{ suggestion.name || (suggestion.display_name ? suggestion.display_name.split(',')[0] : '') }}</div>
                         <div class="suggestion-address">{{ suggestion.display_name }}</div>
@@ -289,6 +353,7 @@
                     id="destination" 
                     formControlName="destination"
                     placeholder="Enter destination address..."
+                    autocomplete="off"
                     [class.error]="isFieldInvalid('destination')"
                     (input)="searchAddresses($any($event.target).value, false)"
                     (focus)="showDestinationSuggestions = destinationSuggestions.length > 0"
@@ -299,8 +364,11 @@
                   <div class="address-suggestions" *ngIf="showDestinationSuggestions && destinationSuggestions.length > 0">
                     <div class="suggestion-item" 
                          *ngFor="let suggestion of destinationSuggestions"
+                         [class.no-results]="suggestion.type === 'no-results' || suggestion.type === 'error'"
                          (click)="selectAddress(suggestion, false)">
-                      <i class="fas fa-flag-checkered"></i>
+                      <i class="fas" [class.fa-flag-checkered]="suggestion.type !== 'no-results' && suggestion.type !== 'error'"
+                         [class.fa-info-circle]="suggestion.type === 'no-results'"
+                         [class.fa-exclamation-triangle]="suggestion.type === 'error'"></i>
                       <div class="suggestion-text">
                         <div class="suggestion-name">{{ suggestion.name || (suggestion.display_name ? suggestion.display_name.split(',')[0] : '') }}</div>
                         <div class="suggestion-address">{{ suggestion.display_name }}</div>
@@ -341,6 +409,16 @@
           <div class="map-section">
             <div class="map-header">
               <h3>Delivery Route Preview</h3>
+              <div class="map-legend">
+                <div class="legend-item">
+                  <div class="legend-marker pickup-marker"></div>
+                  <span>Pickup Location</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-marker delivery-marker"></div>
+                  <span>Delivery Location</span>
+                </div>
+              </div>
               <div class="map-controls">
                 <button type="button" class="btn-secondary" (click)="fitMapToMarkers()">
                   <i class="fas fa-expand-arrows-alt"></i>
@@ -368,6 +446,17 @@
             </app-map>
           </div>
 
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="switchTab('delivery')">
+              <i class="fas fa-arrow-left"></i>
+              Back: Sender & Recipient
+            </button>
+            <button type="button" class="btn-primary" (click)="switchTab('preview')" [disabled]="!isTrackingTabValid()">
+              Next: Review & Submit
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
 
         </div>
       </div>
@@ -408,8 +497,13 @@
           </div>
           <!-- Add Create Delivery button here -->
           <div class="form-actions preview-actions">
-            <button type="button" class="submit-btn" (click)="onSubmit()" [disabled]="deliveryForm.invalid">
-              {{ getSubmitButtonText() }}
+            <button type="button" class="btn-secondary" (click)="switchTab('tracking')">
+              <i class="fas fa-arrow-left"></i>
+              Back: Location & Route
+            </button>
+            <button type="button" class="submit-btn" (click)="onSubmit()" [disabled]="deliveryForm.invalid || isSubmitting">
+              <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i>
+              {{ isSubmitting ? 'Creating Delivery...' : getSubmitButtonText() }}
             </button>
           </div>
         </div>

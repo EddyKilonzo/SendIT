@@ -31,6 +31,7 @@ interface User {
   // Driver application fields
   driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverApplicationDate?: string;
+  driverApplicationReason?: string;
   driverApprovalDate?: string;
   driverRejectionReason?: string;
 }
@@ -42,6 +43,7 @@ interface DriverApplication {
   phone?: string;
   driverApplicationStatus: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverApplicationDate?: string;
+  driverApplicationReason?: string;
   driverApprovalDate?: string;
   driverRejectionReason?: string;
   licenseNumber?: string;
@@ -284,10 +286,7 @@ Authentication Debug Info:
   }
 
   viewUserDetails(userId: string) {
-    console.log('Navigating to user details:', userId);
-    console.log('Current route:', this.router.url);
-    console.log('User ID type:', typeof userId);
-    console.log('User ID value:', userId);
+    console.log('🔍 Viewing user details for ID:', userId);
     
     if (!userId) {
       console.error('User ID is empty or undefined');
@@ -295,14 +294,76 @@ Authentication Debug Info:
       return;
     }
     
-    this.router.navigate(['/admin', 'user-details', userId])
-      .then(() => {
-        console.log('Navigation successful');
-      })
-      .catch((error) => {
-        console.error('Navigation failed:', error);
-        this.toastService.showError('Failed to navigate to user details');
-      });
+    // Find the user in the current list
+    const user = this.users.find(u => u.id === userId);
+    if (!user) {
+      console.error('❌ User not found in current list');
+      this.toastService.showError('User not found');
+      return;
+    }
+    
+    console.log('✅ Found user:', user);
+    
+    // Load additional user data before navigation
+    this.loadUserDetails(userId, user);
+  }
+
+  private loadUserDetails(userId: string, user: User) {
+    // Load user statistics and activity
+    this.adminService.getUserStats(userId).subscribe({
+      next: (stats) => {
+        console.log('✅ User stats loaded:', stats);
+        
+        // If user is a driver, also load driver-specific data
+        if (user.role === 'DRIVER') {
+          this.loadDriverDetails(userId, user, stats);
+        } else {
+          // Navigate with user data and stats
+          this.router.navigate(['/admin', 'user-details', userId], {
+            state: { 
+              userData: user,
+              userStats: stats
+            }
+          });
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error loading user stats:', error);
+        // Navigate with just user data if stats fail to load
+        this.router.navigate(['/admin', 'user-details', userId], {
+          state: { userData: user }
+        });
+      }
+    });
+  }
+
+  private loadDriverDetails(driverId: string, driver: User, userStats: any) {
+    // Load driver parcels and statistics
+    this.adminService.getDriverParcels(driverId).subscribe({
+      next: (driverData) => {
+        console.log('✅ Driver data loaded:', driverData);
+        
+        // Navigate with complete driver data
+        this.router.navigate(['/admin', 'user-details', driverId], {
+          state: { 
+            userData: driver,
+            userStats: userStats,
+            driverParcels: driverData.parcels || [],
+            driverStats: driverData.stats || {}
+          }
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error loading driver data:', error);
+        // Navigate with user data and stats if driver data fails
+        this.router.navigate(['/admin', 'user-details', driverId], {
+          state: { 
+            userData: driver,
+            userStats: userStats
+          }
+        });
+      }
+    });
   }
 
   // Tab Management
@@ -450,15 +511,18 @@ Authentication Debug Info:
     event.stopPropagation();
     const application = this.driverApplications.find(app => app.id === applicationId);
     if (application) {
+      console.log('Approving application for:', application.name, 'ID:', applicationId);
       this.adminService.approveDriverApplication(applicationId)
         .pipe(
           catchError(error => {
-            this.toastService.showError('Failed to approve application.');
-            console.error(error);
+            console.error('Approval error:', error);
+            const errorMessage = error.error?.message || 'Failed to approve application.';
+            this.toastService.showError(errorMessage);
             return of(null);
           })
         )
-        .subscribe(() => {
+        .subscribe((result) => {
+          console.log('Approval result:', result);
           this.toastService.showSuccess(`Application from ${application.name} has been approved successfully!`);
           this.loadDriverApplications();
         });
@@ -469,6 +533,7 @@ Authentication Debug Info:
     event.stopPropagation();
     const application = this.driverApplications.find(app => app.id === applicationId);
     if (application) {
+      console.log('Rejecting application for:', application.name, 'ID:', applicationId);
       this.selectedApplicationForRejection = application;
       this.rejectionReason = '';
       this.showRejectionModal = true;
@@ -481,18 +546,22 @@ Authentication Debug Info:
       return;
     }
 
+    console.log('Confirming rejection for:', this.selectedApplicationForRejection.name, 'Reason:', this.rejectionReason);
+
     this.adminService.rejectDriverApplication(this.selectedApplicationForRejection!.id, this.rejectionReason)
       .pipe(
         catchError(error => {
-          this.toastService.showError('Failed to reject application.');
-          console.error(error);
+          console.error('Rejection error:', error);
+          const errorMessage = error.error?.message || 'Failed to reject application.';
+          this.toastService.showError(errorMessage);
           return of(null);
         })
       )
-      .subscribe(() => {
+      .subscribe((result) => {
+        console.log('Rejection result:', result);
         this.toastService.showSuccess(`Application from ${this.selectedApplicationForRejection!.name} has been rejected.`);
         this.loadDriverApplications();
-      this.closeRejectionModal();
+        this.closeRejectionModal();
       });
   }
 
@@ -511,23 +580,29 @@ Authentication Debug Info:
   approveApplicationFromModal() {
     if (!this.selectedApplicationForReview) return;
     
+    console.log('Approving application from modal for:', this.selectedApplicationForReview.name);
+    
     this.adminService.approveDriverApplication(this.selectedApplicationForReview!.id)
       .pipe(
         catchError(error => {
-          this.toastService.showError('Failed to approve application from modal.');
-          console.error(error);
+          console.error('Modal approval error:', error);
+          const errorMessage = error.error?.message || 'Failed to approve application from modal.';
+          this.toastService.showError(errorMessage);
           return of(null);
         })
       )
-      .subscribe(() => {
+      .subscribe((result) => {
+        console.log('Modal approval result:', result);
         this.toastService.showSuccess(`Application from ${this.selectedApplicationForReview!.name} has been approved successfully!`);
-      this.closeApplicationDetailsModal();
+        this.closeApplicationDetailsModal();
         this.loadDriverApplications();
       });
   }
 
   rejectApplicationFromModal() {
     if (!this.selectedApplicationForReview) return;
+    
+    console.log('Rejecting application from modal for:', this.selectedApplicationForReview.name);
     
     this.selectedApplicationForRejection = this.selectedApplicationForReview;
     this.rejectionReason = '';

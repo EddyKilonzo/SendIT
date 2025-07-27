@@ -16,6 +16,7 @@ export class HomeNavbarComponent implements OnInit {
   isAuthenticated = false;
   currentUser: any = null;
   showUserMenu = false;
+  isMobileMenuOpen = false;
 
   constructor(
     private authService: AuthService,
@@ -104,5 +105,20 @@ export class HomeNavbarComponent implements OnInit {
       top: 0, 
       behavior: 'smooth' 
     });
+  }
+
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+    // Prevent body scrolling when mobile menu is open
+    if (this.isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
+
+  closeMobileMenu(): void {
+    this.isMobileMenuOpen = false;
+    document.body.style.overflow = '';
   }
 } 

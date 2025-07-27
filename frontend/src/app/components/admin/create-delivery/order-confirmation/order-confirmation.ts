@@ -6,6 +6,7 @@ import { ToastService } from '../../../shared/toast/toast.service';
 import { MapService } from '../../../../services/map.service';
 import { MapMarkerType } from '../../../../types/map.types';
 import { SidebarComponent } from '../../../shared/sidebar/sidebar';
+import { ParcelsService } from '../../../../services/parcels.service';
 import * as L from 'leaflet';
 
 interface OrderDetails {
@@ -63,7 +64,8 @@ export class OrderConfirmation implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private toastService: ToastService,
     private fb: FormBuilder,
-    private mapService: MapService
+    private mapService: MapService,
+    private parcelsService: ParcelsService
   ) {
     this.editForm = this.fb.group({
       senderName: ['', [Validators.required, Validators.minLength(2)]],
@@ -295,21 +297,38 @@ export class OrderConfirmation implements OnInit, OnDestroy {
   }
 
   assignDriver() {
+    console.log('🚀 OrderConfirmation assignDriver called');
+    console.log('📦 Current parcel details:', this.parcelDetails);
+    console.log('📋 Current order details:', this.orderDetails);
+    
     // Use the parcel details that were passed from create-delivery
     if (this.parcelDetails) {
+      console.log('✅ Using existing parcel details');
+      // Store parcel details in service as backup
+      this.parcelsService.setTempParcelDetails(this.parcelDetails, false);
+      
       // Navigate to driver assignment page with parcel details
       this.router.navigate(['/admin-assign-driver'], {
         state: { parcelDetails: this.parcelDetails }
       });
     } else {
+      console.log('⚠️ No parcel details, creating from order details');
       // Fallback: create parcel details from order details
       const parcelDetails = {
         id: this.orderDetails.parcelId || this.generateParcelId(),
+        trackingNumber: this.orderDetails.parcelId || this.generateParcelId(),
         pickupAddress: this.orderDetails.pickupLocation,
         deliveryAddress: this.orderDetails.destination,
         weight: this.orderDetails.parcelWeight,
-        price: this.orderDetails.totalPrice
+        price: this.orderDetails.totalPrice,
+        senderName: this.orderDetails.senderName,
+        recipientName: this.orderDetails.recipientName
       };
+      
+      console.log('📦 Created parcel details from order:', parcelDetails);
+      
+      // Store parcel details in service as backup
+      this.parcelsService.setTempParcelDetails(parcelDetails, false);
       
       // Navigate to driver assignment page with parcel details
       this.router.navigate(['/admin-assign-driver'], {

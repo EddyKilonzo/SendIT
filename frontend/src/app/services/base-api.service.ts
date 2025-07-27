@@ -5,6 +5,7 @@ import { catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { ToastService } from '../components/shared/toast/toast.service';
 import { AuthService } from './auth.service';
+import { map } from 'rxjs/operators';
 
 // Backend API Response DTOs
 export interface ApiResponseDto<T = unknown> {
@@ -36,6 +37,40 @@ export interface QueryOptionsDto {
   search?: string;
   include?: string[];
   fields?: string[];
+}
+
+export interface UserResponseDto {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
+  isActive: boolean;
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+  isAvailable?: boolean;
+  currentLat?: number;
+  currentLng?: number;
+  averageRating?: number;
+  totalRatings?: number;
+  totalDeliveries?: number;
+  completedDeliveries?: number;
+  cancelledDeliveries?: number;
+  averageDeliveryTime?: number;
+  onTimeDeliveryRate?: number;
+  lastActiveAt?: string;
+  totalEarnings?: number;
+  totalParcelsEverSent?: number;
+  totalParcelsReceived?: number;
+  preferredPaymentMethod?: string;
+  driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  driverApplicationDate?: string;
+  driverApprovalDate?: string;
+  driverRejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Parcel {
@@ -77,6 +112,12 @@ export interface Parcel {
   customerNotes?: string;
   createdAt: string;
   updatedAt: string;
+  sender?: UserResponseDto;
+  recipient?: UserResponseDto;
+  driver?: UserResponseDto;
+  statusHistory?: any[];
+  reviews?: any[];
+  deliveryProof?: any;
 }
 
 export interface UserDashboardData {
@@ -164,20 +205,24 @@ export class BaseApiService {
     limit: number;
   }> {
     const params = {
+      type: type,
       page: page.toString(),
-      limit: limit.toString(),
-      ...(type === 'sent' ? { senderId: this.authService.getCurrentUser()?.id } : { recipientId: this.authService.getCurrentUser()?.id })
+      limit: limit.toString()
     };
 
-    return this.http.get<{
-      parcels: Parcel[];
-      total: number;
-      page: number;
-      limit: number;
-    }>(`${this.apiUrl}/parcels`, { 
+    return this.http.get<Parcel[]>(`${this.apiUrl}/parcels/my-parcels`, { 
       headers: this.getHeaders(),
-      params: params as any
-    });
+      params: this.buildParams(params)
+    }).pipe(
+      catchError(error => this.handleError(error)),
+      // Transform the response to match the expected format
+      map(parcels => ({
+        parcels: parcels,
+        total: parcels.length,
+        page: page,
+        limit: limit
+      }))
+    );
   }
 
   // Get user dashboard data

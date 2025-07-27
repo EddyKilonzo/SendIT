@@ -787,8 +787,8 @@
 
 .application-status.status-rejected {
   background-color: #ffffff;
-  color: #DBBB02;
-  border: 1px solid #DBBB02;
+  color: #dc3545;
+  border: 1px solid #dc3545;
 }
 
 .application-status.status-not-applied {
@@ -821,6 +821,15 @@
 .detail-value {
   color: #2c3e50;
   font-weight: 600;
+}
+
+.detail-value.reason-preview {
+  font-style: italic;
+  color: #6c757d;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .application-actions {
@@ -1139,8 +1148,8 @@
 
 .application-status-badge.status-rejected {
   background-color: #ffffff;
-  color: #DBBB02;
-  border: 1px solid #DBBB02;
+  color: #dc3545;
+  border: 1px solid #dc3545;
 }
 
 .application-status-badge.status-not-applied {

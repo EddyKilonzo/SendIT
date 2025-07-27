@@ -54,6 +54,37 @@ export class UserDetails implements OnInit {
   userActivity: any[] = [];
   isLoadingParcels = false;
   isLoadingActivity = false;
+  
+  // Additional real data
+  userStats: any = null;
+  driverStats: any = null;
+  isLoadingStats = false;
+  
+  // Customer-specific data
+  customerStats = {
+    totalParcelsSent: 0,
+    totalParcelsReceived: 0,
+    totalSpent: 0,
+    averageRating: 0,
+    lastOrderDate: null as string | null
+  };
+  
+  // Driver-specific data
+  driverPerformance = {
+    totalDeliveries: 0,
+    completedDeliveries: 0,
+    onTimeDeliveries: 0,
+    averageRating: 0,
+    totalEarnings: 0,
+    averageDeliveryTime: 0,
+    successRate: 0,
+    currentAssignments: 0,
+    monthlyEarnings: 0,
+    weeklyDeliveries: 0,
+    estimatedTime: 0,
+    actualTime: 0,
+    timeAccuracy: 0
+  };
 
 
 
@@ -67,10 +98,226 @@ export class UserDetails implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.route.params.subscribe(params => {
-      const userId = params['id'];
-      this.loadUserDetails(userId);
+    // Get data passed from navigation state
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state) {
+      const state = navigation.extras.state as any;
+      this.user = state.userData;
+      
+      // Load comprehensive real data
+      this.route.params.subscribe(params => {
+        const userId = params['id'];
+        this.loadComprehensiveUserData(userId);
+      });
+    } else {
+      // Fallback: load user data from API
+      this.route.params.subscribe(params => {
+        const userId = params['id'];
+        this.loadUserDetails(userId);
+      });
+    }
+  }
+
+  private loadComprehensiveUserData(userId: string) {
+    this.isLoadingStats = true;
+    
+    // Load user statistics
+    this.adminService.getUserStats(userId).subscribe({
+      next: (stats) => {
+        this.userStats = stats;
+        console.log('✅ User stats loaded:', stats);
+        
+        // Load role-specific data
+        if (this.user?.role === 'DRIVER') {
+          this.loadDriverComprehensiveData(userId);
+        } else if (this.user?.role === 'CUSTOMER') {
+          this.loadCustomerComprehensiveData(userId);
+        }
+        
+        // Load common data
+        this.loadUserParcels(userId);
+        this.loadUserActivity(userId);
+        
+        this.isLoadingStats = false;
+      },
+      error: (error) => {
+        console.error('❌ Error loading user stats:', error);
+        this.isLoadingStats = false;
+        
+        // Still load other data even if stats fail
+        this.loadUserParcels(userId);
+        this.loadUserActivity(userId);
+      }
     });
+  }
+
+  private loadDriverComprehensiveData(driverId: string) {
+    // Load driver parcels and statistics
+    this.adminService.getDriverParcels(driverId).subscribe({
+      next: (driverData) => {
+        console.log('✅ Driver data loaded:', driverData);
+        
+        // Update assigned parcels
+        this.assignedParcels = driverData.parcels || [];
+        
+        // Update driver stats
+        if (driverData.stats) {
+          this.driverStats = driverData.stats;
+          this.updateDriverPerformanceData(driverData.stats);
+        }
+        
+        // Update user object with driver data
+        if (this.user && driverData.stats) {
+          this.user = {
+            ...this.user,
+            ...driverData.stats
+          };
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error loading driver data:', error);
+      }
+    });
+  }
+
+  private loadCustomerComprehensiveData(customerId: string) {
+    // Calculate customer statistics from parcels
+    this.calculateCustomerStats();
+  }
+
+  private updateDriverPerformanceData(stats: any) {
+    // Calculate actual delivery time from assigned parcels
+    const actualDeliveryTime = this.calculateAverageDeliveryTime(this.assignedParcels);
+    const timeComparison = this.calculateEstimatedVsActualTime(this.assignedParcels);
+    
+    this.driverPerformance = {
+      totalDeliveries: stats.totalDeliveries || 0,
+      completedDeliveries: stats.completedDeliveries || 0,
+      onTimeDeliveries: stats.onTimeDeliveries || 0,
+      averageRating: stats.averageRating || 0,
+      totalEarnings: stats.totalEarnings || 0,
+      averageDeliveryTime: actualDeliveryTime,
+      successRate: stats.completedDeliveries && stats.totalDeliveries ? 
+        ((stats.completedDeliveries / stats.totalDeliveries) * 100) : 0,
+      currentAssignments: this.assignedParcels.length,
+      monthlyEarnings: stats.monthlyEarnings || 0,
+      weeklyDeliveries: stats.weeklyDeliveries || 0,
+      estimatedTime: timeComparison.estimated,
+      actualTime: timeComparison.actual,
+      timeAccuracy: timeComparison.accuracy
+    };
+  }
+
+  private calculateCustomerStats() {
+    if (!this.userParcels.length) return;
+    
+    const sentParcels = this.userParcels.filter(p => p.senderId === this.user?.id);
+    const receivedParcels = this.userParcels.filter(p => p.recipientId === this.user?.id);
+    
+    this.customerStats = {
+      totalParcelsSent: sentParcels.length,
+      totalParcelsReceived: receivedParcels.length,
+      totalSpent: sentParcels.reduce((sum, p) => sum + (p.deliveryFee || 0), 0),
+      averageRating: this.calculateAverageRating(sentParcels),
+      lastOrderDate: this.getLastOrderDate(sentParcels)
+    };
+  }
+
+  private calculateAverageRating(parcels: any[]): number {
+    const ratedParcels = parcels.filter(p => p.rating);
+    if (!ratedParcels.length) return 0;
+    
+    const totalRating = ratedParcels.reduce((sum, p) => sum + p.rating, 0);
+    return Math.round((totalRating / ratedParcels.length) * 10) / 10;
+  }
+
+  private getLastOrderDate(parcels: any[]): string | null {
+    if (!parcels.length) return null;
+    
+    const sortedParcels = parcels.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    
+    return sortedParcels[0].createdAt;
+  }
+
+  private calculateAverageDeliveryTime(parcels: any[]): number {
+    const completedParcels = parcels.filter(p => 
+      p.status === 'delivered' && 
+      p.actualDeliveryTime && 
+      p.actualPickupTime
+    );
+    
+    if (!completedParcels.length) return 0;
+    
+    const totalDeliveryTime = completedParcels.reduce((sum, parcel) => {
+      const pickupTime = new Date(parcel.actualPickupTime).getTime();
+      const deliveryTime = new Date(parcel.actualDeliveryTime).getTime();
+      const actualTimeMinutes = (deliveryTime - pickupTime) / (1000 * 60); // Convert to minutes
+      
+      return sum + actualTimeMinutes;
+    }, 0);
+    
+    return Math.round(totalDeliveryTime / completedParcels.length);
+  }
+
+  private calculateEstimatedVsActualTime(parcels: any[]): { estimated: number; actual: number; accuracy: number } {
+    const completedParcels = parcels.filter(p => 
+      p.status === 'delivered' && 
+      p.actualDeliveryTime && 
+      p.actualPickupTime &&
+      p.estimatedDeliveryTime
+    );
+    
+    if (!completedParcels.length) return { estimated: 0, actual: 0, accuracy: 0 };
+    
+    let totalEstimated = 0;
+    let totalActual = 0;
+    
+    completedParcels.forEach(parcel => {
+      const pickupTime = new Date(parcel.actualPickupTime).getTime();
+      const deliveryTime = new Date(parcel.actualDeliveryTime).getTime();
+      const actualTimeMinutes = (deliveryTime - pickupTime) / (1000 * 60);
+      
+      // Get estimated time from parcel data (in minutes)
+      const estimatedTimeMinutes = parcel.estimatedDeliveryTime || 0;
+      
+      totalEstimated += estimatedTimeMinutes;
+      totalActual += actualTimeMinutes;
+    });
+    
+    const avgEstimated = totalEstimated / completedParcels.length;
+    const avgActual = totalActual / completedParcels.length;
+    const accuracy = avgEstimated > 0 ? ((avgEstimated - avgActual) / avgEstimated) * 100 : 0;
+    
+    return {
+      estimated: Math.round(avgEstimated),
+      actual: Math.round(avgActual),
+      accuracy: Math.round(accuracy)
+    };
+  }
+
+  private loadDriverData() {
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state) {
+      const state = navigation.extras.state as any;
+      
+      // Load driver parcels if available
+      if (state.driverParcels) {
+        this.assignedParcels = state.driverParcels;
+      }
+      
+      // Load driver stats if available
+      if (state.driverStats) {
+        // Update user object with driver stats
+        if (this.user) {
+          this.user = {
+            ...this.user,
+            ...state.driverStats
+          };
+        }
+      }
+    }
   }
 
   loadUserDetails(userId: string) {
@@ -113,6 +360,11 @@ export class UserDetails implements OnInit {
         next: (response) => {
           this.userParcels = response.parcels || [];
           this.isLoadingParcels = false;
+          
+          // Calculate customer stats after parcels are loaded
+          if (this.user?.role === 'CUSTOMER') {
+            this.calculateCustomerStats();
+          }
         }
       });
   }
@@ -314,6 +566,36 @@ export class UserDetails implements OnInit {
         return 'fa-user';
       default:
         return 'fa-user';
+    }
+  }
+
+  // Helper method to format currency
+  formatCurrency(amount: number): string {
+    if (!amount) return 'KSH 0';
+    return `KSH ${amount.toLocaleString('en-KE')}`;
+  }
+
+  // Helper method to format percentage
+  formatPercentage(value: number): string {
+    if (!value) return '0%';
+    return `${value.toFixed(1)}%`;
+  }
+
+  // Helper method to get status color
+  getStatusColor(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'active':
+      case 'delivered':
+      case 'completed':
+        return '#28a745';
+      case 'inactive':
+      case 'suspended':
+        return '#dc3545';
+      case 'pending':
+      case 'in-transit':
+        return '#ffc107';
+      default:
+        return '#6c757d';
     }
   }
 } 

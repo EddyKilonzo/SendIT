@@ -9,6 +9,12 @@
       <div class="header-left">
         <h1>Parcel Details</h1>
       </div>
+      <div class="header-right">
+        <button class="btn-back-to-parcels" (click)="goBack()">
+          <i class="fas fa-arrow-left"></i>
+          Back to Parcels
+        </button>
+      </div>
     </div>
 
     <!-- Dashboard Content -->
@@ -105,7 +111,13 @@
 
         <!-- Driver Information -->
         <div class="section" *ngIf="parcel.driver" style="animation-delay: 0.4s;">
-          <h2 class="section-title">Assigned Driver</h2>
+          <div class="section-header">
+            <h2 class="section-title">Assigned Driver</h2>
+            <button class="btn-reassign-driver" (click)="reassignDriver()">
+              <i class="fas fa-exchange-alt"></i>
+              Reassign Driver
+            </button>
+          </div>
           <div class="driver-info">
             <div class="driver-header">
               <div class="driver-avatar">
@@ -137,6 +149,8 @@
           </div>
         </div>
 
+
+
         <!-- No Driver Assigned -->
         <div class="section" *ngIf="!parcel.driver" style="animation-delay: 0.4s;">
           <h2 class="section-title">Driver Assignment</h2>
@@ -147,7 +161,7 @@
             <div class="no-driver-content">
               <h3>No Driver Assigned</h3>
               <p>This parcel has not been assigned to a driver yet.</p>
-              <button class="btn-assign-driver" routerLink="/admin-assign-driver">
+              <button class="btn-assign-driver" (click)="assignDriver()">
                 <i class="fas fa-plus"></i>
                 Assign Driver
               </button>
@@ -194,6 +208,7 @@
           <!-- Map View -->
           <div class="map-container" *ngIf="showMapView">
             <app-map
+              #mapComponent
               [height]="'400px'"
               [markers]="mapMarkers"
               [markerTypes]="mapMarkerTypes"

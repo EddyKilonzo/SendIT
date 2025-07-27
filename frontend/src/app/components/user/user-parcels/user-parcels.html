@@ -9,6 +9,16 @@
       <div class="header-left">
         <h1>My Parcels</h1>
       </div>
+      <div class="header-right">
+        <button 
+          class="refresh-btn"
+          (click)="refreshParcels()"
+          [disabled]="loading"
+        >
+          <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+          {{ loading ? 'Loading...' : 'Refresh' }}
+        </button>
+      </div>
     </div>
 
     <!-- Dashboard Content -->
@@ -40,7 +50,7 @@
           </div>
           <div class="card-content">
             <h3 class="card-title">Total Parcels {{ activeTab === 'sent' ? 'Sent' : 'Received' }}</h3>
-            <p class="card-value">{{ totalParcelsSent }}</p>
+            <p class="card-value">{{ getCurrentTotalParcels() }}</p>
           </div>
         </div>
         <div class="summary-card">
@@ -49,14 +59,22 @@
           </div>
           <div class="card-content">
             <h3 class="card-title">Most Recent {{ activeTab === 'sent' ? 'Shipment' : 'Delivery' }}</h3>
-            <p class="card-value">{{ mostRecentShipment }}</p>
+            <p class="card-value">{{ getCurrentMostRecentDate() || 'No parcels yet' }}</p>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-section">
+      <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading parcels...</p>
+      </div>
+    </div>
+
     <!-- Filters and Search -->
-    <div class="filters-section">
+    <div class="filters-section" *ngIf="!loading">
       <div class="filters-container">
         <div class="filter-group">
           <label for="status-filter">Status</label>
@@ -77,7 +95,7 @@
             <input 
               type="text" 
               class="search-input" 
-              placeholder="Search"
+              placeholder="Search by tracking number, addresses, or names"
               [(ngModel)]="searchQuery"
             >
           </div>
@@ -97,17 +115,17 @@
     </div>
 
     <!-- Parcels Table -->
-    <div class="table-section">
+    <div class="table-section" *ngIf="!loading">
       <div class="table-container">
         <table class="parcels-table">
           <thead>
             <tr>
-              <th>Parcel ID</th>
+              <th>Tracking Number</th>
               <th>Weight</th>
               <th>Status</th>
               <th>Pickup Address</th>
               <th>Delivery Address</th>
-              <th>Expected Delivery</th>
+              <th>Created Date</th>
             </tr>
           </thead>
           <tbody>
@@ -116,24 +134,38 @@
               class="parcel-row"
               (click)="viewParcelDetails(parcel.id)"
             >
-              <td class="parcel-id">{{ parcel.id }}</td>
+              <td class="parcel-id">{{ parcel.trackingNumber }}</td>
               <td class="parcel-weight">{{ parcel.weight }}kg</td>
               <td>
                 <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
-                  {{ parcel.status }}
+                  {{ getStatusDisplayName(parcel.status) }}
                 </span>
               </td>
               <td class="address">{{ parcel.pickupAddress }}</td>
               <td class="address">{{ parcel.deliveryAddress }}</td>
-              <td class="delivery-date">{{ parcel.expectedDelivery }}</td>
+              <td class="delivery-date">{{ parcel.createdAt | date:'shortDate' }}</td>
             </tr>
           </tbody>
         </table>
+        
+        <!-- Empty State -->
+        <div *ngIf="getFilteredParcels().length === 0" class="empty-state">
+          <div class="empty-state-content">
+            <i class="fas fa-box-open"></i>
+            <h3>No parcels found</h3>
+            <p *ngIf="!statusFilter && !searchQuery">
+              {{ activeTab === 'sent' ? 'You haven\'t sent any parcels yet.' : 'You haven\'t received any parcels yet.' }}
+            </p>
+            <p *ngIf="statusFilter || searchQuery">
+              No parcels match your current filters. Try adjusting your search criteria.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Notifications Section -->
-    <div class="notifications-section">
+    <div class="notifications-section" *ngIf="!loading">
       <h2 class="section-title">Notifications</h2>
       <div class="notifications-list">
         <div 

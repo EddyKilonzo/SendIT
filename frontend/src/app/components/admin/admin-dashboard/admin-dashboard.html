@@ -37,15 +37,15 @@
           <div class="summary-cards">
             <div class="summary-card">
               <h3>Total parcels</h3>
-              <p class="card-value">1200</p>
+              <p class="card-value">{{ dashboardStats?.totalParcels || 0 }}</p>
             </div>
             <div class="summary-card">
               <h3>Deliveries in Progress</h3>
-              <p class="card-value">30</p>
+              <p class="card-value">{{ dashboardStats?.inTransitParcels || 0 }}</p>
             </div>
             <div class="summary-card">
               <h3>Revenue</h3>
-              <p class="card-value">KSH 57,544.00</p>
+              <p class="card-value">{{ formatCurrency(systemStats?.totalRevenue || 0) }}</p>
             </div>
           </div>
 
@@ -141,7 +141,7 @@
                     </div>
                     <div class="revenue-content">
                       <span class="revenue-label">Current Month</span>
-                      <span class="revenue-value">{{ analyticsData.revenueTrends.currentMonth || 0 | currency }}</span>
+                      <span class="revenue-value">{{ formatCurrency(analyticsData.revenueTrends.currentMonth || 0) }}</span>
                       <span class="revenue-growth" [class.positive]="analyticsData.revenueTrends.growth.includes('+')" [class.negative]="analyticsData.revenueTrends.growth.includes('-')">
                         {{ analyticsData.revenueTrends.growth }}
                       </span>
@@ -153,7 +153,7 @@
                     </div>
                     <div class="revenue-content">
                       <span class="revenue-label">Previous Month</span>
-                      <span class="revenue-value">{{ analyticsData.revenueTrends.previousMonth || 0 | currency }}</span>
+                      <span class="revenue-value">{{ formatCurrency(analyticsData.revenueTrends.previousMonth || 0) }}</span>
                     </div>
                   </div>
                   <div class="revenue-card tertiary">
@@ -162,7 +162,7 @@
                     </div>
                     <div class="revenue-content">
                       <span class="revenue-label">Daily Average</span>
-                      <span class="revenue-value">{{ (analyticsData.revenueTrends.currentMonth / 30) || 0 | currency }}</span>
+                      <span class="revenue-value">{{ formatCurrency((analyticsData.revenueTrends.currentMonth / 30) || 0) }}</span>
                     </div>
                   </div>
                 </div>

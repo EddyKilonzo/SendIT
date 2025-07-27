@@ -1,20 +1,23 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
+import { ParcelsService } from '../../../services/parcels.service';
+import { ToastService } from '../../shared/toast/toast.service';
 
 interface DeliveryHistoryItem {
   id: string;
-  parcelId: string;
-  deliveryDate: string;
+  trackingNumber: string;
   pickupAddress: string;
   deliveryAddress: string;
-  status: 'Completed' | 'Canceled' | 'Failed';
+  status: 'delivered' | 'cancelled';
   customerRating?: number;
   customerName?: string;
   completedTime?: string;
   notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 @Component({
@@ -35,109 +38,100 @@ export class DeliveryHistory implements OnInit {
   showRatingDropdown = false;
   
   currentPage = 1;
-  itemsPerPage = 5;
+  itemsPerPage = 6;
   
-  deliveryHistory: DeliveryHistoryItem[] = [
-    {
-      id: '1',
-      parcelId: '123456',
-      deliveryDate: '2024-01-15',
-      pickupAddress: '123 Elm St, Anytown',
-      deliveryAddress: '456 Oak Ave, Anytown',
-      status: 'Completed',
-      customerRating: 5,
-      customerName: 'John Smith',
-      completedTime: '10:30 AM',
-      notes: 'Delivered successfully'
-    },
-    {
-      id: '2',
-      parcelId: '789012',
-      deliveryDate: '2024-01-10',
-      pickupAddress: '789 Pine Ln, Anytown',
-      deliveryAddress: '101 Maple Dr, Anytown',
-      status: 'Canceled',
-      customerName: 'Jane Doe',
-      notes: 'Customer requested cancellation'
-    },
-    {
-      id: '3',
-      parcelId: '345678',
-      deliveryDate: '2024-01-05',
-      pickupAddress: '222 Cedar Rd, Anytown',
-      deliveryAddress: '333 Birch Ct, Anytown',
-      status: 'Completed',
-      customerRating: 4,
-      customerName: 'Mike Johnson',
-      completedTime: '2:15 PM',
-      notes: 'Delivered to front door'
-    },
-    {
-      id: '4',
-      parcelId: '901234',
-      deliveryDate: '2024-01-03',
-      pickupAddress: '444 Spruce Way, Anytown',
-      deliveryAddress: '555 Willow Place, Anytown',
-      status: 'Completed',
-      customerRating: 5,
-      customerName: 'Sarah Wilson',
-      completedTime: '11:45 AM',
-      notes: 'Customer was very satisfied'
-    },
-    {
-      id: '5',
-      parcelId: '567890',
-      deliveryDate: '2024-01-01',
-      pickupAddress: '666 Aspen Circle, Anytown',
-      deliveryAddress: '777 Poplar Street, Anytown',
-      status: 'Failed',
-      customerName: 'David Brown',
-      notes: 'Address not found'
-    },
-    {
-      id: '6',
-      parcelId: '111222',
-      deliveryDate: '2024-01-20',
-      pickupAddress: '888 Pine Street, Anytown',
-      deliveryAddress: '999 Oak Lane, Anytown',
-      status: 'Completed',
-      customerRating: 5,
-      customerName: 'Emily Davis',
-      completedTime: '3:20 PM',
-      notes: 'Delivered to reception desk'
-    }
-  ];
+  deliveryHistory: DeliveryHistoryItem[] = [];
+  isLoading: boolean = false;
+  error: string | null = null;
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private parcelsService: ParcelsService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit() {
     this.loadDeliveryHistory();
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+    
+    // Check if click is outside status dropdown
+    if (!target.closest('.filter-container') || !target.closest('.status-dropdown')) {
+      this.showStatusDropdown = false;
+    }
+    
+    // Check if click is outside rating dropdown
+    if (!target.closest('.filter-container') || !target.closest('.rating-dropdown')) {
+      this.showRatingDropdown = false;
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey() {
+    this.showStatusDropdown = false;
+    this.showRatingDropdown = false;
+  }
+
   loadDeliveryHistory() {
-    console.log('Loading delivery history...');
+    this.isLoading = true;
+    this.error = null;
+
+    this.parcelsService.getDriverDeliveryHistory().subscribe({
+      next: (parcels) => {
+        this.deliveryHistory = this.mapParcelsToHistory(parcels);
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading delivery history:', error);
+        this.error = 'Failed to load delivery history';
+        this.isLoading = false;
+        this.toastService.showError('Failed to load delivery history');
+      }
+    });
+  }
+
+  mapParcelsToHistory(parcels: any[]): DeliveryHistoryItem[] {
+    return parcels.map(parcel => ({
+      id: parcel.id,
+      trackingNumber: parcel.trackingNumber,
+      pickupAddress: parcel.pickupAddress,
+      deliveryAddress: parcel.deliveryAddress,
+      status: parcel.status,
+      customerRating: parcel.reviews?.[0]?.rating,
+      customerName: parcel.recipientName,
+      completedTime: new Date(parcel.updatedAt).toLocaleTimeString(),
+      notes: parcel.statusHistory?.[0]?.notes || 'Delivery completed',
+      createdAt: parcel.createdAt,
+      updatedAt: parcel.updatedAt
+    }));
   }
 
   get filteredHistory(): DeliveryHistoryItem[] {
     let filtered = this.deliveryHistory;
 
-    if (this.searchTerm) {
-      const search = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(delivery => 
-        delivery.parcelId.toLowerCase().includes(search) ||
-        delivery.pickupAddress.toLowerCase().includes(search) ||
-        delivery.deliveryAddress.toLowerCase().includes(search) ||
-        (delivery.customerName && delivery.customerName.toLowerCase().includes(search))
+    // Apply search filter
+    if (this.searchTerm.trim()) {
+      const searchLower = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(item =>
+        item.trackingNumber.toLowerCase().includes(searchLower) ||
+        item.customerName?.toLowerCase().includes(searchLower) ||
+        item.pickupAddress.toLowerCase().includes(searchLower) ||
+        item.deliveryAddress.toLowerCase().includes(searchLower)
       );
     }
 
+    // Apply status filter
     if (this.selectedStatus !== 'all') {
-      filtered = filtered.filter(delivery => delivery.status === this.selectedStatus);
+      filtered = filtered.filter(item => item.status === this.selectedStatus);
     }
 
+    // Apply rating filter
     if (this.selectedRating !== 'all') {
-      const rating = parseInt(this.selectedRating);
-      filtered = filtered.filter(delivery => delivery.customerRating === rating);
+      const ratingValue = parseInt(this.selectedRating);
+      filtered = filtered.filter(item => item.customerRating === ratingValue);
     }
 
     return filtered;
@@ -155,23 +149,43 @@ export class DeliveryHistory implements OnInit {
 
   get pages(): number[] {
     const pages: number[] = [];
-    for (let i = 1; i <= this.totalPages; i++) {
+    const totalPages = this.totalPages;
+    const currentPage = this.currentPage;
+    
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
+    
     return pages;
   }
 
   getStatusClass(status: string): string {
     switch (status) {
-      case 'Completed': return 'status-completed';
-      case 'Canceled': return 'status-canceled';
-      case 'Failed': return 'status-failed';
-      default: return '';
+      case 'delivered':
+        return 'status-delivered';
+      case 'cancelled':
+        return 'status-cancelled';
+      default:
+        return 'status-delivered';
+    }
+  }
+
+  getStatusDisplayName(status: string): string {
+    switch (status) {
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'Delivered';
     }
   }
 
   getRatingStars(rating?: number): string {
-    if (!rating) return '';
+    if (!rating) return '☆☆☆☆☆';
     return '★'.repeat(rating) + '☆'.repeat(5 - rating);
   }
 
@@ -188,22 +202,28 @@ export class DeliveryHistory implements OnInit {
   selectStatus(status: string) {
     this.selectedStatus = status;
     this.showStatusDropdown = false;
-    this.currentPage = 1;
+    this.currentPage = 1; // Reset to first page when filter changes
   }
 
   selectRating(rating: string) {
     this.selectedRating = rating;
     this.showRatingDropdown = false;
-    this.currentPage = 1;
+    this.currentPage = 1; // Reset to first page when filter changes
   }
 
   clearFilters() {
     this.searchTerm = '';
     this.selectedStatus = 'all';
     this.selectedRating = 'all';
+    this.currentPage = 1;
     this.showStatusDropdown = false;
     this.showRatingDropdown = false;
-    this.currentPage = 1;
+  }
+
+  hasActiveFilters(): boolean {
+    return this.searchTerm.trim() !== '' || 
+           this.selectedStatus !== 'all' || 
+           this.selectedRating !== 'all';
   }
 
   clearSearch() {
@@ -230,14 +250,14 @@ export class DeliveryHistory implements OnInit {
   }
 
   viewParcelDetails(deliveryId: string) {
-    this.router.navigate(['/driver-parcel-details', deliveryId]);
+    this.router.navigate(['/driver/parcel-details', deliveryId]);
   }
 
-  onDocumentClick(event: Event) {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.filter-container')) {
-      this.showStatusDropdown = false;
-      this.showRatingDropdown = false;
-    }
+  get startItem(): number {
+    return (this.currentPage - 1) * this.itemsPerPage + 1;
+  }
+
+  get endItem(): number {
+    return Math.min(this.currentPage * this.itemsPerPage, this.filteredHistory.length);
   }
 } 

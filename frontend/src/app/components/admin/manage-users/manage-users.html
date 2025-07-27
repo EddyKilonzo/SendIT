@@ -220,6 +220,10 @@
                 <span class="detail-label">Vehicle:</span>
                 <span class="detail-value">{{ application.vehicleNumber }} ({{ application.vehicleType }})</span>
               </div>
+              <div class="detail-row" *ngIf="application.driverApplicationReason">
+                <span class="detail-label">Reason:</span>
+                <span class="detail-value reason-preview">{{ application.driverApplicationReason }}</span>
+              </div>
                 <div class="detail-row" *ngIf="application.driverApplicationDate">
                 <span class="detail-label">Applied:</span>
                   <span class="detail-value">{{ application.driverApplicationDate | date:'medium' }}</span>
@@ -303,8 +307,15 @@
           </div>
         </div>
 
+        <div class="section" *ngIf="selectedApplicationForReview.driverApplicationReason">
+          <h5><i class="fas fa-comment"></i> Application Reason</h5>
+          <div class="reason-text">
+            {{ selectedApplicationForReview.driverApplicationReason }}
+          </div>
+        </div>
+
         <div class="section" *ngIf="selectedApplicationForReview.driverRejectionReason">
-          <h5><i class="fas fa-comment"></i> Rejection Reason</h5>
+          <h5><i class="fas fa-times-circle"></i> Rejection Reason</h5>
           <div class="reason-text">
             {{ selectedApplicationForReview.driverRejectionReason }}
           </div>

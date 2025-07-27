@@ -22,16 +22,20 @@
             type="text" 
             placeholder="Search by Parcel ID, Sender, Receiver"
             [(ngModel)]="searchTerm"
+            (keyup.enter)="onSearch()"
+            (blur)="onSearch()"
             class="search-input"
           >
         </div>
         
-        <select [(ngModel)]="selectedStatus" class="filter-select">
-          <option value="">Status</option>
-          <option value="Pending">Pending</option>
-          <option value="In Transit">In Transit</option>
-          <option value="Delivered">Delivered</option>
-          <option value="Cancelled">Cancelled</option>
+        <select [(ngModel)]="selectedStatus" (change)="onStatusChange()" class="filter-select">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="assigned">Assigned</option>
+          <option value="picked_up">Picked Up</option>
+          <option value="in_transit">In Transit</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
         </select>
         
         <button class="btn-clear-filters" (click)="clearFilters()">
@@ -61,26 +65,26 @@
               <div class="loading-spinner">Loading parcels...</div>
             </td>
           </tr>
-          <tr *ngIf="!loading && filteredParcels.length === 0">
+          <tr *ngIf="!loading && parcels.length === 0">
             <td colspan="7" class="no-data-cell">
               <div class="no-data">No parcels found</div>
             </td>
           </tr>
           <tr *ngFor="let parcel of paginatedParcels">
-            <td>{{ parcel.id }}</td>
-            <td>{{ parcel.sender }}</td>
-            <td>{{ parcel.receiver }}</td>
+            <td>{{ parcel.trackingNumber }}</td>
+            <td>{{ parcel.senderName }}</td>
+            <td>{{ parcel.recipientName }}</td>
             <td>
               <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
-                {{ parcel.status }}
+                {{ getStatusDisplayName(parcel.status) }}
               </span>
             </td>
             <td>
-              <span class="driver-name" [ngClass]="{'unassigned': parcel.driver === 'Unassigned'}">
-                {{ parcel.driver || 'Unassigned' }}
+              <span class="driver-name" [ngClass]="{'unassigned': !parcel.driver}">
+                {{ parcel.driver?.name || 'Unassigned' }}
               </span>
             </td>
-            <td>{{ parcel.expectedDelivery }}</td>
+            <td>{{ parcel.createdAt | date:'shortDate' }}</td>
             <td>
               <button class="btn-view-details" (click)="viewDetails(parcel.id)">
                 View Details
@@ -91,10 +95,64 @@
       </table>
     </div>
 
+    <!-- Mobile Parcels Cards -->
+    <div class="mobile-parcels">
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-card">
+        <div class="loading-spinner">Loading parcels...</div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!loading && parcels.length === 0" class="no-data-card">
+        <div class="no-data">No parcels found</div>
+      </div>
+
+      <!-- Parcel Cards -->
+      <div *ngFor="let parcel of paginatedParcels" class="parcel-card">
+        <div class="parcel-card-header">
+          <div class="parcel-id">{{ parcel.trackingNumber }}</div>
+          <div class="parcel-status">
+            <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
+              {{ getStatusDisplayName(parcel.status) }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="parcel-details">
+          <div class="parcel-detail-row">
+            <span class="detail-label">Sender:</span>
+            <span class="detail-value">{{ parcel.senderName }}</span>
+          </div>
+          <div class="parcel-detail-row">
+            <span class="detail-label">Receiver:</span>
+            <span class="detail-value">{{ parcel.recipientName }}</span>
+          </div>
+          <div class="parcel-detail-row">
+            <span class="detail-label">Driver:</span>
+            <span class="detail-value">
+              <span class="driver-name" [ngClass]="{'unassigned': !parcel.driver}">
+                {{ parcel.driver?.name || 'Unassigned' }}
+              </span>
+            </span>
+          </div>
+          <div class="parcel-detail-row">
+            <span class="detail-label">Expected:</span>
+            <span class="detail-value">{{ parcel.createdAt | date:'shortDate' }}</span>
+          </div>
+        </div>
+        
+        <div class="parcel-actions">
+          <button class="btn-view-details" (click)="viewDetails(parcel.id)">
+            View Details
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Pagination -->
-    <div class="pagination-container" *ngIf="!loading && filteredParcels.length > 0">
+    <div class="pagination-container" *ngIf="!loading && parcels.length > 0">
       <div class="pagination-info">
-        <span>Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ endIndex }} of {{ filteredParcels.length }} parcels</span>
+        <span>Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ endIndex }} of {{ totalParcels }} parcels</span>
       </div>
       <div class="pagination-controls">
         <button 

@@ -207,6 +207,35 @@
   width: 16px;
 }
 
+/* Burger menu button - hidden by default */
+.burger-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #333;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  margin-right: 12px;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.burger-menu-btn:hover {
+  background-color: #f8f9fa;
+  color: #DBBB02;
+}
+
+.burger-menu-btn:active {
+  background-color: #e9ecef;
+  transform: scale(0.95);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .navbar {
@@ -217,8 +246,12 @@
     padding-left: 1rem;
   }
   
+  .burger-menu-btn {
+    display: flex;
+  }
+  
   .logo-image {
-    height: 40px;
+    height: 60px;
   }
   
   .nav-actions {
@@ -232,5 +265,38 @@
   .user-dropdown {
     right: -10px;
     min-width: 180px;
+  }
+}
+
+/* Ensure burger menu is hidden on desktop */
+@media (min-width: 769px) {
+  .burger-menu-btn {
+    display: none !important;
+  }
+}
+
+/* Touch optimizations for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .burger-menu-btn:hover {
+    background-color: transparent;
+    color: #333;
+  }
+  
+  .burger-menu-btn:active {
+    background-color: #f8f9fa;
+    color: #DBBB02;
+  }
+}
+
+/* Additional mobile breakpoints for logo sizing */
+@media (max-width: 480px) {
+  .logo-image {
+    height: 70px;
+  }
+}
+
+@media (max-width: 360px) {
+  .logo-image {
+    height: 65px;
   }
 }

@@ -3,19 +3,23 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
+import { ParcelsService } from '../../../services/parcels.service';
+import { ToastService } from '../../shared/toast/toast.service';
 
 interface AssignedParcel {
   id: string;
-  parcelId: string;
+  trackingNumber: string;
   pickupAddress: string;
   deliveryAddress: string;
-  status: 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled';
+  status: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
   scheduledTime?: string;
   customerName?: string;
   customerPhone?: string;
   weight?: number;
   specialInstructions?: string;
   assignedDate: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 @Component({
@@ -34,62 +38,21 @@ export class AssignedParcels implements OnInit {
   showFilterDropdown = false;
   selectedParcelId: string | null = null;
   
-  assignedParcels: AssignedParcel[] = [
-    {
-      id: '1',
-      parcelId: '#12345',
-      pickupAddress: '123 Elm Street, Anytown',
-      deliveryAddress: '456 Oak Avenue, Anytown',
-      status: 'Pending',
-      scheduledTime: '10:00 AM',
-      customerName: 'John Smith',
-      customerPhone: '+1-555-123-4567',
-      weight: 2.5,
-      specialInstructions: 'Please call before delivery',
-      assignedDate: '2024-07-20'
-    },
-    {
-      id: '2',
-      parcelId: '#67890',
-      pickupAddress: '789 Pine Lane, Anytown',
-      deliveryAddress: '101 Maple Drive, Anytown',
-      status: 'In Transit',
-      scheduledTime: '11:30 AM',
-      customerName: 'Jane Doe',
-      customerPhone: '+1-555-987-6543',
-      weight: 1.8,
-      specialInstructions: 'Leave at front door if no answer',
-      assignedDate: '2024-07-20'
-    },
-    {
-      id: '3',
-      parcelId: '#24680',
-      pickupAddress: '222 Cedar Road, Anytown',
-      deliveryAddress: '333 Birch Court, Anytown',
-      status: 'Pending',
-      scheduledTime: '1:00 PM',
-      customerName: 'Mike Johnson',
-      customerPhone: '+1-555-456-7890',
-      weight: 3.2,
-      specialInstructions: 'Ring doorbell twice',
-      assignedDate: '2024-07-20'
-    },
-    {
-      id: '5',
-      parcelId: '#98765',
-      pickupAddress: '666 Aspen Circle, Anytown',
-      deliveryAddress: '777 Poplar Street, Anytown',
-      status: 'Pending',
-      scheduledTime: '3:45 PM',
-      customerName: 'David Brown',
-      customerPhone: '+1-555-321-6540',
-      weight: 4.0,
-      specialInstructions: 'Heavy package, use elevator',
-      assignedDate: '2024-07-20'
-    }
-  ];
+  assignedParcels: AssignedParcel[] = [];
+  isLoading: boolean = false;
+  error: string | null = null;
 
-  constructor(private router: Router) {}
+  // Pagination
+  currentPage = 1;
+  itemsPerPage = 10;
+  totalItems = 0;
+  totalPages = 0;
+
+  constructor(
+    private router: Router,
+    private parcelsService: ParcelsService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit() {
     this.loadAssignedParcels();
@@ -104,51 +67,138 @@ export class AssignedParcels implements OnInit {
   }
 
   loadAssignedParcels() {
-    // This would typically load from a service
-    console.log('Loading assigned parcels...');
+    this.isLoading = true;
+    this.error = null;
+
+    this.parcelsService.getDriverParcels().subscribe({
+      next: (parcels) => {
+        this.assignedParcels = this.mapParcelsToAssignedParcels(parcels);
+        this.totalItems = this.assignedParcels.length;
+        this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading assigned parcels:', error);
+        this.error = 'Failed to load assigned parcels';
+        this.isLoading = false;
+        this.toastService.showError('Failed to load assigned parcels');
+      }
+    });
+  }
+
+  mapParcelsToAssignedParcels(parcels: any[]): AssignedParcel[] {
+    return parcels.map(parcel => ({
+      id: parcel.id,
+      trackingNumber: parcel.trackingNumber,
+      pickupAddress: parcel.pickupAddress,
+      deliveryAddress: parcel.deliveryAddress,
+      status: parcel.status,
+      scheduledTime: this.formatTime(parcel.createdAt),
+      customerName: parcel.recipientName,
+      customerPhone: parcel.recipientPhone,
+      weight: parcel.weight,
+      specialInstructions: parcel.deliveryInstructions,
+      assignedDate: new Date(parcel.assignedAt || parcel.createdAt).toLocaleDateString(),
+      createdAt: parcel.createdAt,
+      updatedAt: parcel.updatedAt
+    }));
+  }
+
+  formatTime(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
   }
 
   get filteredParcels(): AssignedParcel[] {
     let filtered = this.assignedParcels;
 
-    // Filter out delivered parcels - they should go to history
-    filtered = filtered.filter(parcel => parcel.status !== 'Delivered');
-
     // Apply search filter
-    if (this.searchTerm) {
-      const search = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(parcel => 
-        parcel.parcelId.toLowerCase().includes(search) ||
-        parcel.pickupAddress.toLowerCase().includes(search) ||
-        parcel.deliveryAddress.toLowerCase().includes(search) ||
-        (parcel.customerName && parcel.customerName.toLowerCase().includes(search))
+    if (this.searchTerm.trim()) {
+      const searchLower = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(parcel =>
+        parcel.trackingNumber.toLowerCase().includes(searchLower) ||
+        parcel.customerName?.toLowerCase().includes(searchLower) ||
+        parcel.pickupAddress.toLowerCase().includes(searchLower) ||
+        parcel.deliveryAddress.toLowerCase().includes(searchLower)
       );
     }
 
     // Apply status filter
     if (this.selectedFilter !== 'all') {
-      filtered = filtered.filter(parcel => {
-        switch (this.selectedFilter) {
-          case 'pending':
-            return parcel.status === 'Pending';
-          case 'in-transit':
-            return parcel.status === 'In Transit';
-          default:
-            return true;
-        }
-      });
+      filtered = filtered.filter(parcel => parcel.status === this.selectedFilter);
     }
 
     return filtered;
   }
 
+  get paginatedParcels(): AssignedParcel[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredParcels.slice(startIndex, endIndex);
+  }
+
+  get totalFilteredItems(): number {
+    return this.filteredParcels.length;
+  }
+
+  get totalFilteredPages(): number {
+    return Math.ceil(this.totalFilteredItems / this.itemsPerPage);
+  }
+
+  get pages(): number[] {
+    const pages: number[] = [];
+    const totalPages = this.totalFilteredPages;
+    const currentPage = this.currentPage;
+    
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
+  }
+
   getStatusClass(status: string): string {
     switch (status) {
-      case 'Pending': return 'status-pending';
-      case 'In Transit': return 'status-transit';
-      case 'Delivered': return 'status-delivered';
-      case 'Cancelled': return 'status-cancelled';
-      default: return '';
+      case 'pending':
+        return 'status-pending';
+      case 'assigned':
+        return 'status-assigned';
+      case 'picked_up':
+        return 'status-picked-up';
+      case 'in_transit':
+        return 'status-in-transit';
+      case 'delivered':
+        return 'status-delivered';
+      case 'cancelled':
+        return 'status-cancelled';
+      default:
+        return 'status-pending';
+    }
+  }
+
+  getStatusDisplayName(status: string): string {
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'assigned':
+        return 'Assigned';
+      case 'picked_up':
+        return 'Picked Up';
+      case 'in_transit':
+        return 'In Transit';
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'Pending';
     }
   }
 
@@ -159,45 +209,89 @@ export class AssignedParcels implements OnInit {
   selectFilter(filter: string) {
     this.selectedFilter = filter;
     this.showFilterDropdown = false;
+    this.currentPage = 1; // Reset to first page when filter changes
   }
 
   clearFilters() {
     this.searchTerm = '';
     this.selectedFilter = 'all';
-    this.showFilterDropdown = false;
+    this.currentPage = 1;
   }
 
   hasActiveFilters(): boolean {
-    return this.searchTerm !== '' || this.selectedFilter !== 'all';
+    return this.searchTerm.trim() !== '' || this.selectedFilter !== 'all';
   }
 
   clearSearch() {
     this.searchTerm = '';
+    this.currentPage = 1;
+  }
+
+  refreshPage() {
+    this.loadAssignedParcels();
+    this.toastService.showSuccess('Page refreshed successfully');
   }
 
   viewParcelDetails(parcelId: string) {
-    this.selectedParcelId = parcelId;
-    this.router.navigate(['/driver-parcel-details', parcelId]);
+    this.router.navigate(['/driver/parcel-details', parcelId]);
   }
 
   startDelivery(parcelId: string) {
-    console.log('Starting delivery for parcel:', parcelId);
-    // This would update the parcel status to 'In Transit'
-    const parcel = this.assignedParcels.find(p => p.id === parcelId);
-    if (parcel) {
-      parcel.status = 'In Transit';
-    }
+    this.parcelsService.updateParcelStatus(parcelId, {
+      status: 'in_transit',
+      notes: 'Delivery started by driver'
+    }).subscribe({
+      next: () => {
+        this.toastService.showSuccess('Delivery started successfully');
+        this.loadAssignedParcels(); // Reload data
+      },
+      error: (error) => {
+        console.error('Error starting delivery:', error);
+        this.toastService.showError('Failed to start delivery');
+      }
+    });
   }
 
   completeDelivery(parcelId: string) {
-    console.log('Completing delivery for parcel:', parcelId);
-    // This would update the parcel status to 'Delivered' and move to history
-    const parcel = this.assignedParcels.find(p => p.id === parcelId);
-    if (parcel) {
-      parcel.status = 'Delivered';
-      // In a real application, this would trigger a service call to move the parcel to history
-      // and remove it from the assigned parcels list
-      console.log('Parcel completed and moved to history:', parcel.parcelId);
+    this.parcelsService.updateParcelStatus(parcelId, {
+      status: 'delivered',
+      notes: 'Delivery completed by driver'
+    }).subscribe({
+      next: () => {
+        this.toastService.showSuccess('Delivery completed successfully');
+        this.loadAssignedParcels(); // Reload data
+      },
+      error: (error) => {
+        console.error('Error completing delivery:', error);
+        this.toastService.showError('Failed to complete delivery');
+      }
+    });
+  }
+
+  // Pagination methods
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalFilteredPages) {
+      this.currentPage = page;
     }
+  }
+
+  previousPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+    }
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalFilteredPages) {
+      this.currentPage++;
+    }
+  }
+
+  get startItem(): number {
+    return (this.currentPage - 1) * this.itemsPerPage + 1;
+  }
+
+  get endItem(): number {
+    return Math.min(this.currentPage * this.itemsPerPage, this.totalFilteredItems);
   }
 }

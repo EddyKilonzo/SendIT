@@ -6,24 +6,29 @@ import { ToastService } from '../../../shared/toast/toast.service';
 import { MapService } from '../../../../services/map.service';
 import { MapMarkerType } from '../../../../types/map.types';
 import { SidebarComponent } from '../../../shared/sidebar/sidebar';
+import { DriversService, Driver, AssignParcelDto } from '../../../../services/drivers.service';
+import { ParcelsService } from '../../../../services/parcels.service';
 import * as L from 'leaflet';
-
-interface Driver {
-  id: string;
-  name: string;
-  rating: number;
-  deliveries: number;
-  vehicleType: string;
-  availability: string;
-  isSelected: boolean;
-}
 
 interface ParcelDetails {
   id: string;
+  trackingNumber?: string;
   pickupAddress: string;
   deliveryAddress: string;
   weight: number;
   price: number;
+  pickupLat?: number;
+  pickupLng?: number;
+  deliveryLat?: number;
+  deliveryLng?: number;
+  estimatedDistance?: number;
+  estimatedDeliveryTime?: number;
+  senderName?: string;
+  recipientName?: string;
+}
+
+interface DriverWithSelection extends Driver {
+  isSelected: boolean;
 }
 
 @Component({
@@ -38,12 +43,15 @@ export class AssignDriver implements OnInit, OnDestroy {
   @Output() driverAssigned = new EventEmitter<{ parcelId: string, driverId: string }>();
 
   assignForm: FormGroup;
-  availableDrivers: Driver[] = [];
-  filteredDrivers: Driver[] = [];
-  selectedDriver: Driver | null = null;
+  availableDrivers: DriverWithSelection[] = [];
+  filteredDrivers: DriverWithSelection[] = [];
+  selectedDriver: DriverWithSelection | null = null;
+  isLoading: boolean = false;
+  isReassignment: boolean = false;
+  currentDriverId: string | null = null;
 
   // Filter options
-  vehicleTypes = ['All', 'Car', 'Van', 'Motorcycle', 'Truck'];
+  vehicleTypes = ['All', 'MOTORCYCLE', 'CAR', 'VAN', 'TRUCK'];
   availabilityOptions = ['All', 'Available', 'Busy', 'Offline'];
   ratingOptions = ['All', '4.5+', '4.0+', '3.5+'];
 
@@ -51,6 +59,7 @@ export class AssignDriver implements OnInit, OnDestroy {
   private map: L.Map | null = null;
   private pickupMarker: L.Marker | null = null;
   private deliveryMarker: L.Marker | null = null;
+  private driverMarkers: L.Marker[] = [];
   private routeLine: L.Polyline | null = null;
   private markers: L.Marker[] = [];
 
@@ -58,7 +67,9 @@ export class AssignDriver implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private toastService: ToastService,
     private router: Router,
-    private mapService: MapService
+    private mapService: MapService,
+    private driversService: DriversService,
+    private parcelsService: ParcelsService
   ) {
     this.assignForm = this.fb.group({
       vehicleType: ['All'],
@@ -68,30 +79,61 @@ export class AssignDriver implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    console.log('🚀 AssignDriver component initializing...');
     this.loadAvailableDrivers();
     this.setupFilterListeners();
     
     // Check if parcel details were passed from navigation
     const navigation = this.router.getCurrentNavigation();
+    console.log('🔍 Navigation state:', navigation?.extras.state);
+    
     if (navigation?.extras.state) {
       const state = navigation.extras.state as any;
+      console.log('🔍 State received:', state);
+      
       if (state.parcelDetails) {
         this.parcelDetails = state.parcelDetails;
-        console.log('Parcel details received:', this.parcelDetails);
+        console.log('✅ Parcel details received from navigation:', this.parcelDetails);
       }
+      if (state.isReassignment) {
+        this.isReassignment = state.isReassignment;
+        this.currentDriverId = state.currentDriverId;
+        console.log('🔄 Reassignment mode:', this.isReassignment, 'Current driver ID:', this.currentDriverId);
+      }
+    } else {
+      console.log('⚠️ No navigation state found, checking service...');
     }
     
-    // If no parcel details were passed, use a placeholder parcel
+    // If no parcel details were passed from navigation, try to get from service as fallback
     if (!this.parcelDetails) {
-      this.parcelDetails = {
-        id: 'PLACEHOLDER123',
-        pickupAddress: '123 Main Street, Nairobi CBD, Kenya',
-        deliveryAddress: '456 Mombasa Road, Mombasa, Kenya',
-        weight: 5.5,
-        price: 550.00
-      };
-      console.log('Using placeholder parcel details:', this.parcelDetails);
+      const tempParcelDetails = this.parcelsService.getTempParcelDetails();
+      const tempReassignmentData = this.parcelsService.getTempReassignmentData();
+      
+      console.log('🔍 Temp parcel details from service:', tempParcelDetails);
+      console.log('🔍 Temp reassignment data from service:', tempReassignmentData);
+      
+      if (tempParcelDetails) {
+        this.parcelDetails = tempParcelDetails;
+        if (tempReassignmentData) {
+          this.isReassignment = tempReassignmentData.isReassignment;
+          this.currentDriverId = tempReassignmentData.currentDriverId;
+        }
+        console.log('✅ Retrieved parcel details from service:', this.parcelDetails);
+      } else {
+        // If still no parcel details, check if this is a direct navigation (e.g., from URL)
+        // In this case, we should allow the user to continue but show a warning
+        console.log('⚠️ No parcel details found in navigation state or service');
+        
+        // Don't redirect immediately - let the user see the component and handle the error gracefully
+        this.toastService.showError('No parcel details available. Please create a delivery first or go back to parcel details.');
+        
+        // Set a flag to disable the assign button
+        this.parcelDetails = null;
+      }
     }
+
+    console.log('🎯 Final parcel details state:', this.parcelDetails);
+    console.log('🎯 Final reassignment state:', this.isReassignment);
 
     // Initialize map after a short delay to ensure DOM is ready
     setTimeout(() => {
@@ -100,55 +142,90 @@ export class AssignDriver implements OnInit, OnDestroy {
   }
 
   loadAvailableDrivers() {
-    // Mock data - in real app, this would come from a service
-    this.availableDrivers = [
-      {
-        id: '1',
-        name: 'Ethan Carter',
-        rating: 4.8,
-        deliveries: 150,
-        vehicleType: 'Van',
-        availability: 'Available',
-        isSelected: false
+    this.isLoading = true;
+    console.log('🔍 Loading available drivers...');
+    
+    this.driversService.getAvailableDrivers().subscribe({
+      next: (response: any) => {
+        console.log('✅ Drivers API response:', response);
+        this.availableDrivers = response.drivers.map((driver: any) => ({
+          ...driver,
+          isSelected: false
+        }));
+        
+        // If this is a reassignment, exclude the current driver
+        if (this.isReassignment && this.currentDriverId) {
+          this.availableDrivers = this.availableDrivers.filter(driver => driver.id !== this.currentDriverId);
+          console.log('🔄 Reassignment mode: Excluded current driver', this.currentDriverId);
+        }
+        
+        this.filteredDrivers = [...this.availableDrivers];
+        this.isLoading = false;
+        console.log('📦 Loaded drivers:', this.availableDrivers);
+        console.log('📊 Total drivers found:', this.availableDrivers.length);
+        
+        // Add driver markers to map after loading drivers
+        if (this.map) {
+          this.addDriverMarkers();
+        }
+        
+        // If no drivers found, try loading all drivers as fallback
+        if (this.availableDrivers.length === 0) {
+          console.log('⚠️ No available drivers found, trying to load all drivers...');
+          this.loadAllDrivers();
+        }
       },
-      {
-        id: '2',
-        name: 'Liam Harper',
-        rating: 4.5,
-        deliveries: 200,
-        vehicleType: 'Motorcycle',
-        availability: 'Busy',
-        isSelected: false
-      },
-      {
-        id: '3',
-        name: 'Noah Bennett',
-        rating: 4.9,
-        deliveries: 120,
-        vehicleType: 'Car',
-        availability: 'Available',
-        isSelected: false
-      },
-      {
-        id: '4',
-        name: 'Oliver Wilson',
-        rating: 4.7,
-        deliveries: 180,
-        vehicleType: 'Truck',
-        availability: 'Available',
-        isSelected: false
-      },
-      {
-        id: '5',
-        name: 'William Davis',
-        rating: 4.3,
-        deliveries: 95,
-        vehicleType: 'Car',
-        availability: 'Offline',
-        isSelected: false
+      error: (error: any) => {
+        console.error('❌ Error loading drivers:', error);
+        console.error('❌ Error details:', {
+          status: error.status,
+          message: error.message,
+          error: error.error
+        });
+        this.isLoading = false;
+        this.toastService.showError('Failed to load available drivers');
+        
+        // Try loading all drivers as fallback
+        console.log('⚠️ Trying to load all drivers as fallback...');
+        this.loadAllDrivers();
       }
-    ];
-    this.filteredDrivers = [...this.availableDrivers];
+    });
+  }
+
+  loadAllDrivers() {
+    this.isLoading = true;
+    console.log('🔍 Loading all drivers...');
+    
+    this.driversService.getDrivers().subscribe({
+      next: (response: any) => {
+        console.log('✅ All drivers API response:', response);
+        this.availableDrivers = response.drivers.map((driver: any) => ({
+          ...driver,
+          isSelected: false
+        }));
+        
+        // If this is a reassignment, exclude the current driver
+        if (this.isReassignment && this.currentDriverId) {
+          this.availableDrivers = this.availableDrivers.filter(driver => driver.id !== this.currentDriverId);
+          console.log('🔄 Reassignment mode: Excluded current driver', this.currentDriverId);
+        }
+        
+        this.filteredDrivers = [...this.availableDrivers];
+        this.isLoading = false;
+        console.log('📦 Loaded all drivers:', this.availableDrivers);
+        console.log('📊 Total drivers found:', this.availableDrivers.length);
+        
+        // Add driver markers to map after loading drivers
+        if (this.map) {
+          this.addDriverMarkers();
+        }
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading all drivers:', error);
+        this.isLoading = false;
+        this.toastService.showError('Failed to load drivers');
+      }
+    });
   }
 
   setupFilterListeners() {
@@ -167,14 +244,22 @@ export class AssignDriver implements OnInit, OnDestroy {
       }
       
       // Availability filter
-      if (availability !== 'All' && driver.availability !== availability) {
-        return false;
+      if (availability !== 'All') {
+        if (availability === 'Available' && !driver.isAvailable) {
+          return false;
+        }
+        if (availability === 'Busy' && driver.isAvailable) {
+          return false;
+        }
+        if (availability === 'Offline' && driver.isAvailable) {
+          return false;
+        }
       }
       
       // Rating filter
       if (rating !== 'All') {
         const minRating = parseFloat(rating.replace('+', ''));
-        if (driver.rating < minRating) {
+        if (driver.averageRating < minRating) {
           return false;
         }
       }
@@ -183,7 +268,7 @@ export class AssignDriver implements OnInit, OnDestroy {
     });
   }
 
-  selectDriver(driver: Driver) {
+  selectDriver(driver: DriverWithSelection) {
     // Deselect all drivers
     this.availableDrivers.forEach(d => d.isSelected = false);
     this.filteredDrivers.forEach(d => d.isSelected = false);
@@ -200,41 +285,100 @@ export class AssignDriver implements OnInit, OnDestroy {
     }
 
     if (!this.parcelDetails) {
-      this.toastService.showError('No parcel details available.');
+      this.toastService.showError('No parcel details available. Please create a delivery first or go back to parcel details.');
       return;
     }
 
-    // Emit the assignment event
-    this.driverAssigned.emit({
+    if (this.isReassignment) {
+      // Use the reassign endpoint for reassignment
+      this.reassignDriver();
+      return;
+    }
+
+    const assignParcelDto: AssignParcelDto = {
       parcelId: this.parcelDetails.id,
       driverId: this.selectedDriver.id
-    });
+    };
 
-    this.toastService.showSuccess(`Driver ${this.selectedDriver.name} assigned to parcel #${this.parcelDetails.id}`);
-    
-    // Redirect to a parcel that already has a driver assigned
-    setTimeout(() => {
-      // Redirect to a parcel that already has a driver (e.g., #12346 which has John Smith)
-      this.router.navigate(['/admin-parcel-details', '#12346'], {
-        state: { 
-          assignedDriverId: this.selectedDriver?.id,
-          newlyAssigned: true
-        }
-      });
-    }, 1000); // Wait 1 second for the success message to be visible
+    this.driversService.assignParcel(assignParcelDto).subscribe({
+      next: (response: any) => {
+        this.toastService.showSuccess(`Driver ${this.selectedDriver?.name} assigned to parcel #${this.parcelDetails?.id}. Status: Pending driver to start journey.`);
+        
+        // Clear temporary parcel details
+        this.parcelsService.clearTempParcelDetails();
+        
+        // Redirect to parcel details page
+        setTimeout(() => {
+          this.router.navigate(['/admin-parcel-details', this.parcelDetails?.id || ''], {
+            state: { 
+              assignedDriverId: this.selectedDriver?.id,
+              newlyAssigned: true,
+              parcelDetails: this.parcelDetails
+            }
+          });
+        }, 1000);
+      },
+      error: (error: any) => {
+        console.error('Error assigning driver:', error);
+        this.toastService.showError('Failed to assign driver to parcel');
+      }
+    });
   }
 
-  getDriverStatusClass(availability: string): string {
-    switch (availability) {
-      case 'Available':
-        return 'status-available';
-      case 'Busy':
-        return 'status-busy';
-      case 'Offline':
-        return 'status-offline';
-      default:
-        return '';
+  reassignDriver() {
+    if (!this.selectedDriver) {
+      this.toastService.showError('Please select a driver first.');
+      return;
     }
+
+    if (!this.parcelDetails) {
+      this.toastService.showError('No parcel details available. Please go back to parcel details.');
+      return;
+    }
+
+    // Use the manage parcel endpoint for reassignment
+    const reassignData = {
+      action: 'reassign',
+      newDriverId: this.selectedDriver.id
+    };
+
+    // We'll need to add this method to the admin service
+    this.driversService.reassignParcel(this.parcelDetails.id, reassignData).subscribe({
+      next: (response: any) => {
+        this.toastService.showSuccess(`Parcel reassigned to driver ${this.selectedDriver?.name}. Status: Pending driver to start journey.`);
+        
+        // Clear temporary parcel details
+        this.parcelsService.clearTempParcelDetails();
+        
+        // Redirect to parcel details page
+        setTimeout(() => {
+          this.router.navigate(['/admin-parcel-details', this.parcelDetails?.id || ''], {
+            state: { 
+              assignedDriverId: this.selectedDriver?.id,
+              newlyAssigned: true,
+              parcelDetails: this.parcelDetails,
+              isReassignment: true
+            }
+          });
+        }, 1000);
+      },
+      error: (error: any) => {
+        console.error('Error reassigning driver:', error);
+        this.toastService.showError('Failed to reassign driver to parcel');
+      }
+    });
+  }
+
+  getDriverStatusClass(driver: DriverWithSelection): string {
+    if (driver.isAvailable) {
+      return 'status-available';
+    } else {
+      return 'status-busy';
+    }
+  }
+
+  getDriverStatusText(driver: DriverWithSelection): string {
+    return driver.isAvailable ? 'Available' : 'Busy';
   }
 
   getRatingStars(rating: number): string {
@@ -246,7 +390,13 @@ export class AssignDriver implements OnInit, OnDestroy {
   }
 
   goBack() {
-    this.router.navigate(['/admin-manage-parcels']);
+    if (this.isReassignment && this.parcelDetails) {
+      // If this is a reassignment, go back to the parcel details page
+      this.router.navigate(['/admin-parcel-details', this.parcelDetails.id]);
+    } else {
+      // Otherwise, go back to manage parcels
+      this.router.navigate(['/admin-manage-parcels']);
+    }
   }
 
   // Map Methods
@@ -258,11 +408,14 @@ export class AssignDriver implements OnInit, OnDestroy {
       // Add markers for pickup and delivery locations
       await this.addLocationMarkers();
       
+      // Add driver markers
+      await this.addDriverMarkers();
+      
       // Draw route between pickup and delivery
       await this.drawRoute();
       
       // Fit map to show all markers
-      this.fitMapToMarkers();
+      this.fitMapToBounds();
       
     } catch (error) {
       console.error('Error initializing map:', error);
@@ -274,29 +427,44 @@ export class AssignDriver implements OnInit, OnDestroy {
     if (!this.map || !this.parcelDetails) return;
 
     try {
-      // Geocode pickup location
-      const pickupResult = await this.mapService.geocodeAddress(this.parcelDetails.pickupAddress);
-      
-      // Geocode delivery location
-      const deliveryResult = await this.mapService.geocodeAddress(this.parcelDetails.deliveryAddress);
+      let pickupCoords, deliveryCoords;
 
-      // Add pickup marker if geocoding was successful
-      if (pickupResult.success && pickupResult.location) {
+      // Use real coordinates if available, otherwise geocode
+      if (this.parcelDetails.pickupLat && this.parcelDetails.pickupLng) {
+        pickupCoords = { lat: this.parcelDetails.pickupLat, lng: this.parcelDetails.pickupLng };
+      } else {
+        const pickupResult = await this.mapService.geocodeAddress(this.parcelDetails.pickupAddress);
+        if (pickupResult.success && pickupResult.location) {
+          pickupCoords = pickupResult.location;
+        }
+      }
+
+      if (this.parcelDetails.deliveryLat && this.parcelDetails.deliveryLng) {
+        deliveryCoords = { lat: this.parcelDetails.deliveryLat, lng: this.parcelDetails.deliveryLng };
+      } else {
+        const deliveryResult = await this.mapService.geocodeAddress(this.parcelDetails.deliveryAddress);
+        if (deliveryResult.success && deliveryResult.location) {
+          deliveryCoords = deliveryResult.location;
+        }
+      }
+
+      // Add pickup marker if coordinates are available
+      if (pickupCoords) {
         this.pickupMarker = this.mapService.createCustomMarker({
-          location: pickupResult.location,
+          location: pickupCoords,
           type: MapMarkerType.PICKUP,
           popupContent: `<strong>Pickup:</strong><br>${this.parcelDetails.pickupAddress}<br><strong>Parcel ID:</strong> #${this.parcelDetails.id}`
         });
-                if (this.pickupMarker) {
-            this.pickupMarker.addTo(this.map);
-            this.markers.push(this.pickupMarker);
-          }
+        if (this.pickupMarker) {
+          this.pickupMarker.addTo(this.map);
+          this.markers.push(this.pickupMarker);
         }
+      }
 
-      // Add delivery marker if geocoding was successful
-      if (deliveryResult.success && deliveryResult.location) {
+      // Add delivery marker if coordinates are available
+      if (deliveryCoords) {
         this.deliveryMarker = this.mapService.createCustomMarker({
-          location: deliveryResult.location,
+          location: deliveryCoords,
           type: MapMarkerType.DELIVERY,
           popupContent: `<strong>Delivery:</strong><br>${this.parcelDetails.deliveryAddress}<br><strong>Parcel ID:</strong> #${this.parcelDetails.id}`
         });
@@ -304,6 +472,11 @@ export class AssignDriver implements OnInit, OnDestroy {
           this.deliveryMarker.addTo(this.map);
           this.markers.push(this.deliveryMarker);
         }
+      }
+
+      // If no coordinates available, use fallback
+      if (!pickupCoords && !deliveryCoords) {
+        this.addFallbackMarkers();
       }
 
     } catch (error) {
@@ -343,6 +516,49 @@ export class AssignDriver implements OnInit, OnDestroy {
     }
   }
 
+  private async addDriverMarkers(): Promise<void> {
+    // Add driver markers to the map
+    if (!this.map || !this.availableDrivers.length) return;
+
+    try {
+      // Clear existing driver markers
+      this.driverMarkers.forEach(marker => {
+        if (this.map) {
+          this.map.removeLayer(marker);
+        }
+      });
+      this.driverMarkers = [];
+
+      // Add markers for each available driver
+      for (const driver of this.availableDrivers) {
+        if (driver.currentLat && driver.currentLng) {
+          const driverMarker = this.mapService.createCustomMarker({
+            location: { lat: driver.currentLat, lng: driver.currentLng },
+            type: MapMarkerType.DRIVER,
+            popupContent: `
+              <strong>Driver: ${driver.name}</strong><br>
+              <strong>Vehicle:</strong> ${driver.vehicleType || 'N/A'} - ${driver.vehicleNumber || 'N/A'}<br>
+              <strong>Rating:</strong> ${(driver.averageRating || 0).toFixed(1)} ★ (${driver.totalRatings || 0})<br>
+              <strong>Status:</strong> ${driver.isAvailable ? 'Available' : 'Busy'}<br>
+              <strong>Phone:</strong> ${driver.phone || 'N/A'}<br>
+              <strong>Completed Deliveries:</strong> ${driver.completedDeliveries || 0}
+            `
+          });
+          
+          if (driverMarker) {
+            driverMarker.addTo(this.map);
+            this.driverMarkers.push(driverMarker);
+            this.markers.push(driverMarker);
+          }
+        }
+      }
+
+      console.log(`Added ${this.driverMarkers.length} driver markers to the map`);
+    } catch (error) {
+      console.error('Error adding driver markers:', error);
+    }
+  }
+
   private async drawRoute(): Promise<void> {
     if (!this.map || !this.pickupMarker || !this.deliveryMarker) return;
 
@@ -371,14 +587,30 @@ export class AssignDriver implements OnInit, OnDestroy {
     }
   }
 
-  private fitMapToMarkers(): void {
+  private fitMapToBounds(): void {
     if (!this.map || this.markers.length === 0) return;
 
     try {
-      this.mapService.fitMapToMarkers(this.map, this.markers);
+      // Create bounds from all markers
+      const bounds = L.latLngBounds(
+        this.markers.map(marker => marker.getLatLng())
+      );
+      
+      // Fit map to bounds with padding
+      this.map.fitBounds(bounds, { 
+        padding: [20, 20],
+        maxZoom: 15
+      });
+      
+      console.log(`Fitted map to ${this.markers.length} markers`);
     } catch (error) {
       console.error('Error fitting map to markers:', error);
     }
+  }
+
+  public fitMapToMarkers(): void {
+    this.fitMapToBounds();
+    this.toastService.showSuccess('Map adjusted to show all locations');
   }
 
   // Update map when parcel details change
@@ -390,6 +622,7 @@ export class AssignDriver implements OnInit, OnDestroy {
     this.markers = [];
     this.pickupMarker = null;
     this.deliveryMarker = null;
+    this.driverMarkers = [];
 
     if (this.routeLine) {
       this.map.removeLayer(this.routeLine);
@@ -398,8 +631,9 @@ export class AssignDriver implements OnInit, OnDestroy {
 
     // Re-add markers and route
     await this.addLocationMarkers();
+    await this.addDriverMarkers();
     await this.drawRoute();
-    this.fitMapToMarkers();
+    this.fitMapToBounds();
   }
 
   ngOnDestroy(): void {
@@ -409,8 +643,12 @@ export class AssignDriver implements OnInit, OnDestroy {
       this.map = null;
     }
     this.markers = [];
+    this.driverMarkers = [];
     this.pickupMarker = null;
     this.deliveryMarker = null;
     this.routeLine = null;
+    
+    // Clear temporary parcel details
+    this.parcelsService.clearTempParcelDetails();
   }
 } 

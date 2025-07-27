@@ -87,6 +87,7 @@ export class Profile implements OnInit, AfterViewInit {
   driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverRejectionReason?: string;
   driverApplication?: DriverApplication;
+  showReapplyForm = false; // Add this property for reapply form visibility
 
   // Password visibility states
   showCurrentPassword = false;
@@ -156,7 +157,6 @@ export class Profile implements OnInit, AfterViewInit {
       { headers }
     ).subscribe({
       next: (response) => {
-        console.log('Profile API response:', response);
         if (response.success && response.data && response.data.id) {
           this.userProfile = response.data;
           this.populateFormsWithUserData(response.data);
@@ -173,6 +173,9 @@ export class Profile implements OnInit, AfterViewInit {
         if (error.status === 401) {
           this.toastService.showError('Authentication expired. Please login again.');
           this.router.navigate(['/login']);
+        } else if (error.status === 0) {
+          // Network error - backend not available
+          this.toastService.showError('Backend service is not available. Please try again later.');
         } else {
           this.toastService.showError('Failed to load profile data. Please try again.');
         }
@@ -190,18 +193,27 @@ export class Profile implements OnInit, AfterViewInit {
     });
     
     // Load driver application data
-    this.driverApplicationStatus = user.driverApplicationStatus;
+    this.driverApplicationStatus = user.driverApplicationStatus || 'NOT_APPLIED';
     this.driverRejectionReason = user.driverRejectionReason;
     
-    if (user.driverApplicationStatus) {
+    // Only create driver application object if user has actually applied
+    if (user.driverApplicationStatus && user.driverApplicationStatus !== 'NOT_APPLIED') {
       this.driverApplication = {
         licenseNumber: user.licenseNumber || '',
         vehicleNumber: user.vehicleNumber,
         vehicleType: user.vehicleType,
         reason: 'I want to help deliver packages and earn extra income while providing excellent service to customers.',
-        applicationDate: user.driverApplicationDate || new Date('2025-07-24T08:02:55.671Z'),
-        approvalDate: user.driverApprovalDate || new Date('2025-07-24T08:10:35.450Z')
+        applicationDate: user.driverApplicationDate || new Date(),
+        approvalDate: user.driverApprovalDate
       };
+    } else {
+      // Reset driver application object for users who haven't applied
+      this.driverApplication = undefined;
+    }
+    
+    // Reset driver application form for customers who haven't applied or were rejected
+    if (user.role === 'CUSTOMER' && (!this.driverApplicationStatus || this.driverApplicationStatus === 'NOT_APPLIED' || this.driverApplicationStatus === 'REJECTED')) {
+      this.driverApplicationForm.reset();
     }
     
     // Update initial form data
@@ -646,66 +658,61 @@ export class Profile implements OnInit, AfterViewInit {
 
   // Driver Application Methods
   submitDriverApplication() {
-    if (this.driverApplicationForm.valid) {
+    if (this.driverApplicationForm.valid && !this.isLoading) {
       this.isLoading = true;
-      
-      // Show initial feedback
-      this.toastService.showInfo('Submitting your driver application...');
-      
-      // Get authentication token
-      const token = this.authService.getToken();
-      if (!token) {
-        this.toastService.showError('Authentication required. Please login again.');
-        this.router.navigate(['/login']);
-        return;
-      }
-      
-      // Set up headers with authentication
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
       
       const formData = this.driverApplicationForm.value;
       const applicationData = {
         licenseNumber: formData.licenseNumber,
-        vehicleNumber: formData.vehicleNumber,
-        vehicleType: formData.vehicleType,
-        reason: formData.reason
+        vehicleNumber: formData.vehicleNumber || '',
+        vehicleType: formData.vehicleType || '',
+        reason: formData.reason || ''
       };
+
+      const headers = this.authService.getAuthHeaders();
       
-      // Submit driver application via API
-      this.http.post<{ success: boolean; data: any; message: string }>(
+      // Store the previous status to determine if this is a reapplication
+      const wasRejected = this.driverApplicationStatus === 'REJECTED';
+      
+      this.http.post(
         `${environment.apiUrl}/drivers/apply`,
         applicationData,
         { headers }
       ).subscribe({
         next: (response) => {
-          if (response.success && response.data) {
-            // Update local user profile with application data
-            if (this.userProfile) {
-              this.userProfile.driverApplicationStatus = 'PENDING';
-              this.userProfile.driverApplicationDate = new Date();
-              this.userProfile.licenseNumber = formData.licenseNumber;
-              this.userProfile.vehicleNumber = formData.vehicleNumber;
-              this.userProfile.vehicleType = formData.vehicleType;
-            }
-            
-            this.driverApplicationStatus = 'PENDING';
-            this.driverApplication = {
-              ...formData,
-              applicationDate: new Date('2025-07-24T08:02:55.671Z')
-            };
-            
-            this.isLoading = false;
-            this.toastService.showSuccess('Driver application submitted successfully!');
-            
-            // Reset form
-            this.driverApplicationForm.reset();
-          } else {
-            this.toastService.showError('Failed to submit driver application');
-            this.isLoading = false;
+          // Backend returns the data directly, not wrapped in success object
+          const applicationDate = new Date();
+          
+          // Update local user profile with application data
+          if (this.userProfile) {
+            this.userProfile.driverApplicationStatus = 'PENDING';
+            this.userProfile.driverApplicationDate = applicationDate;
+            this.userProfile.licenseNumber = formData.licenseNumber;
+            this.userProfile.vehicleNumber = formData.vehicleNumber;
+            this.userProfile.vehicleType = formData.vehicleType;
+            // Clear rejection reason when reapplying
+            this.userProfile.driverRejectionReason = undefined;
           }
+          
+          this.driverApplicationStatus = 'PENDING';
+          this.driverRejectionReason = undefined;
+          this.driverApplication = {
+            ...formData,
+            applicationDate: applicationDate
+          };
+          
+          // Hide reapply form after successful submission
+          this.showReapplyForm = false;
+          
+          this.isLoading = false;
+          this.toastService.showSuccess(
+            wasRejected 
+              ? 'Driver application resubmitted successfully!' 
+              : 'Driver application submitted successfully!'
+          );
+          
+          // Reset form
+          this.driverApplicationForm.reset();
         },
         error: (error) => {
           console.error('Error submitting driver application:', error);

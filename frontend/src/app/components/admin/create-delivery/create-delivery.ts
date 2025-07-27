@@ -8,6 +8,7 @@ import { MapService } from '../../../services/map.service';
 import { MapLocation, MapCoordinates, MapError, AddressSuggestion } from '../../../types/map.types';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
+import { ParcelsService, CreateParcelDto } from '../../../services/parcels.service';
 
 // Custom validators
 function phoneNumberValidator(control: AbstractControl): ValidationErrors | null {
@@ -105,7 +106,13 @@ interface OrderDetails {
 @Component({
   selector: 'app-create-delivery',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, MapComponent, SidebarComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    ReactiveFormsModule,
+    SidebarComponent,
+    MapComponent
+  ],
   templateUrl: './create-delivery.html',
   styleUrls: ['./create-delivery.css']
 })
@@ -114,41 +121,48 @@ export class CreateDelivery implements OnInit {
   @ViewChild('trackingMapComponent') trackingMapComponent!: MapComponent;
   
   userRole: string = 'ADMIN';
-  
   activeTab = 'delivery';
-  
   deliveryForm: FormGroup;
   pricePerKg: number = 100;
   totalPrice: number = 0;
   isEditMode: boolean = false;
   originalOrderDetails: OrderDetails | null = null;
   
-  // Map-related properties
+  // Map related properties
   mapMarkers: MapLocation[] = [];
   mapCenter: MapCoordinates = { lat: -1.2921, lng: 36.8219 };
   showMap: boolean = false;
   showRoute: boolean = true;
   pickupCoordinates: MapCoordinates | null = null;
   destinationCoordinates: MapCoordinates | null = null;
-
   
   // Address suggestions
   pickupSuggestions: AddressSuggestion[] = [];
   destinationSuggestions: AddressSuggestion[] = [];
   showPickupSuggestions: boolean = false;
   showDestinationSuggestions: boolean = false;
+
+  // Contact suggestions
+  senderSuggestions: any[] = [];
+  recipientSuggestions: any[] = [];
+  showSenderSuggestions: boolean = false;
+  showRecipientSuggestions: boolean = false;
+  selectedSenderIndex: number = -1;
+  selectedRecipientIndex: number = -1;
   
   routeDistance: number = 0;
   routeEstimatedTime: number = 0;
   
   isMobileView: boolean = false;
   showMobileMenu: boolean = false;
+  isSubmitting: boolean = false;
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private toastService: ToastService,
-    private mapService: MapService
+    private mapService: MapService,
+    private parcelsService: ParcelsService
   ) {
     this.deliveryForm = this.fb.group({
       // Sender Details
@@ -208,36 +222,198 @@ export class CreateDelivery implements OnInit {
       this.checkMobileView();
     });
     
-    this.showMap = true;
-    console.log('Create delivery component initialized, showMap:', this.showMap);
+    // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.showMap = true;
+      console.log('Create delivery component initialized, showMap:', this.showMap);
+    });
   }
 
   private setupAddressGeocodingListeners(): void {
+    // Setup pickup address geocoding
     this.deliveryForm.get('pickupLocation')?.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged()
-      )
-      .subscribe(async (address) => {
-        if (address && address.length >= 3) {
-          await this.geocodePickupAddress(address);
+      .pipe(debounceTime(500), distinctUntilChanged())
+      .subscribe(value => {
+        if (value && value.length > 2) {
+          this.searchAddresses(value, true);
         } else {
-          this.clearPickupMarker();
+          this.pickupSuggestions = [];
+          this.showPickupSuggestions = false;
         }
       });
 
+    // Setup destination address geocoding
     this.deliveryForm.get('destination')?.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged()
-      )
-      .subscribe(async (address) => {
-        if (address && address.length >= 3) {
-          await this.geocodeDestinationAddress(address);
+      .pipe(debounceTime(500), distinctUntilChanged())
+      .subscribe(value => {
+        if (value && value.length > 2) {
+          this.searchAddresses(value, false);
         } else {
-          this.clearDestinationMarker();
+          this.destinationSuggestions = [];
+          this.showDestinationSuggestions = false;
         }
       });
+
+    // Setup sender name autocomplete
+    this.deliveryForm.get('senderName')?.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe(value => {
+        if (value && value.length >= 2) {
+          this.searchSenderSuggestions(value);
+        } else {
+          this.senderSuggestions = [];
+          this.showSenderSuggestions = false;
+        }
+      });
+
+    // Setup recipient name autocomplete
+    this.deliveryForm.get('recipientName')?.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe(value => {
+        if (value && value.length >= 2) {
+          this.searchRecipientSuggestions(value);
+        } else {
+          this.recipientSuggestions = [];
+          this.showRecipientSuggestions = false;
+        }
+      });
+  }
+
+  // Search sender suggestions
+  private searchSenderSuggestions(query: string): void {
+    this.parcelsService.getContactSuggestions(query, 'sender', 8).subscribe({
+      next: (suggestions) => {
+        this.senderSuggestions = suggestions;
+        this.showSenderSuggestions = suggestions.length > 0;
+        this.selectedSenderIndex = -1;
+      },
+      error: (error) => {
+        console.error('Error fetching sender suggestions:', error);
+        this.senderSuggestions = [];
+        this.showSenderSuggestions = false;
+      }
+    });
+  }
+
+  // Search recipient suggestions
+  private searchRecipientSuggestions(query: string): void {
+    this.parcelsService.getContactSuggestions(query, 'recipient', 8).subscribe({
+      next: (suggestions) => {
+        this.recipientSuggestions = suggestions;
+        this.showRecipientSuggestions = suggestions.length > 0;
+        this.selectedRecipientIndex = -1;
+      },
+      error: (error) => {
+        console.error('Error fetching recipient suggestions:', error);
+        this.recipientSuggestions = [];
+        this.showRecipientSuggestions = false;
+      }
+    });
+  }
+
+  // Handle sender suggestion selection
+  selectSenderSuggestion(suggestion: any): void {
+    this.deliveryForm.patchValue({
+      senderName: suggestion.name,
+      senderEmail: suggestion.email,
+      senderContact: suggestion.phone
+    });
+    
+    this.showSenderSuggestions = false;
+    this.senderSuggestions = [];
+    
+    if (suggestion.isRegistered) {
+      this.toastService.showInfo(`Selected registered user: ${suggestion.name}`);
+    } else {
+      this.toastService.showInfo(`Selected contact: ${suggestion.name}`);
+    }
+    
+    this.checkSenderRecipientValidation();
+  }
+
+  // Handle recipient suggestion selection
+  selectRecipientSuggestion(suggestion: any): void {
+    this.deliveryForm.patchValue({
+      recipientName: suggestion.name,
+      recipientEmail: suggestion.email,
+      recipientContact: suggestion.phone
+    });
+    
+    this.showRecipientSuggestions = false;
+    this.recipientSuggestions = [];
+    
+    if (suggestion.isRegistered) {
+      this.toastService.showInfo(`Selected registered user: ${suggestion.name}`);
+    } else {
+      this.toastService.showInfo(`Selected contact: ${suggestion.name}`);
+    }
+    
+    this.checkSenderRecipientValidation();
+  }
+
+  // Handle keyboard navigation for sender suggestions
+  onSenderKeyDown(event: KeyboardEvent): void {
+    if (!this.showSenderSuggestions || this.senderSuggestions.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedSenderIndex = Math.min(this.selectedSenderIndex + 1, this.senderSuggestions.length - 1);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedSenderIndex = Math.max(this.selectedSenderIndex - 1, -1);
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (this.selectedSenderIndex >= 0) {
+          this.selectSenderSuggestion(this.senderSuggestions[this.selectedSenderIndex]);
+        }
+        break;
+      case 'Escape':
+        this.showSenderSuggestions = false;
+        this.selectedSenderIndex = -1;
+        break;
+    }
+  }
+
+  // Handle keyboard navigation for recipient suggestions
+  onRecipientKeyDown(event: KeyboardEvent): void {
+    if (!this.showRecipientSuggestions || this.recipientSuggestions.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedRecipientIndex = Math.min(this.selectedRecipientIndex + 1, this.recipientSuggestions.length - 1);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedRecipientIndex = Math.max(this.selectedRecipientIndex - 1, -1);
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (this.selectedRecipientIndex >= 0) {
+          this.selectRecipientSuggestion(this.recipientSuggestions[this.selectedRecipientIndex]);
+        }
+        break;
+      case 'Escape':
+        this.showRecipientSuggestions = false;
+        this.selectedRecipientIndex = -1;
+        break;
+    }
+  }
+
+  // Handle blur events for suggestions
+  onSenderBlur(): void {
+    setTimeout(() => {
+      this.showSenderSuggestions = false;
+    }, 200);
+  }
+
+  onRecipientBlur(): void {
+    setTimeout(() => {
+      this.showRecipientSuggestions = false;
+    }, 200);
   }
 
   private async geocodePickupAddress(address: string): Promise<void> {
@@ -354,34 +530,63 @@ export class CreateDelivery implements OnInit {
           this.toastService.showInfo('Using fallback location suggestions');
         }
       } else {
+        // Show "No locations found" message in the dropdown instead of toast
         if (isPickup) {
-          this.pickupSuggestions = [];
-          this.showPickupSuggestions = false;
+          this.pickupSuggestions = [{ 
+            display_name: 'No locations found. Try a different search term.',
+            lat: '0',
+            lon: '0',
+            name: 'No results',
+            type: 'no-results',
+            importance: 0
+          }];
+          this.showPickupSuggestions = true;
         } else {
-          this.destinationSuggestions = [];
-          this.showDestinationSuggestions = false;
-        }
-        
-        if (query.length >= 3) {
-          this.toastService.showWarning('No locations found. Try a different search term.');
+          this.destinationSuggestions = [{ 
+            display_name: 'No locations found. Try a different search term.',
+            lat: '0',
+            lon: '0',
+            name: 'No results',
+            type: 'no-results',
+            importance: 0
+          }];
+          this.showDestinationSuggestions = true;
         }
       }
     } catch (error) {
       console.error('Error fetching address suggestions:', error);
       
-      this.toastService.showError('Unable to fetch location suggestions. Please try again.');
-      
+      // Show error message in dropdown instead of toast
       if (isPickup) {
-        this.pickupSuggestions = [];
-        this.showPickupSuggestions = false;
+        this.pickupSuggestions = [{ 
+          display_name: 'Unable to fetch suggestions. Please try again.',
+          lat: '0',
+          lon: '0',
+          name: 'Error',
+          type: 'error',
+          importance: 0
+        }];
+        this.showPickupSuggestions = true;
       } else {
-        this.destinationSuggestions = [];
-        this.showDestinationSuggestions = false;
+        this.destinationSuggestions = [{ 
+          display_name: 'Unable to fetch suggestions. Please try again.',
+          lat: '0',
+          lon: '0',
+          name: 'Error',
+          type: 'error',
+          importance: 0
+        }];
+        this.showDestinationSuggestions = true;
       }
     }
   }
 
   selectAddress(suggestion: AddressSuggestion, isPickup: boolean = true): void {
+    // Don't select "no results" or "error" suggestions
+    if (suggestion.type === 'no-results' || suggestion.type === 'error') {
+      return;
+    }
+
     const address = suggestion.display_name;
     const lat = parseFloat(suggestion.lat);
     const lng = parseFloat(suggestion.lon);
@@ -449,41 +654,105 @@ export class CreateDelivery implements OnInit {
     return this.isEditMode ? 'Update Delivery' : 'Create Order & Assign Driver';
   }
 
+  isDeliveryTabValid(): boolean {
+    const deliveryFields = [
+      'senderName', 'senderContact', 'senderAddress', 'senderEmail',
+      'recipientName', 'recipientContact', 'recipientAddress', 'recipientEmail',
+      'parcelWeight', 'pricePerKg'
+    ];
+    
+    return deliveryFields.every(field => {
+      const control = this.deliveryForm.get(field);
+      return control && control.valid && control.value;
+    });
+  }
+
+  isTrackingTabValid(): boolean {
+    const trackingFields = ['pickupLocation', 'destination'];
+    
+    return trackingFields.every(field => {
+      const control = this.deliveryForm.get(field);
+      return control && control.valid && control.value;
+    }) && !!this.pickupCoordinates && !!this.destinationCoordinates;
+  }
+
   onSubmit() {
+    // Prevent multiple submissions
+    if (this.isSubmitting) {
+      return;
+    }
+    
     if (this.deliveryForm.valid) {
+      this.isSubmitting = true;
       const formData = this.deliveryForm.value;
-      formData.totalPrice = this.totalPrice; // Adding calculated total price to form data
       
-      // Add coordinates to form data
-      formData.pickupCoordinates = this.pickupCoordinates;
-      formData.destinationCoordinates = this.destinationCoordinates;
+      // Show loading toast
+      this.toastService.showInfo('Creating delivery...');
       
-      // Add route information
-      formData.estimatedDistance = this.routeDistance;
-      formData.estimatedDeliveryTime = this.routeEstimatedTime;
-      
-      console.log('Enhanced delivery form submitted:', formData);
-      
-      // Create parcel details for driver assignment
-      const parcelDetails = {
-        id: this.generateParcelId(),
+      // Prepare the parcel data for API
+      const createParcelDto: CreateParcelDto = {
+        senderName: formData.senderName,
+        senderEmail: formData.senderEmail,
+        senderPhone: formData.senderContact,
+        recipientName: formData.recipientName,
+        recipientEmail: formData.recipientEmail,
+        recipientPhone: formData.recipientContact,
         pickupAddress: formData.pickupLocation,
         deliveryAddress: formData.destination,
         weight: formData.parcelWeight,
-        price: this.totalPrice,
-        pickupLat: this.pickupCoordinates?.lat,
-        pickupLng: this.pickupCoordinates?.lng,
-        deliveryLat: this.destinationCoordinates?.lat,
-        deliveryLng: this.destinationCoordinates?.lng,
-        estimatedDistance: this.routeDistance,
-        estimatedDeliveryTime: this.routeEstimatedTime
+        description: `Delivery from ${formData.pickupLocation} to ${formData.destination}`,
+        value: this.totalPrice,
+        deliveryInstructions: `Estimated distance: ${this.routeDistance} km, Estimated time: ${this.routeEstimatedTime} minutes`
       };
       
-      // Navigate to assign driver with parcel details
-      this.router.navigate(['/admin-assign-driver'], {
-        state: { 
-          orderDetails: formData,
-          parcelDetails: parcelDetails
+      console.log('Submitting parcel creation:', createParcelDto);
+      
+      // Call the API to create the parcel
+      this.parcelsService.createParcel(createParcelDto).subscribe({
+        next: (response) => {
+          this.isSubmitting = false;
+          console.log('Parcel creation response:', response);
+          
+          if (response && response.id) {
+            this.toastService.showSuccess('Delivery created successfully!');
+            
+            // Create enhanced parcel details for driver assignment
+            const parcelDetails = {
+              id: response.id,
+              trackingNumber: response.trackingNumber,
+              pickupAddress: formData.pickupLocation,
+              deliveryAddress: formData.destination,
+              weight: formData.parcelWeight,
+              price: this.totalPrice,
+              pickupLat: this.pickupCoordinates?.lat,
+              pickupLng: this.pickupCoordinates?.lng,
+              deliveryLat: this.destinationCoordinates?.lat,
+              deliveryLng: this.destinationCoordinates?.lng,
+              estimatedDistance: this.routeDistance,
+              estimatedDeliveryTime: this.routeEstimatedTime,
+              senderName: formData.senderName,
+              recipientName: formData.recipientName
+            };
+            
+            // Store parcel details in service as backup
+            this.parcelsService.setTempParcelDetails(parcelDetails, false);
+            
+            // Navigate to order confirmation first, then user can click assign button
+            this.router.navigate(['/order-confirmation'], {
+              state: { 
+                orderDetails: formData,
+                parcelDetails: parcelDetails,
+                createdParcel: response
+              }
+            });
+          } else {
+            this.toastService.showError('Failed to create delivery - invalid response');
+          }
+        },
+        error: (error) => {
+          this.isSubmitting = false;
+          console.error('Error creating parcel:', error);
+          this.toastService.showError('Failed to create delivery. Please try again.');
         }
       });
     } else {
@@ -493,9 +762,7 @@ export class CreateDelivery implements OnInit {
     }
   }
 
-  generateParcelId(): string {
-    return Math.random().toString(36).substr(2, 9).toUpperCase();
-  }
+
 
   checkSenderRecipientValidation(): void {
     const formErrors = this.deliveryForm.errors;
@@ -681,12 +948,12 @@ export class CreateDelivery implements OnInit {
     if (this.mapMarkers.length > 0) {
       // Fit the main map component (delivery tab)
       if (this.mapComponent) {
-        this.mapComponent.fitToMarkers();
+        this.mapComponent.forceMapRefresh();
       }
       
       // Also fit the tracking map component if it exists
       if (this.trackingMapComponent) {
-        this.trackingMapComponent.fitToMarkers();
+        this.trackingMapComponent.forceMapRefresh();
       }
     }
   }
@@ -748,7 +1015,7 @@ export class CreateDelivery implements OnInit {
       setTimeout(() => {
         this.updateMapMarkers();
         if (this.trackingMapComponent) {
-          this.trackingMapComponent.fitToMarkers();
+          this.trackingMapComponent.forceMapRefresh();
         }
       }, 200);
     }
@@ -773,10 +1040,49 @@ export class CreateDelivery implements OnInit {
     document.body.style.overflow = '';
   }
 
-  ngOnDestroy(): void {
-    // Clean up event listeners
-    window.removeEventListener('resize', () => {
-      this.checkMobileView();
+  // Handle contact suggestions
+  onSenderSuggestionSelected(suggestion: any): void {
+    this.deliveryForm.patchValue({
+      senderName: suggestion.name,
+      senderEmail: suggestion.email,
+      senderContact: suggestion.phone
     });
+    
+    // If sender has an address, populate it
+    if (suggestion.isRegistered) {
+      // You could fetch user details here if needed
+      this.toastService.showInfo(`Selected registered user: ${suggestion.name}`);
+    } else {
+      this.toastService.showInfo(`Selected contact: ${suggestion.name}`);
+    }
+    
+    // Trigger validation
+    this.checkSenderRecipientValidation();
+  }
+
+  onRecipientSuggestionSelected(suggestion: any): void {
+    this.deliveryForm.patchValue({
+      recipientName: suggestion.name,
+      recipientEmail: suggestion.email,
+      recipientContact: suggestion.phone
+    });
+    
+    if (suggestion.isRegistered) {
+      this.toastService.showInfo(`Selected registered user: ${suggestion.name}`);
+    } else {
+      this.toastService.showInfo(`Selected contact: ${suggestion.name}`);
+    }
+    
+    // Trigger validation
+    this.checkSenderRecipientValidation();
+  }
+
+  // Clear suggestions when form is reset
+  clearSuggestions(): void {
+    // No-op as autocomplete is removed
+  }
+
+  ngOnDestroy(): void {
+    // Clean up any subscriptions if needed
   }
 }

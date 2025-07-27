@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -36,6 +36,8 @@ interface DeliveryInstruction {
   styleUrls: ['./parcel-details.css']
 })
 export class DriverParcelDetails implements OnInit {
+  @ViewChild('mapComponent', { static: false }) mapComponent!: MapComponent;
+  
   parcel: Parcel | null = null;
   deliveryInstructions: DeliveryInstruction[] = [];
   userRole: string = 'DRIVER';
@@ -76,22 +78,14 @@ export class DriverParcelDetails implements OnInit {
       customerName: 'John Smith'
     };
 
-    // Initialize delivery instructions with proper workflow
+    // Initialize delivery instructions with simplified workflow
     this.deliveryInstructions = [
       {
-        text: `Inspect parcel at pickup location`,
-        completed: false
-      },
-      {
-        text: `Pickup from: ${this.parcel.pickupAddress}`,
+        text: `Pick up from: ${this.parcel.pickupAddress}`,
         completed: false
       },
       {
         text: `Deliver to: ${this.parcel.deliveryAddress}`,
-        completed: false
-      },
-      {
-        text: `Mark delivery as completed`,
         completed: false
       }
     ];
@@ -116,7 +110,7 @@ export class DriverParcelDetails implements OnInit {
       };
       this.mapMarkers.push({
         ...this.currentLocation,
-        description: `<strong>Your Current Location</strong><br>Driver Position`,
+        description: `<strong>Your Current Location</strong><br>Driver Position<br><strong>Parcel ID:</strong> ${this.parcel.parcelId}`,
         address: 'Current Location'
       });
 
@@ -125,7 +119,7 @@ export class DriverParcelDetails implements OnInit {
       if (pickupResult.success && pickupResult.location) {
         this.mapMarkers.push({
           ...pickupResult.location,
-          description: `<strong>Pickup Location</strong><br>${this.parcel.pickupAddress}`,
+          description: `<strong>Pickup Location</strong><br>${this.parcel.pickupAddress}<br><strong>Recipient:</strong> ${this.parcel.recipientName}<br><strong>Phone:</strong> ${this.parcel.recipientPhone}`,
           address: this.parcel.pickupAddress
         });
       }
@@ -135,13 +129,15 @@ export class DriverParcelDetails implements OnInit {
       if (deliveryResult.success && deliveryResult.location) {
         this.mapMarkers.push({
           ...deliveryResult.location,
-          description: `<strong>Delivery Location</strong><br>${this.parcel.deliveryAddress}`,
+          description: `<strong>Delivery Location</strong><br>${this.parcel.deliveryAddress}<br><strong>Recipient:</strong> ${this.parcel.recipientName}<br><strong>Phone:</strong> ${this.parcel.recipientPhone}<br><strong>Instructions:</strong> ${this.parcel.specialInstructions}`,
           address: this.parcel.deliveryAddress
         });
       }
 
       // Update map center to show all markers
       this.updateMapCenter();
+      
+      console.log(`Loaded ${this.mapMarkers.length} markers for driver parcel details`);
     } catch (error) {
       console.error('Error setting up map markers:', error);
     }
@@ -194,24 +190,18 @@ export class DriverParcelDetails implements OnInit {
     if (completedCount === 0) {
       this.parcel.status = 'Pending';
     } else if (completedCount === 1) {
-      // After inspection, status remains pending
-      this.parcel.status = 'Pending';
-    } else if (completedCount === 2) {
       // After pickup, status changes to In Transit
       this.parcel.status = 'In Transit';
-    } else if (completedCount === 3) {
-      // After delivery, status remains In Transit until marked complete
-      this.parcel.status = 'In Transit';
-    } else if (completedCount === 4) {
-      // After marking as completed, status changes to Delivered
+    } else if (completedCount === 2) {
+      // After delivery, status changes to Delivered
       this.parcel.status = 'Delivered';
     }
   }
 
   canMarkAsCompleted(): boolean {
-    // Can only mark as completed if all instructions except the last one are done
+    // Can mark as completed after delivery (both instructions)
     const completedCount = this.deliveryInstructions.filter(instruction => instruction.completed).length;
-    return completedCount === 3; // All instructions except "Mark delivery as completed"
+    return completedCount === 2; // Can complete after both pickup and delivery
   }
 
   toggleView() {
@@ -221,16 +211,15 @@ export class DriverParcelDetails implements OnInit {
   onMapReady(map: L.Map): void {
     console.log('Map is ready for driver parcel details');
     
-    // Fit map to show all markers after a short delay to ensure they're loaded
-    setTimeout(() => {
-      if (this.mapMarkers.length > 1) {
-        // Fit map to show all markers with some padding
-        const bounds = L.latLngBounds(
-          this.mapMarkers.map(marker => [marker.lat, marker.lng])
-        );
-        map.fitBounds(bounds, { padding: [20, 20] });
-      }
-    }, 500);
+    // Ensure map component is properly initialized
+    if (this.mapComponent && this.mapComponent.isMapReady() && this.mapMarkers.length > 0) {
+      // Small delay to ensure everything is properly rendered
+      setTimeout(() => {
+        if (this.mapComponent && this.mapComponent.isMapReady()) {
+          this.mapComponent.fitToMarkersAlways();
+        }
+      }, 200);
+    }
   }
 
   onMarkerClick(location: MapLocation): void {
@@ -251,24 +240,88 @@ export class DriverParcelDetails implements OnInit {
   }
 
   fitMapToMarkers(): void {
-    if (this.mapMarkers.length > 1) {
-      // This will be called by the map component's fitToMarkers method
-      console.log('Fitting map to show all markers');
+    console.log('fitMapToMarkers called - mapComponent:', !!this.mapComponent, 'markers count:', this.mapMarkers.length, 'showMapView:', this.showMapView);
+    
+    if (this.mapMarkers.length === 0) {
+      console.warn('No markers available to fit');
+      return;
     }
+    
+    // If map view is hidden, show it first
+    if (!this.showMapView) {
+      this.showMapView = true;
+      console.log('Map view was hidden, showing it first');
+      // Wait for the map component to be rendered
+      setTimeout(() => {
+        this.fitMapToMarkers();
+      }, 200);
+      return;
+    }
+    
+    if (!this.mapComponent || !this.mapComponent.isMapReady()) {
+      console.warn('Map component not ready, attempting to fit after delay');
+      // Try again after a short delay in case the component is still initializing
+      setTimeout(() => {
+        if (this.mapComponent && this.mapComponent.isMapReady()) {
+          this.mapComponent.forceMapRefresh();
+          console.log('Fitting map to show all markers (delayed)');
+        } else {
+          console.error('Map component still not ready after delay');
+        }
+      }, 100);
+      return;
+    }
+    
+    // Force map refresh and then fit to markers
+    this.mapComponent.forceMapRefresh();
+    console.log('Fitting map to show all markers');
   }
 
   refreshMapMarkers(): void {
-    // Re-setup map markers (useful for refreshing location data)
+    console.log('refreshMapMarkers called - mapComponent:', !!this.mapComponent, 'markers count:', this.mapMarkers.length, 'showMapView:', this.showMapView);
+    
+    // If map view is hidden, show it first
+    if (!this.showMapView) {
+      this.showMapView = true;
+      console.log('Map view was hidden, showing it first');
+      // Wait for the map component to be rendered
+      setTimeout(() => {
+        this.refreshMapMarkers();
+      }, 200);
+      return;
+    }
+    
+    // First, refresh the map component to ensure it's properly rendered
+    if (this.mapComponent && this.mapComponent.isMapReady()) {
+      this.mapComponent.forceMapRefresh();
+    }
+    
+    // Then refresh markers
     this.setupMapMarkers();
+    
+    // Finally, fit to markers after everything is loaded
+    setTimeout(() => {
+      if (this.mapComponent && this.mapComponent.isMapReady() && this.mapMarkers.length > 0) {
+        this.mapComponent.fitToMarkersAlways();
+      } else if (!this.mapComponent || !this.mapComponent.isMapReady()) {
+        console.warn('Map component not ready during refresh, trying again...');
+        // Try again after another delay
+        setTimeout(() => {
+          if (this.mapComponent && this.mapComponent.isMapReady() && this.mapMarkers.length > 0) {
+            this.mapComponent.fitToMarkersAlways();
+          }
+        }, 300);
+      }
+    }, 500);
   }
 
   markAsCompleted() {
     if (this.parcel && this.canMarkAsCompleted()) {
-      // Complete the last instruction
-      this.deliveryInstructions[3].completed = true;
+      // Mark delivery as completed - this would trigger customer notification
       this.parcel.status = 'Delivered';
-      console.log('Parcel marked as completed:', this.parcel.parcelId);
-      // TODO: Call service to update parcel status
+      console.log('Parcel marked as delivered:', this.parcel.parcelId);
+      // TODO: Call service to update parcel status to "Delivered"
+      // Customer will then mark as "Completed" from their side to enable review
     }
   }
 

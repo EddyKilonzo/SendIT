@@ -4,6 +4,7 @@ import { RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ToastService } from '../shared/toast/toast.service';
 import { AuthService, CreateUserDto } from '../../services/auth.service';
+import { ParcelsService, Parcel } from '../../services/parcels.service';
 
 @Component({
   selector: 'app-signup',
@@ -15,6 +16,9 @@ import { AuthService, CreateUserDto } from '../../services/auth.service';
 export class Signup {
   showPassword = false;
   isLoading = false;
+  checkingParcels = false;
+  anonymousParcels: Parcel[] = [];
+  showParcelsFound = false;
   
   signupData: CreateUserDto = {
     name: '',
@@ -27,11 +31,47 @@ export class Signup {
   constructor(
     private toastService: ToastService, 
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private parcelsService: ParcelsService
   ) {}
 
   togglePassword() {
     this.showPassword = !this.showPassword;
+  }
+
+  // Check for anonymous parcels when email is entered
+  onEmailChange() {
+    if (this.signupData.email && this.isValidEmail(this.signupData.email)) {
+      this.checkAnonymousParcels();
+    } else {
+      this.anonymousParcels = [];
+      this.showParcelsFound = false;
+    }
+  }
+
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  private checkAnonymousParcels() {
+    this.checkingParcels = true;
+    this.parcelsService.getAnonymousParcels(this.signupData.email).subscribe({
+      next: (parcels) => {
+        this.checkingParcels = false;
+        this.anonymousParcels = parcels;
+        this.showParcelsFound = parcels.length > 0;
+        
+        if (parcels.length > 0) {
+          this.toastService.showInfo(`Found ${parcels.length} previous parcel(s) for this email address. They will be linked to your account after registration.`);
+        }
+      },
+      error: (error) => {
+        this.checkingParcels = false;
+        console.error('Error checking anonymous parcels:', error);
+        // Don't show error to user, just continue with registration
+      }
+    });
   }
 
   onSubmit() {
@@ -42,8 +82,7 @@ export class Signup {
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.signupData.email)) {
+    if (!this.isValidEmail(this.signupData.email)) {
       this.toastService.showError('Please enter a valid email address');
       return;
     }
@@ -68,6 +107,13 @@ export class Signup {
         this.isLoading = false;
         console.log('Registration successful:', response);
         
+        // Show success message with parcel linking info
+        if (this.anonymousParcels.length > 0) {
+          this.toastService.showSuccess(`Registration successful! ${this.anonymousParcels.length} previous parcel(s) have been linked to your account. Please login to continue.`);
+        } else {
+          this.toastService.showSuccess('Registration successful! Please login to continue.');
+        }
+        
         // Redirect based on user role
         this.redirectBasedOnRole(response.user.role);
       },
@@ -82,6 +128,5 @@ export class Signup {
   private redirectBasedOnRole(role: string) {
     // Redirect to login page after successful registration
     this.router.navigate(['/login']);
-    this.toastService.showSuccess('Registration successful! Please login to continue.');
   }
 }

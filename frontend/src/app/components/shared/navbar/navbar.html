@@ -1,5 +1,10 @@
 <nav class="navbar">
   <div class="navbar-container">
+    <!-- Burger menu button for mobile -->
+    <button class="burger-menu-btn" (click)="toggleSidebar()" *ngIf="isAuthenticated">
+      <i class="fas fa-bars"></i>
+    </button>
+    
     <div class="logo">
       <img src="/images/1logo-removebg-preview.png" alt="SendIT Logo" class="logo-image">
     </div>
@@ -18,9 +23,9 @@
         <span>Home</span>
       </a>
       
-      <button class="notification-btn">
+      <button class="notification-btn" (click)="openNotificationModal()">
         <i class="fas fa-bell"></i>
-        <span class="notification-badge">3</span>
+        <span class="notification-badge" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
       </button>
       
       <!-- User avatar with dropdown menu -->
@@ -60,3 +65,6 @@
     </div>
   </div>
 </nav>
+
+<!-- Notification Modal -->
+<app-notification-modal #notificationModal></app-notification-modal>

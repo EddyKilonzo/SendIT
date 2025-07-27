@@ -129,9 +129,6 @@ export class UserDashboard implements OnInit {
         console.error('Error loading parcels fallback:', error);
         this.toastService.showError('Failed to load parcel data');
         this.isLoading = false;
-        
-        // Load mock data as final fallback
-        this.loadMockData();
       }
     });
   }
@@ -240,56 +237,7 @@ export class UserDashboard implements OnInit {
     });
   }
 
-  private loadMockData() {
-    // Fallback mock data if API fails
-    this.sentParcels = [
-      {
-        id: '#12345',
-        trackingNumber: 'SENDIT123456789',
-        senderName: 'John Doe',
-        senderEmail: 'john@example.com',
-        senderPhone: '+1234567890',
-        recipientName: 'Jane Smith',
-        recipientEmail: 'jane@example.com',
-        recipientPhone: '+0987654321',
-        pickupAddress: '123 Oak Street, Anytown',
-        deliveryAddress: '456 Maple Avenue, Anytown',
-        status: 'in_transit',
-        weight: 2,
-        deliveryAttempts: 0,
-        paymentStatus: 'PAID',
-        deliveredToRecipient: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
-    
-    this.receivedParcels = [
-      {
-        id: '#67890',
-        trackingNumber: 'SENDIT987654321',
-        senderName: 'Bob Wilson',
-        senderEmail: 'bob@example.com',
-        senderPhone: '+1122334455',
-        recipientName: 'John Doe',
-        recipientEmail: 'john@example.com',
-        recipientPhone: '+1234567890',
-        pickupAddress: '789 Pine Lane, Anytown',
-        deliveryAddress: '101 Elm Road, Anytown',
-        status: 'delivered',
-        weight: 1.5,
-        deliveryAttempts: 0,
-        paymentStatus: 'PAID',
-        deliveredToRecipient: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
-    
-    this.calculateDashboardMetrics();
-    this.generateRecentActivities();
-    this.generateSummaryCards();
-  }
+
 
   switchTab(tab: 'sent' | 'received') {
     this.activeTab = tab;

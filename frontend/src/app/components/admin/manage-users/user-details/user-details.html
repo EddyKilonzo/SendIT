@@ -99,7 +99,15 @@
         <div class="tab-content">
           <!-- Overview Tab -->
           <div class="tab-panel" *ngIf="activeTab === 'overview'">
-            <div class="info-sections">
+            <!-- Loading State -->
+            <div *ngIf="isLoadingStats" class="loading-stats">
+              <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+              </div>
+              <p>Loading user statistics...</p>
+            </div>
+            
+            <div class="info-sections" *ngIf="!isLoadingStats">
               <!-- Contact Information -->
               <div class="info-section" *ngIf="user">
                 <h2 class="section-title">Contact Information</h2>
@@ -140,29 +148,27 @@
                   </div>
                 </div>
 
-                <!-- Performance Metrics -->
-                <div class="info-section" *ngIf="user && user.totalDeliveries > 0">
-                  <h2 class="section-title">Performance Metrics</h2>
+                <!-- Driver Status -->
+                <div class="info-section">
+                  <h2 class="section-title">Driver Status</h2>
                   <div class="info-grid">
                     <div class="info-item">
+                      <label class="info-label">Current Status</label>
+                      <span class="info-value status-badge" [ngClass]="user.isAvailable ? 'active' : 'inactive'">
+                        {{ user.isAvailable ? 'Available' : 'Unavailable' }}
+                      </span>
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label">Current Assignments</label>
+                      <span class="info-value">{{ assignedParcels.length }}</span>
+                    </div>
+                    <div class="info-item">
                       <label class="info-label">Total Deliveries</label>
-                      <span class="info-value">{{ user.totalDeliveries }}</span>
-                    </div>
-                    <div class="info-item">
-                      <label class="info-label">Completed Deliveries</label>
-                      <span class="info-value">{{ user.completedDeliveries }}</span>
-                    </div>
-                    <div class="info-item">
-                      <label class="info-label">Average Rating</label>
-                      <span class="info-value">{{ user.averageRating || 'Not rated' }}</span>
-                    </div>
-                    <div class="info-item">
-                      <label class="info-label">On-Time Delivery Rate</label>
-                      <span class="info-value">{{ user.onTimeDeliveryRate || 0 }}%</span>
+                      <span class="info-value">{{ driverPerformance.totalDeliveries }}</span>
                     </div>
                     <div class="info-item">
                       <label class="info-label">Total Earnings</label>
-                      <span class="info-value">{{ user.totalEarnings || 0 | currency:'KSH ' }}</span>
+                      <span class="info-value">{{ formatCurrency(driverPerformance.totalEarnings) }}</span>
                     </div>
                   </div>
                 </div>
@@ -170,6 +176,33 @@
 
               <!-- User-specific sections -->
               <div *ngIf="user.role === 'CUSTOMER'">
+                <!-- Customer Statistics -->
+                <div class="info-section" *ngIf="customerStats.totalParcelsSent > 0 || customerStats.totalParcelsReceived > 0">
+                  <h2 class="section-title">Customer Statistics</h2>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <label class="info-label">Total Parcels Sent</label>
+                      <span class="info-value">{{ customerStats.totalParcelsSent }}</span>
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label">Total Parcels Received</label>
+                      <span class="info-value">{{ customerStats.totalParcelsReceived }}</span>
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label">Total Spent</label>
+                      <span class="info-value">{{ formatCurrency(customerStats.totalSpent) }}</span>
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label">Average Rating</label>
+                      <span class="info-value">{{ customerStats.averageRating || 'Not rated' }}</span>
+                    </div>
+                    <div class="info-item" *ngIf="customerStats.lastOrderDate">
+                      <label class="info-label">Last Order</label>
+                      <span class="info-value">{{ customerStats.lastOrderDate | date:'medium' }}</span>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Account Status -->
                 <div class="info-section">
                   <h2 class="section-title">Account Status</h2>
@@ -190,26 +223,88 @@
           <div class="tab-panel" *ngIf="activeTab === 'performance' && user.role === 'DRIVER'">
             <div class="performance-content">
               <h2 class="section-title">Performance Overview</h2>
+              
+              <!-- Performance Metrics Grid -->
               <div class="performance-metrics">
                 <div class="metric-card">
-                  <div class="metric-value">{{ user.totalDeliveries }}</div>
+                  <div class="metric-value">{{ driverPerformance.totalDeliveries }}</div>
                   <div class="metric-label">Total Deliveries</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{{ user.completedDeliveries }}</div>
+                  <div class="metric-value">{{ driverPerformance.completedDeliveries }}</div>
                   <div class="metric-label">Completed Deliveries</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{{ user.averageRating || 'N/A' }}</div>
+                  <div class="metric-value">{{ driverPerformance.averageRating || 'N/A' }}</div>
                   <div class="metric-label">Average Rating</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{{ user.onTimeDeliveryRate || 0 }}%</div>
-                  <div class="metric-label">On-Time Rate</div>
+                  <div class="metric-value">{{ driverPerformance.onTimeDeliveries }}</div>
+                  <div class="metric-label">On-Time Deliveries</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{{ user.totalEarnings || 0 | currency:'KSH ' }}</div>
+                  <div class="metric-value">{{ formatCurrency(driverPerformance.totalEarnings) }}</div>
                   <div class="metric-label">Total Earnings</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value">{{ driverPerformance.currentAssignments }}</div>
+                  <div class="metric-label">Current Assignments</div>
+                </div>
+              </div>
+
+              <!-- Detailed Performance Stats -->
+              <div class="detailed-stats" *ngIf="user">
+                <div class="stats-section">
+                  <h3 class="subsection-title">Delivery Statistics</h3>
+                  <div class="stats-grid">
+                    <div class="stat-item">
+                      <label>Success Rate</label>
+                      <span>{{ driverPerformance.successRate.toFixed(1) }}%</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>Average Delivery Time</label>
+                      <span>{{ driverPerformance.averageDeliveryTime || 'N/A' }} minutes</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>Estimated vs Actual Time</label>
+                      <span>{{ driverPerformance.estimatedTime }} vs {{ driverPerformance.actualTime }} min</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>Time Accuracy</label>
+                      <span>{{ driverPerformance.timeAccuracy }}%</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>On-Time Rate</label>
+                      <span>{{ driverPerformance.onTimeDeliveries && driverPerformance.totalDeliveries ? ((driverPerformance.onTimeDeliveries / driverPerformance.totalDeliveries) * 100).toFixed(1) : 0 }}%</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>Monthly Earnings</label>
+                      <span>{{ formatCurrency(driverPerformance.monthlyEarnings) }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>Weekly Deliveries</label>
+                      <span>{{ driverPerformance.weeklyDeliveries }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>Current Status</label>
+                      <span>{{ user.isAvailable ? 'Available' : 'Unavailable' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="stats-section" *ngIf="assignedParcels.length > 0">
+                  <h3 class="subsection-title">Current Assignments</h3>
+                  <div class="current-assignments">
+                    <div class="assignment-item" *ngFor="let parcel of assignedParcels.slice(0, 5)">
+                      <div class="assignment-info">
+                        <span class="tracking-number">{{ parcel.trackingNumber }}</span>
+                        <span class="status" [ngClass]="getParcelStatusClass(parcel.status)">{{ parcel.status }}</span>
+                      </div>
+                      <div class="assignment-details">
+                        <span>{{ parcel.senderName }} → {{ parcel.recipientName }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -229,7 +324,7 @@
               </div>
 
               <!-- Parcels Table -->
-              <div class="parcels-table-container" *ngIf="!isLoadingParcels && userParcels.length > 0">
+              <div class="parcels-table-container" *ngIf="!isLoadingParcels && (userParcels.length > 0 || assignedParcels.length > 0)">
                 <table class="parcels-table">
                   <thead>
                     <tr>
@@ -241,10 +336,12 @@
                       <th>Delivery Date</th>
                       <th>Weight</th>
                       <th>Price</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let parcel of userParcels">
+                    <!-- Show assigned parcels for drivers -->
+                    <tr *ngFor="let parcel of (user?.role === 'DRIVER' ? assignedParcels : userParcels)">
                       <td>
                         <a class="parcel-link" (click)="viewParcelDetails(parcel.id)">
                           {{ parcel.trackingNumber }}
@@ -261,13 +358,19 @@
                       <td>{{ parcel.estimatedDeliveryTime | date:'short' }}</td>
                       <td>{{ parcel.weight }} kg</td>
                       <td>{{ parcel.deliveryFee | currency:'KSH ' }}</td>
+                      <td>
+                        <button class="btn-secondary" (click)="viewParcelDetails(parcel.id)">
+                          <i class="fas fa-eye"></i>
+                          View
+                        </button>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               <!-- No Parcels State -->
-              <div class="no-parcels" *ngIf="!isLoadingParcels && userParcels.length === 0">
+              <div class="no-parcels" *ngIf="!isLoadingParcels && userParcels.length === 0 && assignedParcels.length === 0">
                 <div class="no-parcels-icon">
                   <i class="fas fa-box-open"></i>
                 </div>

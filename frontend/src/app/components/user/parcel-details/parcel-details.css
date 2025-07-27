@@ -106,6 +106,12 @@
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
+.status-completed {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
 .status-cancelled {
   background-color: rgba(239, 68, 68, 0.2);
   color: #dc2626;
@@ -933,160 +939,125 @@
 
 @media (max-width: 768px) {
   .parcel-details {
-    display: flex;
+    flex-direction: column;
   }
-  
+
   .main-content {
-    padding: 20px;
+    padding: 15px;
   }
-  
+
   .header-content {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
   }
-  
+
   .page-title {
     font-size: 2rem;
   }
-  
+
   .info-grid,
   .contact-info {
     grid-template-columns: 1fr;
   }
-  
-  /* Timeline Responsive Styling */
+
   .timeline-section {
-    padding: 20px;
+    margin-bottom: 20px;
   }
-  
+
   .timeline {
-    gap: 20px;
+    padding-left: 20px;
   }
-  
+
   .timeline-item {
-    flex-direction: column;
-    text-align: center;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+    padding: 15px 0;
+    margin-bottom: 15px;
   }
-  
+
   .timeline-item:not(:last-child)::after {
-    display: none;
+    left: 15px;
   }
-  
+
   .timeline-icon {
-    margin-bottom: 10px;
-    align-self: center;
+    width: 30px;
+    height: 30px;
+    left: -15px;
   }
-  
+
   .timeline-content {
-    text-align: center;
+    margin-left: 15px;
   }
-  
+
   .timeline-header {
     flex-direction: column;
+    align-items: flex-start;
     gap: 5px;
-    margin-bottom: 8px;
   }
-  
+
   .timeline-header h3 {
-    font-size: 1.1rem;
-    margin: 0;
+    font-size: 1rem;
   }
-  
+
   .timeline-time {
     font-size: 0.8rem;
-    color: #6c757d;
   }
-  
+
   .timeline-location {
     font-size: 0.85rem;
-    margin: 5px 0;
   }
-  
+
   .timeline-description {
     font-size: 0.8rem;
-    line-height: 1.4;
   }
-  
+
   .reviews-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
+
   .review-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 10px;
   }
-  
+
   .review-header .section-title {
-    font-size: 0.95rem;
+    margin-bottom: 0;
   }
-  
+
   .map-container {
-    min-height: 350px;
+    height: 300px;
   }
-  
+
   .tracking-map {
-    height: 350px;
+    height: 100%;
   }
-  
-  /* Adjust tracking section for mobile */
+
   .tracking-section {
-    min-width: auto;
-    width: 100%;
+    margin-bottom: 20px;
   }
-  
-  /* Compact review section for mobile */
+
   .review-section {
-    padding: 6px;
-    max-width: 100%;
-    max-height: 200px;
-    overflow-y: auto;
-    margin-top: 2px;
+    margin-bottom: 20px;
   }
-  
-  .add-review-btn {
-    padding: 5px 10px;
-    font-size: 0.7rem;
+
+  .completion-section {
+    padding: 20px;
+    margin-bottom: 20px;
   }
-  
-  .edit-review-btn {
-    padding: 5px 10px;
-    font-size: 0.7rem;
+
+  .completion-header .section-title {
+    font-size: 1.3rem;
   }
-  
-  .user-review-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 10px;
+
+  .completion-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
   }
-  
-  .user-review-header h3 {
-    font-size: 0.95rem;
-  }
-  
-  .review-item {
-    padding: 6px;
-    max-width: 100%;
-    overflow: hidden;
-  }
-  
-  .no-reviews {
-    padding: 15px;
-  }
-  
-  /* Ensure map doesn't overlap on mobile */
-  .map-container {
-    max-width: 100%;
-    min-width: auto;
+
+  .completion-note {
+    font-size: 0.85rem;
   }
 }
 
@@ -1318,4 +1289,83 @@
   background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
   transform: translateY(-1px);
   box-shadow: 0 4px 6px -1px rgba(220, 53, 69, 0.3), 0 2px 4px -1px rgba(220, 53, 69, 0.2);
+} 
+
+/* Completion Section */
+.completion-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e9ecef;
+  border-left: 4px solid #DBBB02;
+}
+
+.completion-header {
+  margin-bottom: 20px;
+}
+
+.completion-header .section-title {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.completion-description {
+  color: #6c757d;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.completion-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.completion-btn {
+  background-color: #DBBB02;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(219, 187, 2, 0.3);
+}
+
+.completion-btn:hover:not(:disabled) {
+  background-color: #b89400;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(219, 187, 2, 0.4);
+}
+
+.completion-btn:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.completion-btn i {
+  font-size: 1.1rem;
+}
+
+.completion-note {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin: 0;
+  padding-left: 8px;
+  border-left: 3px solid #DBBB02;
 } 

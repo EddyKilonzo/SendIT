@@ -96,6 +96,118 @@ box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 
   opacity: 0.7;
 }
 
+.checking-parcels {
+  margin-top: 5px;
+  font-size: 0.75rem;
+  color: #DBBB02;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.checking-parcels i {
+  font-size: 0.8rem;
+}
+
+.anonymous-parcels-section {
+  margin: 15px 0;
+  padding: 12px;
+  background-color: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.parcels-found-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #b45309;
+  font-size: 0.85rem;
+}
+
+.parcels-found-header i {
+  color: #DBBB02;
+}
+
+.parcels-found-message {
+  font-size: 0.8rem;
+  color: #8b5a00;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.parcels-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.parcel-item {
+  padding: 8px;
+  background-color: white;
+  border-radius: 6px;
+  border: 1px solid #ffe58f;
+}
+
+.parcel-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.tracking-number {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #333;
+}
+
+.parcel-status {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-picked_up {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-in_transit {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-delivered {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.status-cancelled {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.parcel-details {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.more-parcels {
+  text-align: center;
+  color: #8b5a00;
+  font-style: italic;
+}
+
 .form-group textarea {
   width: 100%;
   padding: 10px 12px;

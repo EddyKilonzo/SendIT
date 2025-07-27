@@ -6,7 +6,7 @@
   <main class="main-content">
     <!-- Header -->
     <div class="content-header">
-      <h1 class="page-title">Parcels Assigned</h1>
+      <h1 class="page-title">My Assigned Parcels</h1>
     </div>
 
     <!-- Search and Filter Section -->
@@ -16,16 +16,23 @@
           <i class="fas fa-search search-icon"></i>
           <input 
             type="text" 
-            placeholder="Search parcels..." 
+            placeholder="Search by tracking number, customer, or address..." 
             [(ngModel)]="searchTerm"
             class="search-input"
           >
+          <button 
+            *ngIf="searchTerm" 
+            class="clear-search-btn" 
+            (click)="clearSearch()"
+          >
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       </div>
       
       <div class="filter-container">
         <button class="filter-btn" (click)="toggleFilterDropdown()">
-          <span>{{ selectedFilter === 'all' ? 'All Status' : selectedFilter | titlecase }}</span>
+          <span>{{ selectedFilter === 'all' ? 'All Status' : getStatusDisplayName(selectedFilter) }}</span>
           <i class="fas fa-chevron-down" [class.rotated]="showFilterDropdown"></i>
         </button>
         
@@ -33,30 +40,77 @@
         <div class="filter-dropdown" *ngIf="showFilterDropdown">
           <div class="filter-option" (click)="selectFilter('all')">All Parcels</div>
           <div class="filter-option" (click)="selectFilter('pending')">Pending</div>
-          <div class="filter-option" (click)="selectFilter('in-transit')">In Transit</div>
+          <div class="filter-option" (click)="selectFilter('assigned')">Assigned</div>
+          <div class="filter-option" (click)="selectFilter('picked_up')">Picked Up</div>
+          <div class="filter-option" (click)="selectFilter('in_transit')">In Transit</div>
+          <div class="filter-option" (click)="selectFilter('delivered')">Delivered</div>
         </div>
       </div>
 
       <button 
+        *ngIf="hasActiveFilters()"
         class="clear-filters-btn" 
         (click)="clearFilters()"
       >
-        Clear
+        Clear Filters
       </button>
     </div>
 
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading assigned parcels...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !isLoading" class="error-container">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h3>Error Loading Parcels</h3>
+      <p>{{ error }}</p>
+      <button class="btn btn-primary" (click)="loadAssignedParcels()">Try Again</button>
+    </div>
+
     <!-- Parcels List -->
-    <div class="parcels-container">
-      <div class="parcels-list">
+    <div class="parcels-container" *ngIf="!isLoading && !error">
+      <!-- Results Summary -->
+      <div class="results-summary">
+        <p>
+          Showing {{ startItem }}-{{ endItem }} of {{ totalFilteredItems }} parcels
+          <span *ngIf="hasActiveFilters()">(filtered)</span>
+        </p>
+      </div>
+
+      <!-- No Results -->
+      <div *ngIf="paginatedParcels.length === 0" class="no-data">
+        <i class="fas fa-box-open"></i>
+        <h3>No parcels found</h3>
+        <p *ngIf="hasActiveFilters()">
+          <i class="fas fa-search"></i>
+          No parcels match your current search criteria. Try adjusting your filters or search terms.
+        </p>
+        <p *ngIf="!hasActiveFilters()">
+          <i class="fas fa-clock"></i>
+          You don't have any parcels assigned at the moment. New assignments will appear here automatically.
+        </p>
+        <div class="no-data-actions" *ngIf="!hasActiveFilters()">
+          <button class="btn btn-outline" (click)="refreshPage()">
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Parcels List -->
+      <div class="parcels-list" *ngIf="paginatedParcels.length > 0">
         <div 
           class="parcel-card" 
-          *ngFor="let parcel of filteredParcels"
+          *ngFor="let parcel of paginatedParcels"
         >
           <!-- Card Header -->
           <div class="parcel-header">
-            <div class="parcel-id">{{ parcel.parcelId }}</div>
+            <div class="tracking-number">{{ parcel.trackingNumber }}</div>
             <span class="parcel-status" [ngClass]="getStatusClass(parcel.status)">
-              {{ parcel.status }}
+              {{ getStatusDisplayName(parcel.status) }}
             </span>
           </div>
           
@@ -81,6 +135,15 @@
               <div class="info-item" *ngIf="parcel.customerName">
                 <i class="fas fa-user"></i>
                 <span>{{ parcel.customerName }}</span>
+                <span *ngIf="parcel.customerPhone" class="phone">({{ parcel.customerPhone }})</span>
+              </div>
+              <div class="info-item" *ngIf="parcel.weight">
+                <i class="fas fa-weight-hanging"></i>
+                <span>{{ parcel.weight }} kg</span>
+              </div>
+              <div class="info-item" *ngIf="parcel.specialInstructions">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ parcel.specialInstructions }}</span>
               </div>
             </div>
           </div>
@@ -88,34 +151,63 @@
           <!-- Card Actions -->
           <div class="parcel-actions">
             <button class="btn btn-outline" (click)="viewParcelDetails(parcel.id)">
+              <i class="fas fa-eye"></i>
               Details
             </button>
             <button 
               class="btn btn-primary" 
-              *ngIf="parcel.status === 'Pending'"
+              *ngIf="parcel.status === 'assigned' || parcel.status === 'picked_up'"
               (click)="startDelivery(parcel.id)"
             >
-              Start
+              <i class="fas fa-play"></i>
+              Start Delivery
             </button>
             <button 
               class="btn btn-success" 
-              *ngIf="parcel.status === 'In Transit'"
+              *ngIf="parcel.status === 'in_transit'"
               (click)="completeDelivery(parcel.id)"
             >
+              <i class="fas fa-check"></i>
               Complete
             </button>
           </div>
         </div>
       </div>
-      
-      <!-- No Parcels Message -->
-      <div class="no-parcels" *ngIf="filteredParcels.length === 0">
-        <div class="no-parcels-content">
-          <i class="fas fa-box-open"></i>
-          <h3>No Parcels Found</h3>
-          <p>No parcels match your search criteria.</p>
-          <button class="btn btn-primary" (click)="clearFilters()">
-            Clear Filters
+
+      <!-- Pagination -->
+      <div class="pagination-container" *ngIf="totalFilteredPages > 1">
+        <div class="pagination-info">
+          <span>Page {{ currentPage }} of {{ totalFilteredPages }}</span>
+        </div>
+        
+        <div class="pagination-controls">
+          <button 
+            class="pagination-btn" 
+            [disabled]="currentPage === 1"
+            (click)="previousPage()"
+          >
+            <i class="fas fa-chevron-left"></i>
+            Previous
+          </button>
+          
+          <div class="page-numbers">
+            <button 
+              *ngFor="let page of pages"
+              class="page-btn" 
+              [class.active]="page === currentPage"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+          </div>
+          
+          <button 
+            class="pagination-btn" 
+            [disabled]="currentPage === totalFilteredPages"
+            (click)="nextPage()"
+          >
+            Next
+            <i class="fas fa-chevron-right"></i>
           </button>
         </div>
       </div>

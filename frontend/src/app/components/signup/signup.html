@@ -28,10 +28,43 @@
               id="email" 
               name="email" 
               [(ngModel)]="signupData.email" 
+              (input)="onEmailChange()"
               required 
               placeholder="Enter your email"
               [disabled]="isLoading"
             >
+            <div *ngIf="checkingParcels" class="checking-parcels">
+              <i class="fas fa-spinner fa-spin"></i>
+              Checking for previous parcels...
+            </div>
+          </div>
+
+          <!-- Anonymous Parcels Found Section -->
+          <div *ngIf="showParcelsFound && anonymousParcels.length > 0" class="anonymous-parcels-section">
+            <div class="parcels-found-header">
+              <i class="fas fa-box-open"></i>
+              <span>Previous Parcels Found</span>
+            </div>
+            <div class="parcels-found-message">
+              We found {{ anonymousParcels.length }} parcel(s) sent from this email address. 
+              They will be automatically linked to your account after registration.
+            </div>
+            <div class="parcels-preview">
+              <div *ngFor="let parcel of anonymousParcels.slice(0, 3)" class="parcel-item">
+                <div class="parcel-info">
+                  <span class="tracking-number">#{{ parcel.trackingNumber }}</span>
+                  <span class="parcel-status" [class]="'status-' + parcel.status">
+                    {{ parcel.status | titlecase }}
+                  </span>
+                </div>
+                <div class="parcel-details">
+                  <small>{{ parcel.pickupAddress }} → {{ parcel.deliveryAddress }}</small>
+                </div>
+              </div>
+              <div *ngIf="anonymousParcels.length > 3" class="more-parcels">
+                <small>+{{ anonymousParcels.length - 3 }} more parcel(s)</small>
+              </div>
+            </div>
           </div>
 
           <div class="form-group">

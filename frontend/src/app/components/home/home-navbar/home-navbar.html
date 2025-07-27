@@ -46,8 +46,52 @@
     </div>
     
     <!-- Mobile Menu Toggle -->
-    <div class="mobile-menu-toggle">
-      <i class="fas fa-bars"></i>
+    <div class="mobile-menu-toggle" (click)="toggleMobileMenu()">
+      <i class="fas fa-bars" [class.fa-times]="isMobileMenuOpen"></i>
     </div>
   </div>
-</nav> 
+</nav>
+
+<!-- Mobile Menu Overlay -->
+<div class="mobile-menu-overlay" *ngIf="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+
+<!-- Mobile Menu Sidebar -->
+<div class="mobile-menu-sidebar" [class.open]="isMobileMenuOpen">
+  <div class="mobile-menu-header">
+    <h3>Menu</h3>
+    <button class="mobile-menu-close" (click)="closeMobileMenu()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  
+  <div class="mobile-menu-content">
+    <div class="mobile-nav-links">
+      <a (click)="scrollToSection('about'); closeMobileMenu()" class="mobile-nav-link">About</a>
+      <a (click)="scrollToSection('services'); closeMobileMenu()" class="mobile-nav-link">Services</a>
+      <a (click)="scrollToSection('features'); closeMobileMenu()" class="mobile-nav-link">Features</a>
+      <a (click)="scrollToSection('process'); closeMobileMenu()" class="mobile-nav-link">How It Works</a>
+      <a (click)="scrollToSection('partnerships'); closeMobileMenu()" class="mobile-nav-link">Partners</a>
+    </div>
+    
+    <div class="mobile-menu-actions" *ngIf="!isAuthenticated">
+      <button class="mobile-login-btn" routerLink="/login" (click)="closeMobileMenu()">Login</button>
+      <button class="mobile-signup-btn" routerLink="/signup" (click)="closeMobileMenu()">Sign Up</button>
+    </div>
+    
+    <div class="mobile-menu-actions" *ngIf="isAuthenticated">
+      <div class="mobile-user-info">
+        <div class="mobile-user-avatar">
+          <span class="mobile-user-initials">{{ getUserInitials() }}</span>
+        </div>
+        <div class="mobile-user-details">
+          <div class="mobile-user-name">{{ currentUser?.name || 'User' }}</div>
+          <div class="mobile-user-role">{{ getUserRole() }}</div>
+        </div>
+      </div>
+      <button class="mobile-logout-btn" (click)="logout(); closeMobileMenu()">
+        <i class="fas fa-sign-out-alt"></i>
+        Logout
+      </button>
+    </div>
+  </div>
+</div> 

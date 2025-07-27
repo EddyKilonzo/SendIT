@@ -339,6 +339,18 @@
   border: 1px solid rgba(219, 187, 2, 0.3);
 }
 
+.status-assigned {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #374151;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.status-picked {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
 .status-transit {
   background-color: rgba(59, 130, 246, 0.2);
   color: #1d4ed8;
@@ -399,6 +411,15 @@
 .no-data {
   color: #999;
   font-style: italic;
+}
+
+/* Mobile card layout - hidden on desktop */
+.mobile-parcels {
+  display: none;
+}
+
+.parcel-card {
+  display: none;
 }
 
 /* Pagination Styles */
@@ -504,6 +525,15 @@
     text-align: center;
   }
 
+  .content-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .btn-new-parcel {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+
   .filter-controls {
     flex-direction: column;
     gap: 15px;
@@ -513,13 +543,82 @@
     width: 100%;
   }
 
-  .parcels-table {
-    font-size: 12px;
+  /* Mobile table layout - convert to cards */
+  .table-container {
+    overflow-x: auto;
   }
 
-  .parcels-table th,
-  .parcels-table td {
-    padding: 8px 4px;
+  .parcels-table {
+    display: none; /* Hide table on mobile */
+  }
+
+  /* Mobile card layout */
+  .mobile-parcels {
+    display: block;
+  }
+
+  .parcel-card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+  }
+
+  .parcel-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .parcel-id {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+  }
+
+  .parcel-status {
+    font-size: 0.8rem;
+  }
+
+  .parcel-details {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .parcel-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+
+  .detail-label {
+    font-weight: 500;
+    color: #6c757d;
+    min-width: 80px;
+  }
+
+  .detail-value {
+    color: #333;
+    text-align: right;
+    flex: 1;
+  }
+
+  .parcel-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .btn-view-details {
+    padding: 8px 16px;
+    font-size: 0.8rem;
   }
 
   .pagination-container {
@@ -535,5 +634,139 @@
   .page-numbers {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .pagination-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .page-number {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    min-width: 35px;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .main-content {
+    padding: 10px 15px;
+  }
+
+  .content-header {
+    padding: 15px;
+  }
+
+  .content-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .btn-new-parcel {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+
+  .filter-section {
+    padding: 15px;
+  }
+
+  .filter-section h3 {
+    font-size: 1rem;
+  }
+
+  .parcel-card {
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .parcel-card-header {
+    margin-bottom: 10px;
+  }
+
+  .parcel-id {
+    font-size: 0.85rem;
+  }
+
+  .parcel-details {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .parcel-detail-row {
+    font-size: 0.8rem;
+  }
+
+  .detail-label {
+    min-width: 70px;
+  }
+
+  .btn-view-details {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+
+  .pagination-container {
+    padding: 15px;
+  }
+
+  .pagination-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .page-number {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    min-width: 30px;
+  }
+}
+
+/* Very small mobile devices */
+@media (max-width: 360px) {
+  .main-content {
+    padding: 8px 12px;
+  }
+
+  .content-header {
+    padding: 12px;
+  }
+
+  .content-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .btn-new-parcel {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .parcel-card {
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+
+  .parcel-detail-row {
+    font-size: 0.75rem;
+  }
+
+  .detail-label {
+    min-width: 60px;
+  }
+
+  .btn-view-details {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+
+  .pagination-btn {
+    padding: 5px 8px;
+    font-size: 0.7rem;
+  }
+
+  .page-number {
+    padding: 4px 6px;
+    font-size: 0.7rem;
+    min-width: 28px;
   }
 }

@@ -1,0 +1,149 @@
+<div class="notification-modal-overlay" *ngIf="isOpen" (click)="closeModal()">
+  <div class="notification-modal" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="header-content">
+        <h2 class="modal-title">
+          <i class="fas fa-bell"></i>
+          Notifications
+        </h2>
+        <div class="header-actions">
+          <button 
+            class="mark-all-read-btn" 
+            (click)="markAllAsRead()"
+            [disabled]="unreadCount === 0 || isLoading"
+            *ngIf="unreadCount > 0"
+          >
+            <i class="fas fa-check-double"></i>
+            Mark all read
+          </button>
+          <button class="close-btn" (click)="closeModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+      <div class="notification-stats">
+        <span class="unread-count" *ngIf="unreadCount > 0">
+          {{ unreadCount }} unread notification{{ unreadCount > 1 ? 's' : '' }}
+        </span>
+        <span class="total-count">
+          {{ totalNotifications }} total notification{{ totalNotifications > 1 ? 's' : '' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="isLoading">
+      <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <p>Loading notifications...</p>
+    </div>
+
+    <!-- Notifications List -->
+    <div class="notifications-content" *ngIf="!isLoading">
+      <!-- Backend Unavailable State -->
+      <div class="backend-unavailable-state" *ngIf="isBackendUnavailable">
+        <div class="unavailable-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3>Service Temporarily Unavailable</h3>
+        <p>We're unable to load notifications at the moment. Please try again later.</p>
+        <button class="retry-btn" (click)="loadNotifications()">
+          <i class="fas fa-redo"></i>
+          Try Again
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="notifications.length === 0 && !isBackendUnavailable">
+        <div class="empty-icon">
+          <i class="fas fa-bell-slash"></i>
+        </div>
+        <h3>No notifications yet</h3>
+        <p>You're all caught up! New notifications will appear here.</p>
+      </div>
+
+      <!-- Notifications List -->
+      <div class="notifications-list" *ngIf="notifications.length > 0">
+        <div 
+          class="notification-item" 
+          *ngFor="let notification of notifications; trackBy: trackByNotificationId"
+          [class.unread]="!notification.isRead"
+          (click)="onNotificationClick(notification)"
+        >
+          <!-- Notification Icon -->
+          <div class="notification-icon" [style.background-color]="getNotificationColor(notification.type)">
+            <i [class]="getNotificationIcon(notification.type)"></i>
+          </div>
+
+          <!-- Notification Content -->
+          <div class="notification-content">
+            <div class="notification-header">
+              <h4 class="notification-title">{{ notification.title }}</h4>
+              <div class="notification-actions">
+                <button 
+                  class="mark-read-btn" 
+                  (click)="markAsRead(notification.id, $event)"
+                  *ngIf="!notification.isRead"
+                  title="Mark as read"
+                >
+                  <i class="fas fa-check"></i>
+                </button>
+                <button 
+                  class="delete-btn" 
+                  (click)="deleteNotification(notification.id, $event)"
+                  title="Delete notification"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            <p class="notification-message">{{ notification.message }}</p>
+            <div class="notification-meta">
+              <span class="notification-time">{{ formatNotificationDate(notification.createdAt) }}</span>
+              <span class="notification-type">{{ getNotificationTypeLabel(notification.type) }}</span>
+            </div>
+          </div>
+
+          <!-- Unread Indicator -->
+          <div class="unread-indicator" *ngIf="!notification.isRead"></div>
+        </div>
+      </div>
+
+      <!-- Load More Button -->
+      <div class="load-more-section" *ngIf="hasMoreNotifications">
+        <button 
+          class="load-more-btn" 
+          (click)="loadMoreNotifications()"
+          [disabled]="isLoadingMore"
+        >
+          <i class="fas fa-spinner fa-spin" *ngIf="isLoadingMore"></i>
+          <span *ngIf="!isLoadingMore">Load more notifications</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer" *ngIf="notifications.length > 0 && !isBackendUnavailable">
+      <div class="footer-actions">
+        <button 
+          class="clear-all-btn" 
+          (click)="clearAllNotifications()"
+          [disabled]="isLoading"
+        >
+          <i class="fas fa-trash-alt"></i>
+          Clear all
+        </button>
+        <button 
+          class="refresh-btn" 
+          (click)="refreshNotifications()"
+          [disabled]="isLoading"
+        >
+          <i class="fas fa-sync-alt"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+</div> 

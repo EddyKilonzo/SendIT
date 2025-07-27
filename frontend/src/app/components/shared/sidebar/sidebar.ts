@@ -6,6 +6,7 @@ import {
   ViewChildren,
   QueryList,
   ElementRef,
+  OnDestroy,
 } from '@angular/core';
 import {
   RouterLink,
@@ -15,7 +16,9 @@ import {
 } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService, User } from '../../../services/auth.service';
+import { SidebarService } from '../../../services/sidebar.service';
 import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 
 export interface NavigationItem {
   icon: string;
@@ -32,12 +35,14 @@ export interface NavigationItem {
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.css',
 })
-export class SidebarComponent implements OnInit, AfterViewInit {
+export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() currentPage: string = '';
   @ViewChildren('navItem') navItems!: QueryList<ElementRef>;
 
   currentUser: User | null = null;
   userRole: string = '';
+  isOpen = false;
+  private sidebarSubscription?: Subscription;
 
   // Navigation items based on roles, unified icons for consistency
   navigationItems: NavigationItem[] = [
@@ -96,7 +101,11 @@ export class SidebarComponent implements OnInit, AfterViewInit {
     },
   ];
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService, 
+    private router: Router,
+    private sidebarService: SidebarService
+  ) {}
 
   ngOnInit() {
     // Get current user and role
@@ -105,10 +114,31 @@ export class SidebarComponent implements OnInit, AfterViewInit {
 
     // Set dashboard route based on role
     this.setDashboardRoute();
+    
+    // Subscribe to sidebar state
+    this.sidebarSubscription = this.sidebarService.isOpen$.subscribe(
+      (isOpen) => {
+        this.isOpen = isOpen;
+        // Prevent body scrolling when sidebar is open on mobile
+        if (window.innerWidth <= 768) {
+          if (isOpen) {
+            document.body.style.overflow = 'hidden';
+          } else {
+            document.body.style.overflow = '';
+          }
+        }
+      }
+    );
+    
     // Subscribe to router events to auto-scroll active navlink on navigation
     this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe(() => {
+        // Close sidebar on mobile when navigating
+        if (window.innerWidth <= 768 && this.isOpen) {
+          this.sidebarService.closeSidebar();
+        }
+        
         setTimeout(() => {
           const activeIndex = this.getVisibleNavItems().findIndex((item) =>
             this.isRouteActive(item.route)
@@ -169,5 +199,24 @@ export class SidebarComponent implements OnInit, AfterViewInit {
       fragment: 'ignored',
       matrixParams: 'ignored',
     });
+  }
+
+  onNavItemClick() {
+    // Close sidebar on mobile when a nav item is clicked
+    if (window.innerWidth <= 768) {
+      this.sidebarService.closeSidebar();
+    }
+  }
+
+  closeSidebar() {
+    this.sidebarService.closeSidebar();
+  }
+
+  ngOnDestroy() {
+    if (this.sidebarSubscription) {
+      this.sidebarSubscription.unsubscribe();
+    }
+    // Restore body overflow when component is destroyed
+    document.body.style.overflow = '';
   }
 }

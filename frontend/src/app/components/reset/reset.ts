@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ToastService } from '../shared/toast/toast.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-reset',
@@ -16,6 +17,12 @@ export class Reset {
   showPassword = false;
   showConfirmPassword = false;
   
+  // Loading states
+  isSendingCode = false;
+  isVerifyingCode = false;
+  isResettingPassword = false;
+  isResendingCode = false;
+  
   resetData = {
     email: '',
     verificationCode: '',
@@ -25,7 +32,8 @@ export class Reset {
 
   constructor(
     private toastService: ToastService,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {}
 
   togglePassword() {
@@ -76,8 +84,23 @@ export class Reset {
     }
 
     console.log('Sending verification code to:', this.resetData.email);
-    this.toastService.showSuccess('Verification code sent to your email');
-    this.currentStep = 2;
+    
+    this.isSendingCode = true;
+    
+    this.authService.requestPasswordReset(this.resetData.email).subscribe({
+      next: (success) => {
+        this.isSendingCode = false;
+        if (success) {
+          this.toastService.showSuccess('Verification code sent to your email');
+          this.currentStep = 2;
+        }
+      },
+      error: (error) => {
+        this.isSendingCode = false;
+        console.error('Error sending verification code:', error);
+        // Don't show error message as the backend doesn't reveal if email exists
+      }
+    });
   }
 
   verifyCode() {
@@ -92,8 +115,22 @@ export class Reset {
     }
 
     console.log('Verifying code:', this.resetData.verificationCode);
-    this.toastService.showSuccess('Code verified successfully');
-    this.currentStep = 3;
+    
+    this.isVerifyingCode = true;
+    
+    this.authService.verifyResetToken(this.resetData.email, this.resetData.verificationCode).subscribe({
+      next: (success) => {
+        this.isVerifyingCode = false;
+        if (success) {
+          this.toastService.showSuccess('Code verified successfully');
+          this.currentStep = 3;
+        }
+      },
+      error: (error) => {
+        this.isVerifyingCode = false;
+        console.error('Error verifying code:', error);
+      }
+    });
   }
 
   resetPassword() {
@@ -114,12 +151,30 @@ export class Reset {
     }
     
     console.log('Resetting password for:', this.resetData.email);
-    this.toastService.showSuccess('Password reset successfully! Redirecting to login...');
     
-    // Redirect to login page after a short delay to show the success message
-    setTimeout(() => {
-      this.router.navigate(['/login']);
-    }, 2000);
+    this.isResettingPassword = true;
+    
+    this.authService.confirmPasswordReset(
+      this.resetData.email, 
+      this.resetData.verificationCode, 
+      this.resetData.password
+    ).subscribe({
+      next: (success) => {
+        this.isResettingPassword = false;
+        if (success) {
+          this.toastService.showSuccess('Password reset successfully! Redirecting to login...');
+          
+          // Redirect to login page after a short delay to show the success message
+          setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 1000);
+        }
+      },
+      error: (error) => {
+        this.isResettingPassword = false;
+        console.error('Error resetting password:', error);
+      }
+    });
   }
 
   resendCode() {
@@ -129,6 +184,20 @@ export class Reset {
     }
 
     console.log('Resending verification code to:', this.resetData.email);
-    this.toastService.showInfo('Verification code resent to your email');
+    
+    this.isResendingCode = true;
+    
+    this.authService.requestPasswordReset(this.resetData.email).subscribe({
+      next: (success) => {
+        this.isResendingCode = false;
+        if (success) {
+          this.toastService.showInfo('Verification code resent to your email');
+        }
+      },
+      error: (error) => {
+        this.isResendingCode = false;
+        console.error('Error resending verification code:', error);
+      }
+    });
   }
 }

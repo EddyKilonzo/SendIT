@@ -1,13 +1,16 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, ViewChild } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
+import { NotificationService } from '../../../services/notification.service';
 import { ToastService } from '../toast/toast.service';
+import { NotificationModalComponent } from '../notification-modal/notification-modal';
+import { SidebarService } from '../../../services/sidebar.service';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [RouterLink, CommonModule, NotificationModalComponent],
   templateUrl: './navbar.html',
   styleUrl: './navbar.css'
 })
@@ -15,11 +18,16 @@ export class NavbarComponent implements OnInit {
   isAuthenticated = false;
   currentUser: any = null;
   showUserMenu = false;
+  unreadCount = 0;
+
+  @ViewChild('notificationModal') notificationModal!: NotificationModalComponent;
 
   constructor(
     private authService: AuthService,
+    private notificationService: NotificationService,
     private router: Router,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private sidebarService: SidebarService
   ) {}
 
   ngOnInit() {
@@ -37,12 +45,23 @@ export class NavbarComponent implements OnInit {
         }
       }
     );
+
+    // Listen for notification updates
+    this.notificationService.unreadCount$.subscribe(count => {
+      this.unreadCount = count;
+    });
   }
 
   checkAuthStatus() {
     this.isAuthenticated = this.authService.isAuthenticated();
     if (this.isAuthenticated) {
       this.currentUser = this.authService.getCurrentUser();
+    }
+  }
+
+  openNotificationModal() {
+    if (this.notificationModal) {
+      this.notificationModal.openModal();
     }
   }
 
@@ -101,5 +120,9 @@ export class NavbarComponent implements OnInit {
     if (nextElement) {
       nextElement.style.display = 'flex';
     }
+  }
+
+  toggleSidebar() {
+    this.sidebarService.toggleSidebar();
   }
 }

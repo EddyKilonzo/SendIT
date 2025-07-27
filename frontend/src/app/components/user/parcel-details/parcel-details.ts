@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,24 +7,30 @@ import { MapService } from '../../../services/map.service';
 import { MapLocation, MapCoordinates, MapError, MapMarkerType } from '../../../types/map.types';
 import { ToastService } from '../../shared/toast/toast.service';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
+import { ParcelsService } from '../../../services/parcels.service';
 import * as L from 'leaflet';
 
 interface Parcel {
   id: string;
   weight: number;
-  status: 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'In Transit' | 'Delivered' | 'Completed' | 'Cancelled';
   pickupAddress: string;
   deliveryAddress: string;
-  expectedDelivery: string;
+  expectedDelivery?: string;
   deliveredDate?: string;
   scheduledPickup?: string;
-  type: 'sent' | 'received';
+  type?: 'sent' | 'received';
   description?: string;
   senderName?: string;
   receiverName?: string;
   trackingNumber?: string;
   currentLocation?: string;
   estimatedTime?: string;
+  driver?: {
+    name: string;
+    vehicleNumber: string;
+    phone?: string;
+  };
 }
 
 interface TrackingEvent {
@@ -52,6 +58,8 @@ interface Review {
   styleUrls: ['./parcel-details.css']
 })
 export class ParcelDetails implements OnInit {
+  @ViewChild('mapComponent', { static: false }) mapComponent!: MapComponent;
+  
   parcelId: string = '';
   parcel: Parcel | null = null;
   showReviewModal = false;
@@ -79,7 +87,12 @@ export class ParcelDetails implements OnInit {
       receiverName: 'Jane Smith',
       trackingNumber: 'TRK123456789',
       currentLocation: 'Distribution Center, Downtown',
-      estimatedTime: '2 hours'
+      estimatedTime: '2 hours',
+      driver: {
+        name: 'Mike Johnson',
+        vehicleNumber: 'KCA 123A',
+        phone: '+254-700-123-456'
+      }
     },
     {
       id: '#11223',
@@ -206,7 +219,8 @@ export class ParcelDetails implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private mapService: MapService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private parcelsService: ParcelsService
   ) {}
 
   ngOnInit() {
@@ -215,16 +229,79 @@ export class ParcelDetails implements OnInit {
   }
 
   loadParcelDetails() {
-    this.parcel = this.parcels.find(p => p.id === this.parcelId) || null;
-    if (!this.parcel) {
-      this.router.navigate(['/user-parcels']);
-    } else {
-      this.generateTrackingEvents();
-      this.setupMapMarkers();
+    // Get parcel ID from route parameters
+    this.route.params.subscribe(params => {
+      this.parcelId = params['id'];
       
-      if (this.parcel.status === 'Delivered') {
-        this.checkUserReview();
+      if (this.parcelId) {
+        this.loadParcelFromApi();
+      } else {
+        this.toastService.showError('Parcel ID not provided');
+        this.router.navigate(['/user-parcels']);
       }
+    });
+  }
+
+  private loadParcelFromApi() {
+    this.parcelsService.getParcelById(this.parcelId).subscribe({
+      next: (response: any) => {
+        console.log('Parcel data from API:', response);
+        this.parcel = this.mapApiResponseToParcel(response);
+        this.generateTrackingEvents();
+        this.checkUserReview();
+        this.setupMapMarkers();
+      },
+      error: (error: any) => {
+        console.error('Error loading parcel:', error);
+        this.toastService.showError('Failed to load parcel details');
+        this.router.navigate(['/user-parcels']);
+      }
+    });
+  }
+
+  private mapApiResponseToParcel(apiResponse: any): Parcel {
+    return {
+      id: apiResponse.id,
+      weight: apiResponse.weight,
+      status: this.mapStatus(apiResponse.status),
+      pickupAddress: apiResponse.pickupAddress,
+      deliveryAddress: apiResponse.deliveryAddress,
+      expectedDelivery: apiResponse.estimatedDeliveryTime || 'TBD',
+      deliveredDate: apiResponse.actualDeliveryTime,
+      scheduledPickup: apiResponse.estimatedPickupTime,
+      type: 'sent', // Default to sent for now
+      description: apiResponse.description,
+      senderName: apiResponse.senderName,
+      receiverName: apiResponse.recipientName,
+      trackingNumber: apiResponse.trackingNumber,
+      currentLocation: apiResponse.currentLocation,
+      estimatedTime: apiResponse.estimatedDeliveryTime ? `${apiResponse.estimatedDeliveryTime} hours` : 'TBD',
+      driver: apiResponse.driver ? {
+        name: apiResponse.driver.name,
+        vehicleNumber: apiResponse.driver.vehicleNumber,
+        phone: apiResponse.driver.phone
+      } : undefined
+    };
+  }
+
+  private mapStatus(apiStatus: string): 'Pending' | 'In Transit' | 'Delivered' | 'Completed' | 'Cancelled' {
+    switch (apiStatus.toLowerCase()) {
+      case 'pending':
+        return 'Pending';
+      case 'assigned':
+      case 'picked_up':
+        return 'Pending';
+      case 'in_transit':
+        return 'In Transit';
+      case 'delivered_to_recipient':
+      case 'delivered':
+        return 'Delivered';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'Pending';
     }
   }
 
@@ -233,12 +310,138 @@ export class ParcelDetails implements OnInit {
     this.userReview = null;
   }
 
+  markAsComplete() {
+    if (this.parcel && this.parcel.status === 'Delivered') {
+      this.parcel.status = 'Completed';
+      
+      // Add completion event to tracking timeline
+      this.trackingEvents.push({
+        id: (this.trackingEvents.length + 1).toString(),
+        status: 'Completed',
+        location: this.parcel.deliveryAddress,
+        timestamp: this.formatDate(new Date()),
+        description: 'Parcel delivery has been completed by customer',
+        icon: 'fas fa-check-double'
+      });
+      
+      this.toastService.showSuccess('Parcel marked as completed! You can now leave a review.');
+      
+      // Call API to update parcel status to completed
+      this.parcelsService.markAsCompleted(this.parcel.id, {}).subscribe({
+        next: (response) => {
+          console.log('Parcel marked as completed:', response);
+          this.parcel = this.mapApiResponseToParcel(response);
+        },
+        error: (error) => {
+          console.error('Error marking parcel as completed:', error);
+          this.toastService.showError('Failed to mark parcel as completed');
+          // Revert the status change on error
+          if (this.parcel) {
+            this.parcel.status = 'Delivered';
+          }
+          this.trackingEvents.pop(); // Remove the completion event
+        }
+      });
+    }
+  }
+
+  canMarkAsComplete(): boolean {
+    return this.parcel?.status === 'Delivered';
+  }
+
+  canLeaveReview(): boolean {
+    return this.parcel?.status === 'Completed';
+  }
+
   generateTrackingEvents() {
     if (!this.parcel) return;
 
     this.trackingEvents = [];
-    const baseDate = new Date(this.parcel.expectedDelivery);
     
+    // Load status history from API
+    this.parcelsService.getParcelHistory(this.parcelId).subscribe({
+      next: (response: any) => {
+        console.log('Status history from API:', response);
+        this.trackingEvents = this.mapStatusHistoryToEvents(response);
+      },
+      error: (error: any) => {
+        console.error('Error loading status history:', error);
+        // Fallback to generated events
+        this.generateFallbackTrackingEvents();
+      }
+    });
+  }
+
+  private mapStatusHistoryToEvents(statusHistory: any[]): TrackingEvent[] {
+    const events: TrackingEvent[] = [];
+    
+    statusHistory.forEach((status, index) => {
+      const event: TrackingEvent = {
+        id: (index + 1).toString(),
+        status: this.getStatusDisplayName(status.status),
+        location: status.location || 'Unknown Location',
+        timestamp: this.formatDate(new Date(status.createdAt)),
+        description: status.notes || this.getStatusDescription(status.status),
+        icon: this.getStatusIcon(status.status)
+      };
+      events.push(event);
+    });
+
+    return events;
+  }
+
+  private getStatusDisplayName(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Order Placed';
+      case 'assigned':
+        return 'Driver Assigned';
+      case 'picked_up':
+        return 'Picked Up';
+      case 'in_transit':
+        return 'In Transit';
+      case 'delivered_to_recipient':
+        return 'Out for Delivery';
+      case 'delivered':
+        return 'Delivered';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status;
+    }
+  }
+
+  private getStatusDescription(status: string): string {
+    switch (status) {
+      case 'Pending': return 'Parcel is pending pickup';
+      case 'In Transit': return 'Parcel is in transit to destination';
+      case 'Delivered': return 'Parcel has been successfully delivered';
+      case 'Completed': return 'Parcel delivery has been completed';
+      case 'Cancelled': return 'Parcel delivery has been cancelled';
+      default: return 'Unknown status';
+    }
+  }
+
+  private getStatusIcon(status: string): string {
+    switch (status) {
+      case 'Pending': return 'fas fa-clock';
+      case 'In Transit': return 'fas fa-truck';
+      case 'Delivered': return 'fas fa-check-circle';
+      case 'Completed': return 'fas fa-check-double';
+      case 'Cancelled': return 'fas fa-times-circle';
+      default: return 'fas fa-question-circle';
+    }
+  }
+
+  private generateFallbackTrackingEvents() {
+    if (!this.parcel) return;
+
+    this.trackingEvents = [];
+    const baseDate = new Date(this.parcel.expectedDelivery || new Date());
+    
+    // Always add order placed event
     this.trackingEvents.push({
       id: '1',
       status: 'Order Placed',
@@ -248,6 +451,7 @@ export class ParcelDetails implements OnInit {
       icon: 'fas fa-shopping-cart'
     });
 
+    // Add events based on current status
     switch (this.parcel.status) {
       case 'Pending':
         break;
@@ -273,6 +477,44 @@ export class ParcelDetails implements OnInit {
         break;
         
       case 'Delivered':
+        this.trackingEvents.push({
+          id: '2',
+          status: 'Picked Up',
+          location: this.parcel.pickupAddress,
+          timestamp: this.formatDate(new Date(baseDate.getTime() - 5 * 24 * 60 * 60 * 1000)),
+          description: 'Parcel has been picked up from sender',
+          icon: 'fas fa-box'
+        });
+        
+        this.trackingEvents.push({
+          id: '3',
+          status: 'In Transit',
+          location: 'Distribution Center',
+          timestamp: this.formatDate(new Date(baseDate.getTime() - 3 * 24 * 60 * 60 * 1000)),
+          description: 'Parcel is in transit to destination',
+          icon: 'fas fa-truck'
+        });
+        
+        this.trackingEvents.push({
+          id: '4',
+          status: 'Out for Delivery',
+          location: 'Local Facility',
+          timestamp: this.formatDate(new Date(baseDate.getTime() - 1 * 24 * 60 * 60 * 1000)),
+          description: 'Parcel is out for delivery',
+          icon: 'fas fa-motorcycle'
+        });
+        
+        this.trackingEvents.push({
+          id: '5',
+          status: 'Delivered',
+          location: this.parcel.deliveryAddress,
+          timestamp: this.formatDate(new Date(this.parcel.deliveredDate || baseDate)),
+          description: 'Parcel has been successfully delivered',
+          icon: 'fas fa-check-circle'
+        });
+        break;
+        
+      case 'Completed':
         this.trackingEvents.push({
           id: '2',
           status: 'Picked Up',
@@ -348,6 +590,7 @@ export class ParcelDetails implements OnInit {
       case 'Pending': return 'status-pending';
       case 'In Transit': return 'status-transit';
       case 'Delivered': return 'status-delivered';
+      case 'Completed': return 'status-completed';
       case 'Cancelled': return 'status-cancelled';
       default: return '';
     }
@@ -360,6 +603,7 @@ export class ParcelDetails implements OnInit {
       case 'In Transit': return 'event-transit';
       case 'Out for Delivery': return 'event-delivery';
       case 'Delivered': return 'event-delivered';
+      case 'Completed': return 'event-completed';
       case 'Cancelled': return 'event-cancelled';
       default: return '';
     }
@@ -491,6 +735,22 @@ export class ParcelDetails implements OnInit {
         }
       }
 
+      // Add driver location marker if parcel has a driver assigned
+      if (this.parcel.status === 'In Transit' && this.parcel.driver) {
+        // For demo purposes, we'll add a marker near the pickup location
+        const driverLocation = {
+          lat: this.mapMarkers[0]?.lat ? this.mapMarkers[0].lat + 0.01 : -1.2921,
+          lng: this.mapMarkers[0]?.lng ? this.mapMarkers[0].lng + 0.01 : 36.8219
+        };
+        
+        this.mapMarkers.push({
+          ...driverLocation,
+          description: `<strong>Driver Location</strong><br>${this.parcel.driver.name} - ${this.parcel.driver.vehicleNumber}`,
+          address: `Driver: ${this.parcel.driver.name}`
+        });
+        this.mapMarkerTypes.push(MapMarkerType.DRIVER);
+      }
+
       // Update map center to show all markers
       this.updateMapCenter();
       
@@ -529,16 +789,15 @@ export class ParcelDetails implements OnInit {
   onMapReady(map: L.Map): void {
     console.log('Map is ready for user parcel details');
     
-    // Fit map to show all markers after a short delay to ensure they're loaded
-    setTimeout(() => {
-      if (this.mapMarkers.length > 1) {
-        // Fit map to show all markers with some padding
-        const bounds = L.latLngBounds(
-          this.mapMarkers.map(marker => [marker.lat, marker.lng])
-        );
-        map.fitBounds(bounds, { padding: [20, 20] });
-      }
-    }, 500);
+    // Ensure map component is properly initialized
+    if (this.mapComponent && this.mapComponent.isMapReady() && this.mapMarkers.length > 0) {
+      // Small delay to ensure everything is properly rendered
+      setTimeout(() => {
+        if (this.mapComponent && this.mapComponent.isMapReady()) {
+          this.mapComponent.fitToMarkersAlways();
+        }
+      }, 200);
+    }
   }
 
   onMarkerClick(location: MapLocation): void {
@@ -568,18 +827,84 @@ export class ParcelDetails implements OnInit {
   }
 
   fitMapToMarkers(): void {
-    if (this.mapMarkers.length > 1) {
-      console.log('Fitting map to show all markers');
-      this.toastService.showInfo('Map adjusted to show all locations');
-    } else if (this.mapMarkers.length === 1) {
-      this.toastService.showInfo('Map centered on location');
-    } else {
+    console.log('fitMapToMarkers called - mapComponent:', !!this.mapComponent, 'markers count:', this.mapMarkers.length, 'showMapView:', this.showMapView);
+    
+    if (this.mapMarkers.length === 0) {
+      console.warn('No markers available to fit');
       this.toastService.showWarning('No markers to fit');
+      return;
     }
+    
+    // If map view is hidden, show it first
+    if (!this.showMapView) {
+      this.showMapView = true;
+      console.log('Map view was hidden, showing it first');
+      // Wait for the map component to be rendered
+      setTimeout(() => {
+        this.fitMapToMarkers();
+      }, 200);
+      return;
+    }
+    
+    if (!this.mapComponent || !this.mapComponent.isMapReady()) {
+      console.warn('Map component not ready, attempting to fit after delay');
+      // Try again after a short delay in case the component is still initializing
+      setTimeout(() => {
+        if (this.mapComponent && this.mapComponent.isMapReady()) {
+          this.mapComponent.forceMapRefresh();
+          console.log('Fitting map to show all markers (delayed)');
+          this.toastService.showInfo('Map adjusted to show all locations');
+        } else {
+          console.error('Map component still not ready after delay');
+          this.toastService.showError('Map component not ready');
+        }
+      }, 100);
+      return;
+    }
+    
+    // Force map refresh and then fit to markers
+    this.mapComponent.forceMapRefresh();
+    console.log('Fitting map to show all markers');
+    this.toastService.showInfo('Map adjusted to show all locations');
   }
 
   refreshMapMarkers(): void {
+    console.log('refreshMapMarkers called - mapComponent:', !!this.mapComponent, 'markers count:', this.mapMarkers.length, 'showMapView:', this.showMapView);
+    
+    // If map view is hidden, show it first
+    if (!this.showMapView) {
+      this.showMapView = true;
+      console.log('Map view was hidden, showing it first');
+      // Wait for the map component to be rendered
+      setTimeout(() => {
+        this.refreshMapMarkers();
+      }, 200);
+      return;
+    }
+    
+    // First, refresh the map component to ensure it's properly rendered
+    if (this.mapComponent && this.mapComponent.isMapReady()) {
+      this.mapComponent.forceMapRefresh();
+    }
+    
+    // Then refresh markers
     this.setupMapMarkers();
+    
+    // Finally, fit to markers after everything is loaded
+    setTimeout(() => {
+      if (this.mapComponent && this.mapComponent.isMapReady() && this.mapMarkers.length > 0) {
+        this.mapComponent.fitToMarkersAlways();
+      } else if (!this.mapComponent || !this.mapComponent.isMapReady()) {
+        console.warn('Map component not ready during refresh, trying again...');
+        // Try again after another delay
+        setTimeout(() => {
+          if (this.mapComponent && this.mapComponent.isMapReady() && this.mapMarkers.length > 0) {
+            this.mapComponent.fitToMarkersAlways();
+          }
+        }, 300);
+      }
+    }, 500);
+    
     this.toastService.showSuccess('Map markers refreshed!');
   }
 } 

@@ -216,47 +216,66 @@
         </form>
       </div>
 
-                      <!-- Driver Application Section -->
-         <div class="profile-section driver-application scroll-animate" #driverApplicationSection
-              *ngIf="true">
-          
+      <!-- Driver Application Section -->
+      <div class="profile-section driver-application scroll-animate" #driverApplicationSection>
         
+        <h2 class="section-title">
+          <span *ngIf="userProfile?.role === 'CUSTOMER'">Become a Driver</span>
+          <span *ngIf="userProfile?.role === 'DRIVER'">Driver Status & Vehicle Information</span>
+          <span *ngIf="userProfile?.role === 'ADMIN'">Driver Application</span>
+        </h2>
         
-                 <h2 class="section-title">
-           <span *ngIf="userProfile?.role === 'CUSTOMER'">Become a Driver</span>
-           <span *ngIf="userProfile?.role === 'DRIVER'">Driver Status & Vehicle Information</span>
-           <span *ngIf="userProfile?.role === 'ADMIN'">Driver Application</span>
-         </h2>
-        
-                 <!-- Application Status Display -->
-         <div class="application-status" *ngIf="(driverApplicationStatus && (driverApplicationStatus !== 'PENDING' || userProfile?.driverApplicationDate)) || userProfile?.role === 'DRIVER'">
-          <div class="status-card" [ngClass]="getStatusClass(driverApplicationStatus || 'APPROVED')">
+        <!-- Admin message - Show for ADMIN role -->
+        <div *ngIf="userProfile?.role === 'ADMIN'" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; text-align: center; margin-bottom: 20px;">
+          <i class="fas fa-info-circle" style="color: #6c757d; font-size: 24px; margin-bottom: 10px;"></i>
+          <h3 style="color: #6c757d; margin-bottom: 10px;">Admin Access</h3>
+          <p style="color: #6c757d; margin: 0;">Driver applications are not available for admin users. You can manage driver applications from the admin dashboard.</p>
+        </div>
+
+        <!-- Application Status Display - Only show if user has applied -->
+        <div class="application-status" *ngIf="driverApplicationStatus && driverApplicationStatus !== 'NOT_APPLIED'">
+          <div class="status-card" [ngClass]="getStatusClass(driverApplicationStatus)">
             <div class="status-icon">
-              <i [class]="getStatusIcon(driverApplicationStatus || 'APPROVED')"></i>
+              <i [class]="getStatusIcon(driverApplicationStatus)"></i>
             </div>
             <div class="status-content">
-                             <h3 *ngIf="driverApplicationStatus && (driverApplicationStatus !== 'PENDING' || userProfile?.driverApplicationDate)">Application Status: {{ getStatusText(driverApplicationStatus) }}</h3>
-                             <h3 *ngIf="!driverApplicationStatus && userProfile?.role === 'DRIVER'">Driver Status: Active</h3>
-                             <p *ngIf="driverApplicationStatus === 'PENDING' && userProfile?.driverApplicationDate">
-                 Your driver application is under review. We'll notify you once a decision is made.
-               </p>
-                             <p *ngIf="driverApplicationStatus === 'APPROVED' || (!driverApplicationStatus && userProfile?.role === 'DRIVER')">
+              <h3>Application Status: {{ getStatusText(driverApplicationStatus) }}</h3>
+              <p *ngIf="driverApplicationStatus === 'PENDING'">
+                Your driver application is under review. We'll notify you once a decision is made.
+              </p>
+              <p *ngIf="driverApplicationStatus === 'APPROVED'">
                 Congratulations! Your application has been approved. You can now start accepting delivery assignments.
               </p>
               <p *ngIf="driverApplicationStatus === 'REJECTED'">
                 Your application was not approved. Reason: {{ driverRejectionReason || 'No reason provided' }}
               </p>
-                             <div class="application-details" *ngIf="(driverApplication || userProfile?.role === 'DRIVER') && (driverApplicationStatus !== 'PENDING' || userProfile?.driverApplicationDate)">
-                <p *ngIf="driverApplication?.applicationDate"><strong>Applied on:</strong> {{ driverApplication?.applicationDate | date:'medium' }}</p>
-                <p *ngIf="driverApplication?.approvalDate"><strong>Processed on:</strong> {{ driverApplication?.approvalDate | date:'medium' }}</p>
+              <div class="application-details" *ngIf="driverApplication">
+                <p *ngIf="driverApplication.applicationDate"><strong>Applied on:</strong> {{ driverApplication.applicationDate | date:'medium' }}</p>
+                <p *ngIf="driverApplication.approvalDate"><strong>Processed on:</strong> {{ driverApplication.approvalDate | date:'medium' }}</p>
                 <p *ngIf="driverRejectionReason"><strong>Rejection Reason:</strong> {{ driverRejectionReason }}</p>
+              </div>
+              
+              <!-- Reapply button for rejected applications -->
+              <div class="reapply-section" *ngIf="driverApplicationStatus === 'REJECTED'">
+                <p class="reapply-text">
+                  <strong>Good News!</strong> You can reapply for driver status at any time.
+                </p>
+                <button 
+                  type="button" 
+                  class="reapply-button"
+                  (click)="showReapplyForm = true"
+                  [disabled]="isLoading"
+                >
+                  <i class="fas fa-redo"></i>
+                  Reapply Now
+                </button>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Vehicle Information Section - Only for DRIVER role -->
-                 <div class="vehicle-information" *ngIf="userProfile?.role === 'DRIVER'">
+        <div class="vehicle-information" *ngIf="userProfile?.role === 'DRIVER'">
           <h3 class="vehicle-section-title">
             <i class="fas fa-car"></i>
             Vehicle Details
@@ -268,7 +287,7 @@
               </div>
               <div class="detail-content">
                 <h4>Driver's License</h4>
-                                 <p>{{ userProfile?.licenseNumber || 'Not provided' }}</p>
+                <p>{{ userProfile?.licenseNumber || 'Not provided' }}</p>
               </div>
             </div>
             
@@ -278,7 +297,7 @@
               </div>
               <div class="detail-content">
                 <h4>Vehicle Type</h4>
-                                 <p>{{ getVehicleTypeDisplay(userProfile?.vehicleType) || 'Not specified' }}</p>
+                <p>{{ getVehicleTypeDisplay(userProfile?.vehicleType) || 'Not specified' }}</p>
               </div>
             </div>
             
@@ -288,25 +307,33 @@
               </div>
               <div class="detail-content">
                 <h4>Registration Number</h4>
-                                 <p>{{ userProfile?.vehicleNumber || 'Not provided' }}</p>
+                <p>{{ userProfile?.vehicleNumber || 'Not provided' }}</p>
               </div>
             </div>
-            
           </div>
         </div>
 
-                 <!-- Application Form - Only show for CUSTOMER role -->
-         <div class="application-form" *ngIf="userProfile?.role === 'CUSTOMER' && (!driverApplicationStatus || driverApplicationStatus === 'REJECTED' || (driverApplicationStatus === 'PENDING' && !userProfile?.driverApplicationDate))">
-         
-         <!-- Admin Message - Show for ADMIN role -->
-         <div class="admin-message" *ngIf="userProfile?.role === 'ADMIN'" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; text-align: center;">
-           <i class="fas fa-info-circle" style="color: #6c757d; font-size: 24px; margin-bottom: 10px;"></i>
-           <h3 style="color: #6c757d; margin-bottom: 10px;">Admin Access</h3>
-           <p style="color: #6c757d; margin: 0;">Driver applications are not available for admin users.</p>
-         </div>
-          <p class="form-description">
-             Fill out the application below and we'll review your information.
-          </p>
+        <!-- Application Form - Only show for CUSTOMER role who haven't applied or were rejected -->
+        <div class="application-form" *ngIf="userProfile?.role === 'CUSTOMER' && (!driverApplicationStatus || driverApplicationStatus === 'NOT_APPLIED' || driverApplicationStatus === 'REJECTED' || showReapplyForm)">
+          <div class="form-header" *ngIf="driverApplicationStatus === 'REJECTED' && showReapplyForm">
+            <h3 class="form-title">
+              <i class="fas fa-redo"></i>
+              Reapply for Driver Status
+            </h3>
+            <p class="form-description">
+              Please update your application with any necessary corrections or additional information.
+            </p>
+          </div>
+          
+          <div class="form-header" *ngIf="!showReapplyForm">
+            <h3 class="form-title">
+              <i class="fas fa-truck"></i>
+              Driver Application
+            </h3>
+            <p class="form-description">
+              Fill out the application below and we'll review your information.
+            </p>
+          </div>
           
           <form [formGroup]="driverApplicationForm" (ngSubmit)="submitDriverApplication()" class="driver-form">
             <div class="form-grid">
@@ -372,10 +399,28 @@
             </div>
             
             <div class="form-actions">
-              <button type="submit" class="btn-submit-application" [disabled]="isLoading || !driverApplicationForm.valid">
+              <button type="submit" class="btn-submit-application" [disabled]="isLoading || !driverApplicationForm.valid || userProfile?.role === 'ADMIN'">
                 <i class="fas fa-paper-plane"></i>
-                Submit Application
+                {{ showReapplyForm ? 'Resubmit Application' : 'Submit Application' }}
               </button>
+              
+              <!-- Cancel button for reapply form -->
+              <button 
+                type="button" 
+                class="btn-cancel" 
+                *ngIf="showReapplyForm"
+                (click)="showReapplyForm = false"
+                [disabled]="isLoading"
+              >
+                <i class="fas fa-times"></i>
+                Cancel
+              </button>
+              
+              <!-- Admin restriction message -->
+              <div *ngIf="userProfile?.role === 'ADMIN'" style="background: #fff3cd; padding: 10px; border-radius: 5px; border: 1px solid #ffeaa7; margin-top: 10px; text-align: center;">
+                <i class="fas fa-info-circle" style="color: #856404; margin-right: 5px;"></i>
+                <span style="color: #856404;">Driver applications are not available for admin users.</span>
+              </div>
             </div>
           </form>
         </div>

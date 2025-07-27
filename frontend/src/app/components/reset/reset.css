@@ -145,6 +145,32 @@
   transform: translateY(0);
 }
 
+.reset-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.reset-btn:disabled:hover {
+  background-color: #ccc;
+  transform: none;
+  box-shadow: none;
+}
+
+.loading-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.loading-text i {
+  font-size: 0.9rem;
+  color: #fff;
+}
+
 .resend-btn {
   width: 100%;
   padding: 10px;
@@ -163,6 +189,21 @@
   background: #DBBB02;
   color: #000;
   transform: translateY(-1px);
+}
+
+.resend-btn:disabled {
+  background-color: #f5f5f5;
+  color: #ccc;
+  border-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.resend-btn:disabled:hover {
+  background-color: #f5f5f5;
+  color: #ccc;
+  border-color: #ccc;
+  transform: none;
 }
 
 .step-content {

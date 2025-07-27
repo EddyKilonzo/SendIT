@@ -239,10 +239,223 @@
   font-size: 1.5rem;
   color: #333;
   transition: color 0.3s ease;
+  padding: 8px;
+  border-radius: 50%;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .mobile-menu-toggle:hover {
   color: #DBBB02;
+  background-color: #f8f9fa;
+}
+
+.mobile-menu-toggle:active {
+  background-color: #e9ecef;
+  transform: scale(0.95);
+}
+
+/* Mobile Menu Overlay */
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Mobile Menu Sidebar */
+.mobile-menu-sidebar {
+  position: fixed;
+  top: 0;
+  right: -300px;
+  width: 300px;
+  height: 100vh;
+  background: white;
+  z-index: 1000;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+}
+
+.mobile-menu-sidebar.open {
+  right: 0;
+}
+
+.mobile-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.mobile-menu-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.mobile-menu-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu-close:hover {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.mobile-menu-content {
+  padding: 20px;
+}
+
+.mobile-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 30px;
+}
+
+.mobile-nav-link {
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 15px 0;
+  border-bottom: 1px solid #f1f3f4;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.mobile-nav-link:hover {
+  color: #DBBB02;
+}
+
+.mobile-menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.mobile-login-btn,
+.mobile-signup-btn {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-login-btn {
+  background: transparent;
+  border: 2px solid #DBBB02;
+  color: #DBBB02;
+}
+
+.mobile-login-btn:hover {
+  background: #DBBB02;
+  color: white;
+}
+
+.mobile-signup-btn {
+  background: #DBBB02;
+  color: white;
+}
+
+.mobile-signup-btn:hover {
+  background: #c4a902;
+  transform: translateY(-2px);
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.mobile-user-avatar {
+  width: 40px;
+  height: 40px;
+  background: #DBBB02;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobile-user-initials {
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.mobile-user-details {
+  flex: 1;
+}
+
+.mobile-user-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.mobile-user-role {
+  color: #6c757d;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.mobile-logout-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mobile-logout-btn:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Responsive Design */
@@ -274,11 +487,11 @@
   }
   
   .mobile-menu-toggle {
-    display: block;
+    display: flex;
   }
   
   .home-logo-image {
-    height: 40px;
+    height: 60px;
   }
 }
 
@@ -292,6 +505,20 @@
   }
   
   .home-logo-image {
-    height: 35px;
+    height: 70px;
+  }
+}
+
+@media (max-width: 360px) {
+  .home-navbar {
+    height: 60px;
+  }
+  
+  .home-navbar-container {
+    padding: 0.5rem 0.8rem;
+  }
+  
+  .home-logo-image {
+    height: 65px;
   }
 } 

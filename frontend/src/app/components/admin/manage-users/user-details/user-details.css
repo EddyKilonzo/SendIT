@@ -582,6 +582,137 @@
   font-weight: 500;
 }
 
+.detailed-stats {
+  margin-top: 2rem;
+}
+
+.stats-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.subsection-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 0.5rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.stat-item label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.stat-item span {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.current-assignments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.assignment-item {
+  background: white;
+  border-radius: 6px;
+  padding: 1rem;
+  border-left: 4px solid #28a745;
+  transition: all 0.3s ease;
+}
+
+.assignment-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.assignment-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.tracking-number {
+  font-weight: 600;
+  color: #2c3e50;
+  font-family: 'Courier New', monospace;
+}
+
+.assignment-details {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* Customer Statistics Styles */
+.customer-stats-highlight {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.customer-stats-highlight h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.customer-stats-highlight .stats-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.customer-stats-highlight .stat-item {
+  text-align: center;
+}
+
+.customer-stats-highlight .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: block;
+}
+
+.customer-stats-highlight .stat-label {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+/* Loading States */
+.loading-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.loading-stats .loading-spinner {
+  margin-right: 0.5rem;
+}
+
 /* Parcels Content */
 .parcels-content {
   background-color: transparent;

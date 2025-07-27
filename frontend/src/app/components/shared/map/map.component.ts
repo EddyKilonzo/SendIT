@@ -72,7 +72,10 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
 
   ngOnChanges(changes: SimpleChanges): void {
     if (this.isMapInitialized && this.map) {
-      if (changes['markers'] || changes['markerTypes']) {
+      if (changes['markers']) {
+        this.updateMarkers();
+      }
+      if (changes['markerTypes']) {
         this.updateMarkers();
       }
       if (changes['center'] || changes['zoom']) {
@@ -153,9 +156,14 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
         return marker;
       });
 
-      // Fit map to show all markers
+      // Only fit map automatically if there are multiple markers
+      // Single markers should be handled by manual fitting calls
       if (this.mapMarkers.length > 1) {
-        this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+        setTimeout(() => {
+          if (this.map && this.mapMarkers.length > 1) {
+            this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+          }
+        }, 100);
       }
     } catch (error) {
       this.handleMapError('MARKER_ADDITION_FAILED', 'Failed to add markers to map', error);
@@ -202,6 +210,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
   private updateMarkers(): void {
     if (this.isMapInitialized) {
       this.addMarkers();
+      
+      // Don't automatically fit here to avoid conflicts with manual fitting calls
+      // The addMarkers method will handle fitting if needed
     }
   }
   // Update map view based on center and zoom
@@ -291,13 +302,169 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
   public getMap(): L.Map | null {
     return this.map;
   }
+
+  /**
+   * Check if the map component is properly initialized and ready.
+   * @returns true if the map is initialized and ready to use.
+   */
+  public isMapReady(): boolean {
+    return this.map !== null && this.isMapInitialized;
+  }
+
+  /**
+   * Check if there are markers available to fit to.
+   * @returns true if there are markers available.
+   */
+  public hasMarkers(): boolean {
+    return this.mapMarkers.length > 0;
+  }
   /**
    * Fit the map view to the current markers.
    * This will adjust the map's bounds to ensure all markers are visible.
    */
   public fitToMarkers(): void {
     if (this.map && this.mapMarkers.length > 0) {
-      this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+      // Invalidate the map size first to ensure proper rendering
+      this.map.invalidateSize();
+      
+      // Use a slight delay to ensure the map is properly rendered
+      setTimeout(() => {
+        if (this.map && this.mapMarkers.length > 0) {
+          this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+        }
+      }, 50);
+    }
+  }
+
+  /**
+   * Force refresh the map and fit to markers.
+   * This is useful when the map needs to be refreshed after being hidden/shown.
+   */
+  public refreshAndFitToMarkers(): void {
+    if (this.map) {
+      // Force map refresh
+      this.map.invalidateSize();
+      
+      // Wait for the map to be properly rendered
+      setTimeout(() => {
+        if (this.map && this.mapMarkers.length > 0) {
+          this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+        }
+      }, 200);
+    }
+  }
+
+  /**
+   * Handle map visibility changes.
+   * Call this method when the map container becomes visible after being hidden.
+   */
+  public onMapVisibilityChange(): void {
+    if (this.map) {
+      // Force map refresh when visibility changes
+      this.map.invalidateSize();
+      
+      // Wait for the map to be properly rendered
+      setTimeout(() => {
+        if (this.map && this.mapMarkers.length > 0) {
+          this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+        }
+      }, 300);
+    }
+  }
+
+  /**
+   * Force a complete map refresh and refit.
+   * This is useful when the map has been hidden in a tab or container.
+   */
+  public forceMapRefresh(): void {
+    if (this.map) {
+      // Force multiple invalidations to ensure proper rendering
+      this.map.invalidateSize();
+      
+      // If we have input markers but no map markers, add them first
+      if (this.markers.length > 0 && this.mapMarkers.length === 0) {
+        this.addMarkers();
+      }
+      
+      // Use a longer delay for complete refresh
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize();
+          
+          setTimeout(() => {
+            if (this.map && this.mapMarkers.length > 0) {
+              this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+            } else {
+              // Try adding markers again if they're still not available
+              if (this.markers.length > 0) {
+                this.addMarkers();
+                setTimeout(() => {
+                  if (this.map && this.mapMarkers.length > 0) {
+                    this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+                  }
+                }, 100);
+              }
+            }
+          }, 200);
+        }
+      }, 400);
+    }
+  }
+
+  /**
+   * Handle map toggle (show/hide) events.
+   * Call this when the map container is toggled from hidden to visible.
+   */
+  public onMapToggle(): void {
+    if (this.map) {
+      console.log('Map toggle detected, refreshing map');
+      // Force map refresh
+      this.map.invalidateSize();
+      
+      // Use a longer delay for toggle events
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize();
+          
+          setTimeout(() => {
+            if (this.map && this.mapMarkers.length > 0) {
+              console.log('Fitting map to markers after toggle');
+              this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+            }
+          }, 200);
+        }
+      }, 400);
+    }
+  }
+
+  /**
+   * Fit to markers regardless of count.
+   * This is useful when you want to fit even single markers.
+   */
+  public fitToMarkersAlways(): void {
+    if (this.map) {
+      // If we have input markers but no map markers, add them first
+      if (this.markers.length > 0 && this.mapMarkers.length === 0) {
+        this.addMarkers();
+      }
+      
+      if (this.mapMarkers.length > 0) {
+        // Force map refresh first
+        this.map.invalidateSize();
+        
+        // Use a longer delay to ensure proper rendering
+        setTimeout(() => {
+          if (this.map && this.mapMarkers.length > 0) {
+            this.map.invalidateSize();
+            
+            setTimeout(() => {
+              if (this.map && this.mapMarkers.length > 0) {
+                this.mapService.fitMapToMarkers(this.map, this.mapMarkers);
+              }
+            }, 150);
+          }
+        }, 300);
+      }
     }
   }
   /**
