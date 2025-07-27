@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, Request, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  Request,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+  BadRequestException,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import {
   DashboardStatsDto,
@@ -14,6 +27,8 @@ import {
   UserFilterDto,
   DriverApplicationFilterDto,
 } from './dto/admin.dto';
+import { driverApplicationManagementSchema } from './dto/admin.schemas';
+import { createJoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -57,8 +72,6 @@ export class AdminController {
     return this.adminService.debugDatabase();
   }
 
-
-
   // Debug endpoint to check database
   @Get('debug/users')
   async debugUsers() {
@@ -66,12 +79,30 @@ export class AdminController {
     return { totalUsers };
   }
 
+  @Get('debug/user/:id/driver-status')
+  async debugUserDriverStatus(@Param('id') userId: string) {
+    const user = await this.adminService.findUserById(userId);
+    return {
+      userId,
+      driverApplicationStatus: user.driverApplicationStatus,
+      role: user.role,
+      driverApplicationDate: user.driverApplicationDate,
+      driverRejectionReason: user.driverRejectionReason
+    };
+  }
+
   // User Management
   @Get('users')
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async findAllUsers(@Query() query: UserFilterDto, @Request() req: AuthenticatedRequest) {
-    console.log('🔍 Backend Controller - findAllUsers called with query:', query);
+  async findAllUsers(
+    @Query() query: UserFilterDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    console.log(
+      '🔍 Backend Controller - findAllUsers called with query:',
+      query,
+    );
     console.log('🔍 Backend Controller - User making request:', req.user);
     console.log('🔍 Backend Controller - Request headers:', req.headers);
     return this.adminService.findAllUsers(query);
@@ -119,19 +150,45 @@ export class AdminController {
   @Get('driver-applications')
   @UsePipes(new ValidationPipe({ transform: true }))
   async getDriverApplications(@Query() query: DriverApplicationFilterDto) {
-    console.log('AdminController - getDriverApplications called with query:', query);
+    console.log(
+      'AdminController - getDriverApplications called with query:',
+      query,
+    );
     return this.adminService.getDriverApplications(query);
   }
 
   @Patch('driver-applications/:id/manage')
+  @UseGuards(JwtAuthGuard)
   async manageDriverApplication(
     @Param('id') userId: string,
-    @Body() managementDto: DriverApplicationManagementDto,
+    @Body() managementDto: any,
     @Request() req: AuthenticatedRequest,
   ) {
+    console.log('🔍 DEBUG - manageDriverApplication called');
+    console.log('🔍 DEBUG - URL userId:', userId);
+    console.log('🔍 DEBUG - Raw request body:', JSON.stringify(managementDto, null, 2));
+    console.log('🔍 DEBUG - Request headers:', req.headers);
+    console.log('🔍 DEBUG - User from token:', req.user);
+    
+    // Manual validation
+    const validationResult = driverApplicationManagementSchema.validate(managementDto, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+    
+    if (validationResult.error) {
+      console.log('🔍 DEBUG - Manual validation failed:', validationResult.error.details);
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: validationResult.error.details.map(detail => detail.message),
+      });
+    }
+    
+    console.log('🔍 DEBUG - Manual validation passed:', validationResult.value);
+    
     return this.adminService.manageDriverApplication(
       userId,
-      managementDto,
+      validationResult.value,
       req.user?.id || 'admin',
     );
   }

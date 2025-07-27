@@ -61,6 +61,7 @@ export interface DriverApplicationResponseDto {
   name: string;
   driverApplicationStatus: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverApplicationDate?: Date;
+  driverApplicationReason?: string;
   driverApprovalDate?: Date;
   driverRejectionReason?: string;
   licenseNumber?: string;
@@ -106,6 +107,7 @@ export interface UserResponseDto {
   // Driver application fields
   driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   driverApplicationDate?: Date;
+  driverApplicationReason?: string;
   driverApprovalDate?: Date;
   driverRejectionReason?: string;
 

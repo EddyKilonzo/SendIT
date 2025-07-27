@@ -7,6 +7,8 @@ import {
   UsePipes,
   Req,
   UseGuards,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -100,5 +102,37 @@ export class AuthController {
   ) {
     const userId = req.user?.['sub'];
     return await this.authService.changePassword(userId, changePasswordDto);
+  }
+
+  @Get('check-email')
+  async checkEmail(@Query('email') email: string) {
+    return this.authService.checkEmail(email);
+  }
+
+  @Get('check-anonymous-parcels')
+  async checkAnonymousParcels(@Query('email') email: string) {
+    return this.authService.checkAnonymousParcels(email);
+  }
+
+  // Test endpoint for debugging email sending
+  @Post('test-email')
+  @HttpCode(HttpStatus.OK)
+  async testEmail(@Body() body: { email: string }) {
+    return await this.authService.testEmail(body.email);
+  }
+
+  // Test endpoint for debugging environment variables
+  @Get('test-env')
+  @HttpCode(HttpStatus.OK)
+  async testEnv() {
+    return {
+      mailHost: process.env.MAIL_HOST || 'NOT SET',
+      mailPort: process.env.MAIL_PORT || 'NOT SET',
+      mailSecure: process.env.MAIL_SECURE || 'NOT SET',
+      mailUser: process.env.MAIL_USER ? 'SET' : 'NOT SET',
+      mailPassword: process.env.MAIL_PASSWORD ? 'SET' : 'NOT SET',
+      mailFrom: process.env.MAIL_FROM || 'NOT SET',
+      frontendUrl: process.env.FRONTEND_URL || 'NOT SET',
+    };
   }
 }

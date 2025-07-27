@@ -1,148 +1,93 @@
-### Driver Application Endpoints
+### Test Driver Application Flow
 
-### Test Variables 
-@customerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWRoMDA3ODAwMDAxazd2NHAyZjRjNG9lIiwiZW1haWwiOiJjdXN0b21lckBleGFtcGxlLmNvbSIsInJvbGUiOiJDVVNUT01FUiIsImlhdCI6MTc1MzM0MTI2OSwiZXhwIjoxNzUzMzQ0ODY5fQ.lXlh3XEEQOpUUwEYAJ3zYQUi3CzZWEw9OCB8NbY5CgY
-@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWRoMWl5YWYwMDAwazdkbzJyZ290OTRhIiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJDVVNUT01FUiIsImlhdCI6MTc1MzM0MDI2OSwiZXhwIjoxNzUzMzQzODY5fQ.p7gGOOGVJb2J4eowuwaIasizeT1CvJXIkKp7slTz__4
-@driverToken = your_driver_jwt_token_here
-@driverId = cmdh1iyaf0000k7do2rgot94a
-@parcelId = actual_parcel_id_here
+# Variables
+@baseUrl = http://localhost:3000/api
+@authToken = YOUR_AUTH_TOKEN_HERE
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+@userId = cmdlzkrvh0000k7a8y2y7guhn
 
-# Base URL
-@baseUrl = http://localhost:3000
+### 1. Check user's current driver status
+GET {{baseUrl}}/admin/debug/user/{{userId}}/driver-status
+Authorization: Bearer {{adminToken}}
 
-### 1. Customer applies to become a driver
+###
+
+### 2. Submit a driver application (as the user)
 POST {{baseUrl}}/drivers/apply
 Content-Type: application/json
-Authorization: Bearer {{customerToken}}
+Authorization: Bearer {{authToken}}
 
 {
-  "licenseNumber": "DL123456789",
-  "vehicleNumber": "VH789456",
+  "licenseNumber": "TEST123456",
+  "vehicleNumber": "ABC123",
   "vehicleType": "CAR",
-  "reason": "I want to earn extra income by delivering parcels"
+  "reason": "I want to become a driver to help with deliveries"
 }
 
-### 2. Get driver application status (for customer)
-# Customer can check their application status
-GET {{baseUrl}}/users/profile/me
-Authorization: Bearer {{customerToken}}
+###
 
-### 3. Admin gets all driver applications
-# Admin can view all pending driver applications
-GET {{baseUrl}}/admin/driver-applications?status=PENDING&page=1&limit=10
+### 3. Check user's driver status after application
+GET {{baseUrl}}/admin/debug/user/{{userId}}/driver-status
 Authorization: Bearer {{adminToken}}
 
-### 4. Admin approves a driver application
-# Admin approves a customer's driver application
-POST {{baseUrl}}/drivers/applications/{{driverId}}/approve
-Content-Type: application/json
-# Authorization: Bearer {{adminToken}}
+###
 
-### 5. Admin rejects a driver application
-# Admin rejects a customer's driver application with reason
-POST {{baseUrl}}/drivers/applications/{{driverId}}/reject
+### 4. Admin approves the application
+PATCH {{baseUrl}}/admin/driver-applications/{{userId}}/manage
 Content-Type: application/json
 Authorization: Bearer {{adminToken}}
 
 {
+  "action": "approve"
+}
+
+###
+
+### 5. Admin rejects the application (for testing reapplication)
+PATCH {{baseUrl}}/admin/driver-applications/{{userId}}/manage
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "action": "reject",
   "reason": "License verification failed. Please provide a valid driver's license."
 }
 
-### 6. Get all drivers (admin only)
-# Admin can view all approved drivers
-GET {{baseUrl}}/drivers?role=DRIVER&isActive=true
-Authorization: Bearer {{adminToken}}
+###
 
-### 7. Get driver performance metrics
-# Admin can view driver performance
-GET {{baseUrl}}/drivers/{{driverId}}/performance
-Authorization: Bearer {{adminToken}}
-
-### 8. Driver updates location (after approval)
-# Approved driver can update their location
-PATCH {{baseUrl}}/drivers/{{driverId}}/location
+### 6. User reapplies after rejection
+POST {{baseUrl}}/drivers/apply
 Content-Type: application/json
-Authorization: Bearer {{driverToken}}
+Authorization: Bearer {{authToken}}
 
 {
-  "currentLat": 40.7128,
-  "currentLng": -74.0060,
-  "address": "New York, NY"
+  "licenseNumber": "UPDATED123456",
+  "vehicleNumber": "XYZ789",
+  "vehicleType": "MOTORCYCLE",
+  "reason": "I have updated my license information and would like to reapply"
 }
 
-### 9. Driver updates availability
-# Approved driver can update their availability status
-PATCH {{baseUrl}}/drivers/{{driverId}}/availability
-Content-Type: application/json
-Authorization: Bearer {{driverToken}}
+###
 
-{
-  "isAvailable": true,
-  "reason": "Available for deliveries"
-}
-
-### 10. Admin assigns parcel to driver
-# Admin assigns a parcel to an approved driver
-POST {{baseUrl}}/drivers/assign-parcel
+### 7. Admin approves the reapplication
+PATCH {{baseUrl}}/admin/driver-applications/{{userId}}/manage
 Content-Type: application/json
 Authorization: Bearer {{adminToken}}
 
 {
-  "driverId": "{{driverId}}",
-  "parcelId": "{{parcelId}}",
-  "assignmentNotes": "Please pick up from sender and deliver to recipient",
-  "estimatedPickupTime": "2025-07-24T10:00:00Z",
-  "estimatedDeliveryTime": "2025-07-24T14:00:00Z"
+  "action": "approve"
 }
 
-### 11. Driver updates parcel status
-# Approved driver can update parcel delivery status
-PATCH {{baseUrl}}/drivers/parcels/{{parcelId}}/status
-Content-Type: application/json
-Authorization: Bearer {{driverToken}}
+###
 
-{
-  "status": "picked_up",
-  "currentLocation": "Parcel picked up from sender",
-  "latitude": 40.7128,
-  "longitude": -74.0060,
-  "notes": "Parcel collected successfully"
-}
-
-### 12. Get driver application by ID (admin)
-# Admin can view specific driver application details
-GET {{baseUrl}}/drivers/{{driverId}}
+### 8. Get driver applications (admin view)
+GET {{baseUrl}}/admin/driver-applications?status=PENDING
 Authorization: Bearer {{adminToken}}
 
-### 13. Filter driver applications by status
-# Admin can filter applications by status
-GET {{baseUrl}}/admin/driver-applications?status=APPROVED&page=1&limit=5
+###
+
+### 9. Get driver applications with all statuses
+GET {{baseUrl}}/admin/driver-applications
 Authorization: Bearer {{adminToken}}
 
-### 14. Filter driver applications by date range
-# Admin can filter applications by date
-GET {{baseUrl}}/admin/driver-applications?dateFrom=2025-07-01&dateTo=2025-07-31&status=PENDING
-Authorization: Bearer {{adminToken}}
-
-### 15. Get rejected applications with reasons
-# Admin can view rejected applications
-GET {{baseUrl}}/admin/driver-applications?status=REJECTED&page=1&limit=10
-Authorization: Bearer {{adminToken}}
-
-
-
-### Example Response for Driver Application:
-# {
-#   "success": true,
-#   "message": "Driver application submitted successfully",
-#   "data": {
-#     "id": "cmdgzysv30000k7v40mq4h2y8",
-#     "email": "customer@example.com",
-#     "name": "John Customer",
-#     "driverApplicationStatus": "PENDING",
-#     "driverApplicationDate": "2025-07-24T06:30:00.000Z",
-#     "licenseNumber": "DL123456789",
-#     "vehicleNumber": "VH789456",
-#     "vehicleType": "CAR"
-#   }
-# } 
+### 

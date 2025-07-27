@@ -548,8 +548,11 @@ export class ReviewsService {
       totalParcelsReceived: user.totalParcelsReceived,
       preferredPaymentMethod: user.preferredPaymentMethod || undefined,
       driverApplicationStatus:
-        (user.driverApplicationStatus as 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED') ||
-        undefined,
+        (user.driverApplicationStatus as
+          | 'NOT_APPLIED'
+          | 'PENDING'
+          | 'APPROVED'
+          | 'REJECTED') || undefined,
       driverApplicationDate: user.driverApplicationDate || undefined,
       driverApprovalDate: user.driverApprovalDate || undefined,
       driverRejectionReason: user.driverRejectionReason || undefined,

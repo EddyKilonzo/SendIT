@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { SendITMailerModule } from '../mailer/mailer.module';
+import { ParcelsModule } from '../parcels/parcels.module';
 
 @Module({
   imports: [
@@ -11,7 +12,8 @@ import { SendITMailerModule } from '../mailer/mailer.module';
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '24h' },
     }),
-    SendITMailerModule,
+    forwardRef(() => SendITMailerModule),
+    forwardRef(() => ParcelsModule),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtAuthGuard],

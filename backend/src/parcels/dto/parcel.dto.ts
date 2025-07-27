@@ -32,6 +32,7 @@ export interface ParcelQueryDto {
     | 'in_transit'
     | 'delivered_to_recipient'
     | 'delivered'
+    | 'completed'
     | 'cancelled';
   dateFrom?: string;
   dateTo?: string;
@@ -46,6 +47,7 @@ export interface ParcelStatusUpdateDto {
     | 'in_transit'
     | 'delivered_to_recipient'
     | 'delivered'
+    | 'completed'
     | 'cancelled';
   currentLocation?: string;
   latitude?: number;
@@ -55,6 +57,10 @@ export interface ParcelStatusUpdateDto {
 
 export interface DeliveryConfirmationDto {
   customerSignature?: string;
+  customerNotes?: string;
+}
+
+export interface MarkAsCompletedDto {
   customerNotes?: string;
 }
 
@@ -81,6 +87,7 @@ export interface ParcelResponseDto {
     | 'in_transit'
     | 'delivered_to_recipient'
     | 'delivered'
+    | 'completed'
     | 'cancelled';
   weight: number;
   description?: string;

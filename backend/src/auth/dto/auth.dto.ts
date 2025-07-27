@@ -1,4 +1,12 @@
-import { IsEmail, IsString, IsOptional, IsEnum, MinLength, MaxLength, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  IsEnum,
+  MinLength,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 
 // Auth DTOs
 export class RegisterDto {
@@ -16,7 +24,9 @@ export class RegisterDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\+?[\d\s\-()]+$/, { message: 'Please provide a valid phone number' })
+  @Matches(/^\+?[\d\s\-()]+$/, {
+    message: 'Please provide a valid phone number',
+  })
   phone?: string;
 
   @IsOptional()
@@ -25,13 +35,17 @@ export class RegisterDto {
   address?: string;
 
   @IsOptional()
-  @IsEnum(['CUSTOMER', 'DRIVER', 'ADMIN'], { message: 'Role must be either CUSTOMER, DRIVER, or ADMIN' })
+  @IsEnum(['CUSTOMER', 'DRIVER', 'ADMIN'], {
+    message: 'Role must be either CUSTOMER, DRIVER, or ADMIN',
+  })
   role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
 
   // Driver application fields (only for DRIVER role)
   @IsOptional()
   @IsString()
-  @MinLength(5, { message: 'License number must be at least 5 characters long' })
+  @MinLength(5, {
+    message: 'License number must be at least 5 characters long',
+  })
   @MaxLength(20, { message: 'License number cannot exceed 20 characters' })
   licenseNumber?: string;
 
@@ -41,7 +55,9 @@ export class RegisterDto {
   vehicleNumber?: string;
 
   @IsOptional()
-  @IsEnum(['MOTORCYCLE', 'CAR', 'VAN', 'TRUCK'], { message: 'Vehicle type must be MOTORCYCLE, CAR, VAN, or TRUCK' })
+  @IsEnum(['MOTORCYCLE', 'CAR', 'VAN', 'TRUCK'], {
+    message: 'Vehicle type must be MOTORCYCLE, CAR, VAN, or TRUCK',
+  })
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
 }
 
@@ -60,7 +76,9 @@ export class RefreshDto {
 
 export class DriverApplicationDto {
   @IsString()
-  @MinLength(5, { message: 'License number must be at least 5 characters long' })
+  @MinLength(5, {
+    message: 'License number must be at least 5 characters long',
+  })
   @MaxLength(20, { message: 'License number cannot exceed 20 characters' })
   licenseNumber: string;
 
@@ -70,7 +88,9 @@ export class DriverApplicationDto {
   vehicleNumber?: string;
 
   @IsOptional()
-  @IsEnum(['MOTORCYCLE', 'CAR', 'VAN', 'TRUCK'], { message: 'Vehicle type must be MOTORCYCLE, CAR, VAN, or TRUCK' })
+  @IsEnum(['MOTORCYCLE', 'CAR', 'VAN', 'TRUCK'], {
+    message: 'Vehicle type must be MOTORCYCLE, CAR, VAN, or TRUCK',
+  })
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
 
   @IsOptional()

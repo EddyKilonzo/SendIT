@@ -57,7 +57,7 @@ export class UsersController {
     return {
       success: true,
       data: user,
-      message: 'Profile retrieved successfully'
+      message: 'Profile retrieved successfully',
     };
   }
 
@@ -84,13 +84,16 @@ export class UsersController {
     if (!file) {
       throw new Error('No file uploaded');
     }
-    const result = await this.usersService.uploadProfilePicture(req.user.sub, file);
+    const result = await this.usersService.uploadProfilePicture(
+      req.user.sub,
+      file,
+    );
     return {
       success: true,
       data: {
-        profilePicture: result.profilePicture
+        profilePicture: result.profilePicture,
       },
-      message: result.message
+      message: result.message,
     };
   }
 
@@ -112,9 +115,10 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   update(
-    @Param('id') id: string, 
-    @Body(createJoiValidationPipe(updateUserSchema)) updateUserDto: UpdateUserDto, 
-    @Request() req: any
+    @Param('id') id: string,
+    @Body(createJoiValidationPipe(updateUserSchema))
+    updateUserDto: UpdateUserDto,
+    @Request() req: any,
   ) {
     return this.usersService.update(id, updateUserDto);
   }

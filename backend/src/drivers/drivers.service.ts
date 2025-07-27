@@ -53,7 +53,11 @@ export class DriversService {
     search?: string;
     isAvailable?: boolean;
     vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-    driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+    driverApplicationStatus?:
+      | 'NOT_APPLIED'
+      | 'PENDING'
+      | 'APPROVED'
+      | 'REJECTED';
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     minimumRating?: number;
@@ -75,7 +79,18 @@ export class DriversService {
       minimumRating,
     } = query;
 
-    const skip = (page - 1) * limit;
+    // Convert string parameters to proper types
+    const pageNum = typeof page === 'string' ? parseInt(page, 10) : page;
+    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit;
+    const skip = (pageNum - 1) * limitNum;
+
+    // Convert isAvailable string to boolean
+    const isAvailableBool =
+      isAvailable !== undefined
+        ? typeof isAvailable === 'string'
+          ? isAvailable === 'true'
+          : isAvailable
+        : undefined;
 
     // Build where clause with proper typing
     const where: Prisma.UserWhereInput = {
@@ -93,8 +108,8 @@ export class DriversService {
       ];
     }
 
-    if (isAvailable !== undefined) {
-      where.isAvailable = isAvailable;
+    if (isAvailableBool !== undefined) {
+      where.isAvailable = isAvailableBool;
     }
 
     if (vehicleType) {
@@ -106,9 +121,40 @@ export class DriversService {
     }
 
     if (minimumRating) {
+      const minRating =
+        typeof minimumRating === 'string'
+          ? parseFloat(minimumRating)
+          : minimumRating;
       where.averageRating = {
-        gte: minimumRating,
+        gte: minRating,
       };
+    }
+
+    // Create proper orderBy object
+    let orderBy: Prisma.UserOrderByWithRelationInput;
+    switch (sortBy) {
+      case 'averageRating':
+        orderBy = { averageRating: sortOrder };
+        break;
+      case 'totalDeliveries':
+        orderBy = { totalDeliveries: sortOrder };
+        break;
+      case 'completedDeliveries':
+        orderBy = { completedDeliveries: sortOrder };
+        break;
+      case 'totalEarnings':
+        orderBy = { totalEarnings: sortOrder };
+        break;
+      case 'onTimeDeliveryRate':
+        orderBy = { onTimeDeliveryRate: sortOrder };
+        break;
+      case 'lastActiveAt':
+        orderBy = { lastActiveAt: sortOrder };
+        break;
+      case 'createdAt':
+      default:
+        orderBy = { createdAt: sortOrder };
+        break;
     }
 
     // Get drivers with pagination
@@ -116,8 +162,8 @@ export class DriversService {
       this.prisma.user.findMany({
         where,
         skip,
-        take: limit,
-        orderBy: { [sortBy]: sortOrder } as Prisma.UserOrderByWithRelationInput,
+        take: limitNum,
+        orderBy,
       }),
       this.prisma.user.count({ where }),
     ]);
@@ -125,8 +171,8 @@ export class DriversService {
     return {
       drivers: drivers.map((driver) => this.mapToDriverResponse(driver)),
       total,
-      page,
-      limit,
+      page: pageNum,
+      limit: limitNum,
     };
   }
 
@@ -212,52 +258,55 @@ export class DriversService {
     userId: string,
     driverApplicationDto: DriverApplicationDto,
   ): Promise<DriverApplicationResponseDto> {
+    const { licenseNumber, vehicleNumber, vehicleType, reason } =
+      driverApplicationDto;
+
     try {
-      this.logger.log(`Processing driver application for user: ${userId}`);
-
-      const { licenseNumber, vehicleNumber, vehicleType } =
-        driverApplicationDto;
-
-      // Check if user exists and is not already a driver
-      const user = await this.prisma.user.findFirst({
+      // Check if user exists and is eligible to apply
+      const existingUser = await this.prisma.user.findFirst({
         where: {
           id: userId,
-          role: { not: 'DRIVER' }, // Allow any role except DRIVER
+          role: 'CUSTOMER',
           deletedAt: null,
         },
       });
 
-      if (!user) {
-        throw new NotFoundException('User not found or already a driver');
+      if (!existingUser) {
+        throw new NotFoundException('User not found');
       }
 
-      this.logger.log(`User found: ${user.email}, current role: ${user.role}`);
-
-      // Check if license number is already taken (only if license number is provided)
-      if (licenseNumber) {
-        const existingDriver = await this.prisma.user.findFirst({
-          where: {
-            licenseNumber,
-            id: { not: userId }, // Exclude current user
-          },
-        });
-
-        if (existingDriver) {
-          throw new BadRequestException('License number already registered');
-        }
+      // Check if user already has a pending or approved application
+      if (existingUser.driverApplicationStatus === 'PENDING') {
+        throw new BadRequestException(
+          'You already have a pending driver application',
+        );
       }
 
-      this.logger.log(`License number check passed, updating user...`);
+      if (existingUser.driverApplicationStatus === 'APPROVED') {
+        throw new BadRequestException(
+          'Your driver application has already been approved',
+        );
+      }
 
-      // Update user with driver application
+      // Allow reapplication if status is REJECTED or NOT_APPLIED
+      if (existingUser.driverApplicationStatus === 'REJECTED') {
+        this.logger.log(
+          `User ${userId} is reapplying after previous rejection`,
+        );
+      }
+
+      // Update user with driver application data
       const updatedUser = await this.prisma.user.update({
         where: { id: userId },
         data: {
           licenseNumber,
           vehicleNumber,
           vehicleType,
+          driverApplicationReason: reason,
           driverApplicationStatus: 'PENDING',
           driverApplicationDate: new Date(),
+          // Clear previous rejection reason when reapplying
+          driverRejectionReason: null,
         },
       });
 
@@ -425,20 +474,32 @@ export class DriversService {
       throw new NotFoundException('Parcel not found or already assigned');
     }
 
-    // Assign parcel to driver
+    // Assign parcel to driver - keep status as 'assigned' (pending driver to start journey)
     const updatedParcel = await this.prisma.parcel.update({
       where: { id: parcelId },
       data: {
         driverId,
         assignedAt: new Date(),
-        status: 'assigned',
+        status: 'assigned', // Status remains 'assigned' until driver starts journey
         estimatedPickupTime,
         estimatedDeliveryTime,
       },
     });
 
+    // Create status history entry for assignment
+    await this.prisma.parcelStatusHistory.create({
+      data: {
+        parcelId,
+        status: 'assigned',
+        location: 'Driver assigned - Pending pickup',
+        updatedBy: driverId,
+        notes: `Parcel assigned to driver ${driver.name}. Status: Pending driver to start journey.`,
+      },
+    });
+
     return {
-      message: 'Parcel assigned successfully',
+      message:
+        'Parcel assigned successfully. Driver will start journey when ready.',
       parcel: updatedParcel,
       driver: this.mapToDriverResponse(driver),
     };
@@ -526,6 +587,7 @@ export class DriversService {
       preferredPaymentMethod: driver.preferredPaymentMethod ?? undefined,
       driverApplicationStatus: driver.driverApplicationStatus ?? undefined,
       driverApplicationDate: driver.driverApplicationDate ?? undefined,
+      driverApplicationReason: driver.driverApplicationReason ?? undefined,
       driverApprovalDate: driver.driverApprovalDate ?? undefined,
       driverRejectionReason: driver.driverRejectionReason ?? undefined,
       createdAt: driver.createdAt,
@@ -545,6 +607,7 @@ export class DriversService {
         | 'APPROVED'
         | 'REJECTED',
       driverApplicationDate: user.driverApplicationDate as Date,
+      driverApplicationReason: user.driverApplicationReason as string,
       driverApprovalDate: user.driverApprovalDate as Date,
       driverRejectionReason: user.driverRejectionReason as string,
       licenseNumber: user.licenseNumber as string,

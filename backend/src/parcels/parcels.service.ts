@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { Prisma, Parcel, User } from '@prisma/client';
@@ -12,12 +13,21 @@ import {
   ParcelResponseDto,
   ParcelStatusUpdateDto,
   DeliveryConfirmationDto,
+  MarkAsCompletedDto,
 } from './dto';
 import { UserResponseDto } from '../users/dto';
+import { MailerService } from '../mailer/mailer.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ParcelsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ParcelsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailerService: MailerService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // Create parcel
   async create(
@@ -68,6 +78,63 @@ export class ParcelsService {
       },
     });
 
+    // Send parcel creation email to sender
+    try {
+      await this.mailerService.sendGenericEmail({
+        to: senderEmail,
+        subject: 'Parcel Created Successfully - SendIT',
+        template: 'parcel-created',
+        context: {
+          name: senderName,
+          trackingNumber,
+          recipientName,
+          recipientEmail,
+          pickupAddress,
+          deliveryAddress,
+          weight,
+          description,
+          value,
+        },
+      });
+      this.logger.log(`Parcel creation email sent to sender: ${senderEmail}`);
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send parcel creation email to sender ${senderEmail}:`,
+        emailError,
+      );
+      // Don't fail parcel creation if email fails
+    }
+
+    // Send parcel creation email to recipient
+    try {
+      await this.mailerService.sendGenericEmail({
+        to: recipientEmail,
+        subject: 'Parcel Incoming - SendIT',
+        template: 'parcel-created',
+        context: {
+          name: recipientName,
+          trackingNumber,
+          senderName,
+          senderEmail,
+          pickupAddress,
+          deliveryAddress,
+          weight,
+          description,
+          value,
+          isRecipient: true,
+        },
+      });
+      this.logger.log(
+        `Parcel creation email sent to recipient: ${recipientEmail}`,
+      );
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send parcel creation email to recipient ${recipientEmail}:`,
+        emailError,
+      );
+      // Don't fail parcel creation if email fails
+    }
+
     return this.mapToParcelResponse(parcel);
   }
 
@@ -92,7 +159,10 @@ export class ParcelsService {
       assignedToMe,
     } = query;
 
-    const skip = (page - 1) * limit;
+    // Convert string parameters to integers
+    const pageNum = typeof page === 'string' ? parseInt(page, 10) : page;
+    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit;
+    const skip = (pageNum - 1) * limitNum;
 
     // Build where clause
     const where: Prisma.ParcelWhereInput = {
@@ -113,14 +183,23 @@ export class ParcelsService {
       }
     }
 
+    // Apply search filter (combine with existing OR conditions)
     if (search) {
-      where.OR = [
-        { trackingNumber: { contains: search, mode: 'insensitive' } },
-        { senderName: { contains: search, mode: 'insensitive' } },
-        { recipientName: { contains: search, mode: 'insensitive' } },
-        { pickupAddress: { contains: search, mode: 'insensitive' } },
-        { deliveryAddress: { contains: search, mode: 'insensitive' } },
+      const searchConditions = [
+        { trackingNumber: { contains: search, mode: 'insensitive' as const } },
+        { senderName: { contains: search, mode: 'insensitive' as const } },
+        { recipientName: { contains: search, mode: 'insensitive' as const } },
+        { pickupAddress: { contains: search, mode: 'insensitive' as const } },
+        { deliveryAddress: { contains: search, mode: 'insensitive' as const } },
       ];
+
+      if (where.OR) {
+        // If there are existing OR conditions (from role filtering), combine them
+        where.AND = [{ OR: where.OR }, { OR: searchConditions }];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
     }
 
     if (status) {
@@ -141,7 +220,7 @@ export class ParcelsService {
       this.prisma.parcel.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { createdAt: 'desc' },
         include: {
           sender: true,
@@ -159,8 +238,8 @@ export class ParcelsService {
     return {
       parcels: parcels.map((parcel) => this.mapToParcelResponse(parcel)),
       total,
-      page,
-      limit,
+      page: pageNum,
+      limit: limitNum,
     };
   }
 
@@ -359,6 +438,46 @@ export class ParcelsService {
       },
     });
 
+    // Send status update email to sender
+    try {
+      await this.mailerService.sendParcelStatusUpdate({
+        to: updatedParcel.senderEmail,
+        name: updatedParcel.senderName,
+        parcelId: updatedParcel.id,
+        status,
+        trackingNumber: updatedParcel.trackingNumber,
+        estimatedDelivery: updatedParcel.estimatedDeliveryTime?.toISOString(),
+      });
+      this.logger.log(
+        `Status update email sent to sender: ${updatedParcel.senderEmail}`,
+      );
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send status update email to sender ${updatedParcel.senderEmail}:`,
+        emailError,
+      );
+    }
+
+    // Send status update email to recipient
+    try {
+      await this.mailerService.sendParcelStatusUpdate({
+        to: updatedParcel.recipientEmail,
+        name: updatedParcel.recipientName,
+        parcelId: updatedParcel.id,
+        status,
+        trackingNumber: updatedParcel.trackingNumber,
+        estimatedDelivery: updatedParcel.estimatedDeliveryTime?.toISOString(),
+      });
+      this.logger.log(
+        `Status update email sent to recipient: ${updatedParcel.recipientEmail}`,
+      );
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send status update email to recipient ${updatedParcel.recipientEmail}:`,
+        emailError,
+      );
+    }
+
     return this.mapToParcelResponse(updatedParcel);
   }
 
@@ -482,6 +601,82 @@ export class ParcelsService {
     return this.mapToParcelResponse(updatedParcel);
   }
 
+  // Mark parcel as completed (for customers)
+  async markAsCompleted(
+    id: string,
+    markAsCompletedDto: MarkAsCompletedDto,
+    userId: string,
+  ): Promise<ParcelResponseDto> {
+    const { customerNotes } = markAsCompletedDto;
+
+    // Verify parcel is assigned to this user (customer)
+    const parcel = await this.prisma.parcel.findFirst({
+      where: {
+        id,
+        recipientId: userId,
+        status: 'delivered',
+        deletedAt: null,
+      },
+    });
+
+    if (!parcel) {
+      throw new NotFoundException(
+        'Parcel not found or not ready for completion',
+      );
+    }
+
+    // Update parcel status
+    const updatedParcel = await this.prisma.parcel.update({
+      where: { id },
+      data: {
+        status: 'completed',
+        completedAt: new Date(),
+        completedBy: userId,
+        notes: customerNotes,
+      },
+      include: {
+        sender: true,
+        recipient: true,
+        driver: true,
+        statusHistory: {
+          orderBy: { timestamp: 'desc' },
+        },
+      },
+    });
+
+    // Create status history entry
+    await this.prisma.parcelStatusHistory.create({
+      data: {
+        parcelId: id,
+        status: 'completed',
+        location: updatedParcel.currentLocation,
+        latitude: updatedParcel.latitude,
+        longitude: updatedParcel.longitude,
+        updatedBy: userId,
+        notes: 'Parcel completed by customer',
+      },
+    });
+
+    // Create notification for the recipient
+    try {
+      await this.notificationsService.create({
+        userId: userId,
+        title: 'Parcel Completed',
+        message: `Your parcel with tracking number ${updatedParcel.trackingNumber} has been marked as completed. You can now leave a review.`,
+        type: 'PARCEL_COMPLETED',
+        actionUrl: `/parcel/${updatedParcel.id}`,
+        parcelId: updatedParcel.id,
+      });
+    } catch (notificationError) {
+      this.logger.warn(
+        'Failed to create completion notification:',
+        notificationError,
+      );
+    }
+
+    return this.mapToParcelResponse(updatedParcel);
+  }
+
   // Get parcel status history
   async getStatusHistory(
     id: string,
@@ -571,6 +766,332 @@ export class ParcelsService {
     });
 
     return parcels.map((parcel) => this.mapToParcelResponse(parcel));
+  }
+
+  // Link anonymous parcels to newly registered user
+  async linkAnonymousParcelsToUser(
+    userId: string,
+    userEmail: string,
+  ): Promise<{
+    linkedParcels: number;
+    message: string;
+  }> {
+    try {
+      // Find all parcels where senderId is null and senderEmail matches the new user's email
+      const anonymousParcels = await this.prisma.parcel.findMany({
+        where: {
+          senderId: null,
+          senderEmail: userEmail,
+        },
+      });
+
+      if (anonymousParcels.length === 0) {
+        return {
+          linkedParcels: 0,
+          message: 'No anonymous parcels found for this email address.',
+        };
+      }
+
+      // Update all matching parcels to link them to the new user
+      const updateResult = await this.prisma.parcel.updateMany({
+        where: {
+          senderId: null,
+          senderEmail: userEmail,
+        },
+        data: {
+          senderId: userId,
+        },
+      });
+
+      // Update user's total parcels sent count
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          totalParcelsEverSent: {
+            increment: anonymousParcels.length,
+          },
+        },
+      });
+
+      this.logger.log(
+        `Linked ${updateResult.count} anonymous parcels to user ${userId} (${userEmail})`,
+      );
+
+      return {
+        linkedParcels: updateResult.count,
+        message: `Successfully linked ${updateResult.count} previous parcels to your account.`,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to link anonymous parcels for user ${userId}:`,
+        error,
+      );
+      throw new Error('Failed to link previous parcels to your account.');
+    }
+  }
+
+  // Get anonymous parcels by email (for checking before registration)
+  async getAnonymousParcelsByEmail(
+    email: string,
+  ): Promise<ParcelResponseDto[]> {
+    try {
+      const parcels = await this.prisma.parcel.findMany({
+        where: {
+          senderId: null,
+          senderEmail: email,
+        },
+        include: {
+          recipient: true,
+          driver: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      return parcels.map((parcel) => this.mapToParcelResponse(parcel));
+    } catch (error) {
+      this.logger.error(
+        `Failed to get anonymous parcels for email ${email}:`,
+        error,
+      );
+      throw new Error('Failed to retrieve previous parcels.');
+    }
+  }
+
+  // Get autocomplete suggestions for names and emails
+  async getAutocompleteSuggestions(
+    query: string,
+    type: 'name' | 'email' | 'phone',
+    limit: number = 10,
+  ): Promise<{
+    users: Array<{ id: string; name: string; email: string; phone?: string }>;
+    parcelHistory: Array<{
+      name: string;
+      email: string;
+      phone: string;
+      type: 'sender' | 'recipient';
+    }>;
+  }> {
+    try {
+      const searchQuery = query.toLowerCase();
+
+      // Get suggestions from registered users
+      const users = await this.prisma.user.findMany({
+        where: {
+          OR: [
+            { name: { contains: searchQuery, mode: 'insensitive' } },
+            { email: { contains: searchQuery, mode: 'insensitive' } },
+          ],
+          isActive: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+        take: limit,
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      // Get suggestions from parcel history (both senders and recipients)
+      const parcelHistory = await this.prisma.parcel.findMany({
+        where: {
+          OR: [
+            { senderName: { contains: searchQuery, mode: 'insensitive' } },
+            { senderEmail: { contains: searchQuery, mode: 'insensitive' } },
+            { recipientName: { contains: searchQuery, mode: 'insensitive' } },
+            { recipientEmail: { contains: searchQuery, mode: 'insensitive' } },
+          ],
+          deletedAt: null,
+        },
+        select: {
+          senderName: true,
+          senderEmail: true,
+          senderPhone: true,
+          recipientName: true,
+          recipientEmail: true,
+          recipientPhone: true,
+        },
+        take: limit * 2, // Get more to account for duplicates
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      // Process parcel history to remove duplicates and format
+      const parcelSuggestions = new Map<
+        string,
+        {
+          name: string;
+          email: string;
+          phone: string;
+          type: 'sender' | 'recipient';
+        }
+      >();
+
+      parcelHistory.forEach((parcel) => {
+        // Add sender suggestions
+        const senderKey = `${parcel.senderEmail}-sender`;
+        if (!parcelSuggestions.has(senderKey)) {
+          parcelSuggestions.set(senderKey, {
+            name: parcel.senderName,
+            email: parcel.senderEmail,
+            phone: parcel.senderPhone,
+            type: 'sender',
+          });
+        }
+
+        // Add recipient suggestions
+        const recipientKey = `${parcel.recipientEmail}-recipient`;
+        if (!parcelSuggestions.has(recipientKey)) {
+          parcelSuggestions.set(recipientKey, {
+            name: parcel.recipientName,
+            email: parcel.recipientEmail,
+            phone: parcel.recipientPhone,
+            type: 'recipient',
+          });
+        }
+      });
+
+      // Convert to array and limit results
+      const parcelHistoryArray = Array.from(parcelSuggestions.values()).slice(
+        0,
+        limit,
+      );
+
+      // Map users to expected format, handling null phone values
+      const mappedUsers = users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || undefined,
+      }));
+
+      return {
+        users: mappedUsers,
+        parcelHistory: parcelHistoryArray,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get autocomplete suggestions for query "${query}":`,
+        error,
+      );
+      throw new Error('Failed to get suggestions.');
+    }
+  }
+
+  // Get specific suggestions for sender or recipient
+  async getContactSuggestions(
+    query: string,
+    contactType: 'sender' | 'recipient',
+    limit: number = 10,
+  ): Promise<
+    Array<{
+      name: string;
+      email: string;
+      phone: string;
+      isRegistered: boolean;
+      userId?: string;
+    }>
+  > {
+    try {
+      const searchQuery = query.toLowerCase();
+      const suggestions = new Map<
+        string,
+        {
+          name: string;
+          email: string;
+          phone: string;
+          isRegistered: boolean;
+          userId?: string;
+        }
+      >();
+
+      // Get from registered users
+      const users = await this.prisma.user.findMany({
+        where: {
+          OR: [
+            { name: { contains: searchQuery, mode: 'insensitive' } },
+            { email: { contains: searchQuery, mode: 'insensitive' } },
+          ],
+          isActive: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+        take: limit,
+      });
+
+      users.forEach((user) => {
+        suggestions.set(user.email, {
+          name: user.name,
+          email: user.email,
+          phone: user.phone || '',
+          isRegistered: true,
+          userId: user.id,
+        });
+      });
+
+      // Get from parcel history
+      const parcelField = contactType === 'sender' ? 'sender' : 'recipient';
+      const parcels = await this.prisma.parcel.findMany({
+        where: {
+          OR: [
+            {
+              [`${parcelField}Name`]: {
+                contains: searchQuery,
+                mode: 'insensitive',
+              },
+            },
+            {
+              [`${parcelField}Email`]: {
+                contains: searchQuery,
+                mode: 'insensitive',
+              },
+            },
+          ],
+          deletedAt: null,
+        },
+        select: {
+          [`${parcelField}Name`]: true,
+          [`${parcelField}Email`]: true,
+          [`${parcelField}Phone`]: true,
+        },
+        take: limit * 2,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      parcels.forEach((parcel: any) => {
+        const email = parcel[`${parcelField}Email`];
+        if (!suggestions.has(email)) {
+          suggestions.set(email, {
+            name: parcel[`${parcelField}Name`],
+            email: email,
+            phone: parcel[`${parcelField}Phone`],
+            isRegistered: false,
+          });
+        }
+      });
+
+      return Array.from(suggestions.values()).slice(0, limit);
+    } catch (error) {
+      this.logger.error(
+        `Failed to get contact suggestions for ${contactType}:`,
+        error,
+      );
+      throw new Error('Failed to get contact suggestions.');
+    }
   }
 
   // Helper methods

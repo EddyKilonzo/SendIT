@@ -17,6 +17,7 @@ import {
   ParcelQueryDto,
   ParcelStatusUpdateDto,
   DeliveryConfirmationDto,
+  MarkAsCompletedDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -56,6 +57,29 @@ export class ParcelsController {
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async findByTrackingNumber(@Param('trackingNumber') trackingNumber: string) {
     return this.parcelsService.findByTrackingNumber(trackingNumber);
+  }
+
+  @Get('anonymous/:email')
+  async getAnonymousParcels(@Param('email') email: string) {
+    return this.parcelsService.getAnonymousParcelsByEmail(email);
+  }
+
+  @Get('suggestions/autocomplete')
+  async getAutocompleteSuggestions(
+    @Query('q') query: string,
+    @Query('type') type: 'name' | 'email' | 'phone' = 'name',
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.parcelsService.getAutocompleteSuggestions(query, type, limit);
+  }
+
+  @Get('suggestions/contact/:type')
+  async getContactSuggestions(
+    @Param('type') contactType: 'sender' | 'recipient',
+    @Query('q') query: string,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.parcelsService.getContactSuggestions(query, contactType, limit);
   }
 
   @Get('my-parcels')
@@ -126,6 +150,20 @@ export class ParcelsController {
     return this.parcelsService.confirmDelivery(
       id,
       confirmationDto,
+      req.user.id,
+    );
+  }
+
+  @Patch(':id/mark-as-completed')
+  @Roles('CUSTOMER')
+  async markAsCompleted(
+    @Param('id') id: string,
+    @Body() markAsCompletedDto: MarkAsCompletedDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.parcelsService.markAsCompleted(
+      id,
+      markAsCompletedDto,
       req.user.id,
     );
   }

@@ -23,6 +23,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { UserRole, User } from '@prisma/client';
 import { MailerService } from '../mailer/mailer.service';
+import { ParcelsService } from '../parcels/parcels.service';
 
 interface JwtPayload {
   sub: string;
@@ -43,6 +44,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly mailerService: MailerService,
+    private readonly parcelsService: ParcelsService,
   ) {}
 
   async register(
@@ -88,6 +90,27 @@ export class AuthService {
         data: userData,
       });
 
+      // Link any anonymous parcels to the new user
+      let linkedParcelsMessage = '';
+      try {
+        const linkResult = await this.parcelsService.linkAnonymousParcelsToUser(
+          user.id,
+          user.email,
+        );
+        if (linkResult.linkedParcels > 0) {
+          linkedParcelsMessage = ` ${linkResult.message}`;
+          this.logger.log(
+            `Linked ${linkResult.linkedParcels} anonymous parcels to new user ${user.email}`,
+          );
+        }
+      } catch (linkError) {
+        this.logger.warn(
+          `Failed to link anonymous parcels for user ${user.email}:`,
+          linkError,
+        );
+        // Don't fail registration if linking fails
+      }
+
       // Generate tokens
       const tokens = await this.generateTokens(user);
 
@@ -118,7 +141,7 @@ export class AuthService {
       this.logger.log(`User registered successfully: ${user.email}`);
       return ApiResponse.success(
         authResponse,
-        'User registered successfully. Welcome email sent.',
+        `User registered successfully. Welcome email sent.${linkedParcelsMessage}`,
       );
     } catch (error) {
       this.logger.error('Registration failed', error);
@@ -346,6 +369,8 @@ export class AuthService {
   // Password Reset Methods
   async forgotPassword(email: string): Promise<ApiResponseDto<boolean>> {
     try {
+      this.logger.log(`Password reset requested for email: ${email}`);
+
       // Check if user exists
       const user = await this.prisma.user.findUnique({
         where: { email },
@@ -353,7 +378,46 @@ export class AuthService {
 
       if (!user) {
         // Don't reveal if user exists or not for security
-        this.logger.log(`Password reset requested for email: ${email}`);
+        this.logger.log(
+          `Password reset requested for non-existent email: ${email}`,
+        );
+        return ApiResponse.success(
+          true,
+          'If the email exists, a reset code has been sent',
+        );
+      }
+
+      // Clean up expired tokens for this email
+      await this.prisma.passwordResetToken.deleteMany({
+        where: {
+          email,
+          OR: [{ expiresAt: { lt: new Date() } }, { used: true }],
+        },
+      });
+
+      // Check if there's already an active token (not expired and not used)
+      const existingToken = await this.prisma.passwordResetToken.findFirst({
+        where: {
+          email,
+          used: false,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingToken) {
+        this.logger.log(
+          `Active password reset token already exists for: ${email}, reusing existing token`,
+        );
+        // Reuse existing token if it's still valid
+        await this.mailerService.sendPasswordResetEmail({
+          to: email,
+          name: user.name,
+          resetToken: existingToken.token,
+        });
+
+        this.logger.log(
+          `Password reset email sent with existing token to: ${email}`,
+        );
         return ApiResponse.success(
           true,
           'If the email exists, a reset code has been sent',
@@ -362,6 +426,7 @@ export class AuthService {
 
       // Generate 6-digit token
       const resetToken = this.generateSixDigitToken();
+      this.logger.log(`Generated new password reset token for: ${email}`);
 
       // Store token in database with expiration (15 minutes)
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -375,6 +440,10 @@ export class AuthService {
         },
       });
 
+      this.logger.log(
+        `Password reset token stored in database for: ${email}, expires at: ${expiresAt.toISOString()}`,
+      );
+
       // Send email with token
       await this.mailerService.sendPasswordResetEmail({
         to: email,
@@ -382,14 +451,17 @@ export class AuthService {
         resetToken: resetToken,
       });
 
-      this.logger.log(`Password reset token sent to: ${email}`);
+      this.logger.log(
+        `✅ Password reset process completed successfully for: ${email}`,
+      );
       return ApiResponse.success(
         true,
         'If the email exists, a reset code has been sent',
       );
     } catch (error) {
       this.logger.error(
-        `Error in forgotPassword: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `❌ Error in forgotPassword for ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
@@ -400,6 +472,8 @@ export class AuthService {
     token: string,
   ): Promise<ApiResponseDto<boolean>> {
     try {
+      this.logger.log(`Verifying reset token for email: ${email}`);
+
       // Find the token in database
       const resetToken = await this.prisma.passwordResetToken.findFirst({
         where: {
@@ -413,13 +487,20 @@ export class AuthService {
       });
 
       if (!resetToken) {
+        this.logger.log(
+          `❌ Invalid or expired reset token for email: ${email}`,
+        );
         return ApiResponse.success(false, 'Invalid or expired reset token');
       }
 
+      this.logger.log(
+        `✅ Reset token verified successfully for email: ${email}, expires at: ${resetToken.expiresAt.toISOString()}`,
+      );
       return ApiResponse.success(true, 'Token is valid');
     } catch (error) {
       this.logger.error(
-        `Error in verifyResetToken: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `❌ Error in verifyResetToken for ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
@@ -431,6 +512,8 @@ export class AuthService {
     newPassword: string,
   ): Promise<ApiResponseDto<boolean>> {
     try {
+      this.logger.log(`Password reset attempt for email: ${email}`);
+
       // Verify token first
       const resetToken = await this.prisma.passwordResetToken.findFirst({
         where: {
@@ -444,11 +527,27 @@ export class AuthService {
       });
 
       if (!resetToken) {
+        this.logger.log(
+          `❌ Invalid or expired reset token for password reset: ${email}`,
+        );
         throw new InvalidCredentialsException('Invalid or expired reset token');
+      }
+
+      this.logger.log(`✅ Reset token validated for password reset: ${email}`);
+
+      // Check if user exists
+      const user = await this.prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        this.logger.log(`❌ User not found for password reset: ${email}`);
+        throw new InvalidCredentialsException('User not found');
       }
 
       // Hash new password
       const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+      this.logger.log(`Password hashed successfully for: ${email}`);
 
       // Update user password
       await this.prisma.user.update({
@@ -456,24 +555,126 @@ export class AuthService {
         data: { password: hashedPassword },
       });
 
+      this.logger.log(`User password updated successfully for: ${email}`);
+
       // Mark token as used
       await this.prisma.passwordResetToken.update({
         where: { id: resetToken.id },
         data: { used: true },
       });
 
-      this.logger.log(`Password reset successfully for: ${email}`);
+      this.logger.log(`Reset token marked as used for: ${email}`);
+
+      // Clean up all expired tokens for this email
+      await this.prisma.passwordResetToken.deleteMany({
+        where: {
+          email,
+          OR: [{ expiresAt: { lt: new Date() } }, { used: true }],
+        },
+      });
+
+      this.logger.log(`Cleaned up expired/used tokens for: ${email}`);
+
+      this.logger.log(`✅ Password reset completed successfully for: ${email}`);
       return ApiResponse.success(true, 'Password reset successfully');
     } catch (error) {
       this.logger.error(
-        `Error in resetPassword: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `❌ Error in resetPassword for ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
   }
 
   private generateSixDigitToken(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    this.logger.log(`Generated 6-digit token: ${token}`);
+    return token;
+  }
+
+  // Clean up expired password reset tokens
+  async cleanupExpiredTokens(): Promise<void> {
+    try {
+      const result = await this.prisma.passwordResetToken.deleteMany({
+        where: {
+          OR: [{ expiresAt: { lt: new Date() } }, { used: true }],
+        },
+      });
+
+      if (result.count > 0) {
+        this.logger.log(
+          `🧹 Cleaned up ${result.count} expired/used password reset tokens`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `❌ Error cleaning up expired tokens: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  // Test email method for debugging
+  async testEmail(email: string): Promise<ApiResponseDto<boolean>> {
+    try {
+      await this.mailerService.sendTestEmail(email);
+      return ApiResponse.success(true, 'Test email sent successfully');
+    } catch (error) {
+      this.logger.error('Failed to send test email:', error);
+      return ApiResponse.success(false, 'Failed to send test email');
+    }
+  }
+
+  // Check if email is available for registration
+  async checkEmail(
+    email: string,
+  ): Promise<ApiResponseDto<{ available: boolean; message: string }>> {
+    try {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUser) {
+        return ApiResponse.success(
+          { available: false, message: 'Email is already registered' },
+          'Email is not available',
+        );
+      }
+
+      return ApiResponse.success(
+        { available: true, message: 'Email is available for registration' },
+        'Email is available',
+      );
+    } catch (error) {
+      this.logger.error('Error checking email availability:', error);
+      return ApiResponse.success(
+        { available: false, message: 'Failed to check email availability' },
+        'Failed to check email availability',
+      );
+    }
+  }
+
+  // Check for anonymous parcels by email
+  async checkAnonymousParcels(
+    email: string,
+  ): Promise<ApiResponseDto<{ count: number; parcels: any[] }>> {
+    try {
+      const parcels =
+        await this.parcelsService.getAnonymousParcelsByEmail(email);
+
+      return ApiResponse.success(
+        {
+          count: parcels.length,
+          parcels: parcels.slice(0, 5), // Return first 5 parcels for preview
+        },
+        `Found ${parcels.length} anonymous parcel(s) for this email`,
+      );
+    } catch (error) {
+      this.logger.error('Error checking anonymous parcels:', error);
+      return ApiResponse.success(
+        { count: 0, parcels: [] },
+        'Failed to check anonymous parcels',
+      );
+    }
   }
 
   private async generateTokens(user: {

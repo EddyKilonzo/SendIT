@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parcel Status Update - <%= status %></title>
+    <title>Parcel Status Update - <%= typeof status !== 'undefined' ? status : 'Unknown' %></title>
     <style>
         * {
             margin: 0;
@@ -13,9 +13,10 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #f6f8fa;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             color: #333;
             line-height: 1.6;
+            min-height: 100vh;
         }
         
         .container {
@@ -62,6 +63,26 @@
             color: #fff;
             font-size: 32px;
             font-weight: bold;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        .user-avatar .initial {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            z-index: 1;
         }
         
         .card-heading {
@@ -241,9 +262,9 @@
             </div>
             <div class="user-avatar">
                 <% if (typeof profilePicture !== 'undefined' && profilePicture) { %>
-                    <img src="<%= profilePicture %>" alt="<%= name %>'s profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                    <img src="<%= profilePicture %>" alt="<%= typeof name !== 'undefined' ? name : 'User' %>'s profile">
                 <% } else { %>
-                    <%= name.charAt(0).toUpperCase() %>
+                    <span class="initial"><%= typeof name !== 'undefined' && name ? name.charAt(0).toUpperCase() : 'U' %></span>
                 <% } %>
             </div>
             
@@ -251,7 +272,7 @@
             <div class="separator"></div>
             
             <div class="greeting">
-                Greetings, <strong><%= name %></strong>
+                Greetings, <strong><%= typeof name !== 'undefined' ? name : 'User' %></strong>
             </div>
             
             <div class="content-text">
@@ -261,22 +282,22 @@
             <div class="parcel-details">
                 <div class="detail-row">
                     <span class="detail-label">Tracking Number:</span>
-                    <span class="detail-value"><%= trackingNumber %></span>
+                    <span class="detail-value"><%= typeof trackingNumber !== 'undefined' ? trackingNumber : 'N/A' %></span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Parcel ID:</span>
-                    <span class="detail-value"><%= parcelId %></span>
+                    <span class="detail-value"><%= typeof parcelId !== 'undefined' ? parcelId : 'N/A' %></span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Current Status:</span>
                     <span class="detail-value">
-                        <span class="status-badge"><%= status %></span>
+                        <span class="status-badge"><%= typeof status !== 'undefined' ? status : 'Unknown' %></span>
                     </span>
                 </div>
                 <% if (typeof estimatedDelivery !== 'undefined' && estimatedDelivery) { %>
                 <div class="detail-row">
                     <span class="detail-label">Estimated Delivery:</span>
-                    <span class="detail-value"><%= estimatedDelivery %></span>
+                    <span class="detail-value"><%= typeof estimatedDelivery !== 'undefined' ? estimatedDelivery : 'TBD' %></span>
                 </div>
                 <% } %>
             </div>
@@ -287,21 +308,21 @@
             
             
             <div style="text-align: center;">
-                <a href="<%= baseUrl %>/track/<%= trackingNumber %>" class="cta-button">
+                <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/track/<%= typeof trackingNumber !== 'undefined' ? trackingNumber : 'N/A' %>" class="cta-button">
                     Track Parcel
                 </a>
             </div>
             
             <div class="support-link">
-                Have questions about your delivery? <a href="<%= baseUrl %>/contact">Contact our support team</a>.
+                Have questions about your delivery? <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/contact">Contact our support team</a>.
             </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            <a href="<%= baseUrl %>/help">Help Center</a>
+            <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/help">Help Center</a>
             <span class="separator-dot">•</span>
-            <a href="<%= baseUrl %>/contact">Contact us</a>
+            <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/contact">Contact us</a>
         </div>
     </div>
 </body>

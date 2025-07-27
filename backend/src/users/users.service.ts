@@ -146,7 +146,7 @@ export class UsersService {
     if (!id || typeof id !== 'string' || id.trim() === '') {
       throw new BadRequestException('Invalid user ID provided');
     }
-    
+
     const { name, phone, address, email } = updateUserDto;
 
     // Check if user exists
@@ -163,7 +163,7 @@ export class UsersService {
 
     // Build update data object with only provided fields
     const updateData: any = {};
-    
+
     if (name !== undefined) {
       updateData.name = name;
     }
@@ -354,10 +354,7 @@ export class UsersService {
     // Get all user parcels for statistics
     const allParcels = await this.prisma.parcel.findMany({
       where: {
-        OR: [
-          { senderId: userId },
-          { recipientId: userId },
-        ],
+        OR: [{ senderId: userId }, { recipientId: userId }],
         deletedAt: null,
       },
     });
@@ -365,20 +362,20 @@ export class UsersService {
     // Calculate statistics
     const totalParcelsSent = user.sentParcels.length;
     const totalParcelsReceived = user.receivedParcels.length;
-    
-    const parcelsInTransit = allParcels.filter(parcel => 
-      ['assigned', 'picked_up', 'in_transit'].includes(parcel.status)
+
+    const parcelsInTransit = allParcels.filter((parcel) =>
+      ['assigned', 'picked_up', 'in_transit'].includes(parcel.status),
     ).length;
 
     // Calculate scheduled for tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    
+
     const dayAfterTomorrow = new Date(tomorrow);
     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
-    
-    const scheduledForTomorrow = allParcels.filter(parcel => {
+
+    const scheduledForTomorrow = allParcels.filter((parcel) => {
       if (!parcel.estimatedPickupTime) return false;
       const pickupDate = new Date(parcel.estimatedPickupTime);
       return pickupDate >= tomorrow && pickupDate < dayAfterTomorrow;
@@ -386,12 +383,15 @@ export class UsersService {
 
     // Calculate total spent
     const totalSpent = allParcels
-      .filter(parcel => parcel.deliveryFee)
+      .filter((parcel) => parcel.deliveryFee)
       .reduce((sum, parcel) => sum + (parcel.deliveryFee || 0), 0);
 
     // Get recent parcels for activity feed
     const recentParcels = allParcels
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
       .slice(0, 5);
 
     // Create summary cards
@@ -399,18 +399,18 @@ export class UsersService {
       {
         title: 'Parcels Sent',
         value: totalParcelsSent,
-        icon: 'fas fa-paper-plane'
+        icon: 'fas fa-paper-plane',
       },
       {
         title: 'Parcels Received',
         value: totalParcelsReceived,
-        icon: 'fas fa-inbox'
+        icon: 'fas fa-inbox',
       },
       {
         title: 'Total Spent',
         value: `ksh${totalSpent.toFixed(0)}`,
-        icon: 'fas fa-dollar-sign'
-      }
+        icon: 'fas fa-dollar-sign',
+      },
     ];
 
     return {
@@ -418,7 +418,9 @@ export class UsersService {
       totalParcelsReceived,
       parcelsInTransit,
       scheduledForTomorrow,
-      recentParcels: recentParcels.map(parcel => this.mapToParcelResponse(parcel)),
+      recentParcels: recentParcels.map((parcel) =>
+        this.mapToParcelResponse(parcel),
+      ),
       summaryCards,
       totalParcels: allParcels.length,
     };
@@ -514,9 +516,7 @@ export class UsersService {
     };
   }
 
-  private mapToParcelResponse(
-    parcel: Prisma.ParcelGetPayload<object>,
-  ): any {
+  private mapToParcelResponse(parcel: Prisma.ParcelGetPayload<object>): any {
     return {
       id: parcel.id,
       trackingNumber: parcel.trackingNumber,

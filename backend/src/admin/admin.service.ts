@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -21,6 +22,7 @@ import {
 } from './dto';
 import { UserResponseDto } from '../users/dto';
 import { ParcelResponseDto } from '../parcels/dto';
+import { MailerService } from '../mailer/mailer.service';
 
 interface ParcelWithRelations {
   id: string;
@@ -71,7 +73,12 @@ interface ParcelWithRelations {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AdminService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailerService: MailerService,
+  ) {}
 
   // Dashboard and Statistics
   async getDashboardStats(): Promise<DashboardStatsDto> {
@@ -248,7 +255,7 @@ export class AdminService {
       satisfactionData,
       topDrivers,
       recentReviews,
-      deliveryStats
+      deliveryStats,
     ] = await Promise.all([
       // Total revenue
       this.prisma.parcel.aggregate({
@@ -278,7 +285,11 @@ export class AdminService {
           deletedAt: null,
           deliveryFee: { not: null },
           actualDeliveryTime: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+            gte: new Date(
+              new Date().getFullYear(),
+              new Date().getMonth() - 1,
+              1,
+            ),
             lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
           },
         },
@@ -336,13 +347,33 @@ export class AdminService {
     ]);
 
     // Calculate delivery performance
-    const totalDeliveries = deliveryStats.reduce((sum, stat) => sum + stat._count.id, 0);
-    const deliveredCount = deliveryStats.find(stat => stat.status === 'delivered')?._count.id || 0;
-    const inTransitCount = deliveryStats.find(stat => stat.status === 'in_transit')?._count.id || 0;
-    const pendingCount = deliveryStats.find(stat => stat.status === 'pending')?._count.id || 0;
+    const totalDeliveries = deliveryStats.reduce(
+      (sum, stat) => sum + stat._count.id,
+      0,
+    );
+    const deliveredCount =
+      deliveryStats.find((stat) => stat.status === 'delivered')?._count.id || 0;
+    const inTransitCount =
+      deliveryStats.find((stat) => stat.status === 'in_transit')?._count.id ||
+      0;
+    const pendingCount =
+      deliveryStats.find((stat) => stat.status === 'pending')?._count.id || 0;
 
     // Generate monthly revenue data
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     const currentMonth = new Date().getMonth();
     const monthlyData = months.map((month, index) => {
       let revenue = 0;
@@ -352,7 +383,10 @@ export class AdminService {
         revenue = previousMonthRevenueData._sum.deliveryFee || 0;
       } else {
         // Generate realistic random data for other months
-        const baseRevenue = Math.min(monthlyRevenueData._sum.deliveryFee || 0, previousMonthRevenueData._sum.deliveryFee || 0);
+        const baseRevenue = Math.min(
+          monthlyRevenueData._sum.deliveryFee || 0,
+          previousMonthRevenueData._sum.deliveryFee || 0,
+        );
         revenue = Math.floor(baseRevenue * (0.7 + Math.random() * 0.6));
       }
       return { month, revenue };
@@ -362,17 +396,55 @@ export class AdminService {
       revenueTrends: {
         currentMonth: monthlyRevenueData._sum.deliveryFee || 0,
         previousMonth: previousMonthRevenueData._sum.deliveryFee || 0,
-        growth: this.calculateGrowth(monthlyRevenueData._sum.deliveryFee || 0, previousMonthRevenueData._sum.deliveryFee || 0),
+        growth: this.calculateGrowth(
+          monthlyRevenueData._sum.deliveryFee || 0,
+          previousMonthRevenueData._sum.deliveryFee || 0,
+        ),
         monthlyData,
         dailyData: [
-          { day: 'Mon', revenue: Math.floor((monthlyRevenueData._sum.deliveryFee || 0) * 0.15) },
-          { day: 'Tue', revenue: Math.floor((monthlyRevenueData._sum.deliveryFee || 0) * 0.16) },
-          { day: 'Wed', revenue: Math.floor((monthlyRevenueData._sum.deliveryFee || 0) * 0.14) },
-          { day: 'Thu', revenue: Math.floor((monthlyRevenueData._sum.deliveryFee || 0) * 0.17) },
-          { day: 'Fri', revenue: Math.floor((monthlyRevenueData._sum.deliveryFee || 0) * 0.18) },
-          { day: 'Sat', revenue: Math.floor((monthlyRevenueData._sum.deliveryFee || 0) * 0.12) },
-          { day: 'Sun', revenue: Math.floor((monthlyRevenueData._sum.deliveryFee || 0) * 0.08) }
-        ]
+          {
+            day: 'Mon',
+            revenue: Math.floor(
+              (monthlyRevenueData._sum.deliveryFee || 0) * 0.15,
+            ),
+          },
+          {
+            day: 'Tue',
+            revenue: Math.floor(
+              (monthlyRevenueData._sum.deliveryFee || 0) * 0.16,
+            ),
+          },
+          {
+            day: 'Wed',
+            revenue: Math.floor(
+              (monthlyRevenueData._sum.deliveryFee || 0) * 0.14,
+            ),
+          },
+          {
+            day: 'Thu',
+            revenue: Math.floor(
+              (monthlyRevenueData._sum.deliveryFee || 0) * 0.17,
+            ),
+          },
+          {
+            day: 'Fri',
+            revenue: Math.floor(
+              (monthlyRevenueData._sum.deliveryFee || 0) * 0.18,
+            ),
+          },
+          {
+            day: 'Sat',
+            revenue: Math.floor(
+              (monthlyRevenueData._sum.deliveryFee || 0) * 0.12,
+            ),
+          },
+          {
+            day: 'Sun',
+            revenue: Math.floor(
+              (monthlyRevenueData._sum.deliveryFee || 0) * 0.08,
+            ),
+          },
+        ],
       },
       deliveryPerformance: {
         totalDeliveries,
@@ -381,7 +453,7 @@ export class AdminService {
         failedDeliveries: Math.floor(deliveredCount * 0.02),
         onTimeRate: 90.0,
         averageDeliveryTime: deliveryTimeData._avg.totalDeliveryTime || 0,
-        performanceByDriver: topDrivers.map(driver => ({
+        performanceByDriver: topDrivers.map((driver) => ({
           id: driver.id,
           name: driver.name,
           email: '',
@@ -394,39 +466,75 @@ export class AdminService {
           onTimeDeliveryRate: driver.onTimeDeliveryRate || 90.0,
           averageDeliveryTime: 0,
           totalEarnings: 0,
-          lastActiveAt: new Date().toISOString()
+          lastActiveAt: new Date().toISOString(),
         })),
         performanceByVehicle: [
-          { type: 'Motorcycle', deliveries: Math.floor(totalDeliveries * 0.4), efficiency: 85.2 },
-          { type: 'Car', deliveries: Math.floor(totalDeliveries * 0.35), efficiency: 92.1 },
-          { type: 'Van', deliveries: Math.floor(totalDeliveries * 0.2), efficiency: 88.5 },
-          { type: 'Truck', deliveries: Math.floor(totalDeliveries * 0.05), efficiency: 95.0 }
+          {
+            type: 'Motorcycle',
+            deliveries: Math.floor(totalDeliveries * 0.4),
+            efficiency: 85.2,
+          },
+          {
+            type: 'Car',
+            deliveries: Math.floor(totalDeliveries * 0.35),
+            efficiency: 92.1,
+          },
+          {
+            type: 'Van',
+            deliveries: Math.floor(totalDeliveries * 0.2),
+            efficiency: 88.5,
+          },
+          {
+            type: 'Truck',
+            deliveries: Math.floor(totalDeliveries * 0.05),
+            efficiency: 95.0,
+          },
         ],
         deliveryTimeTrends: [
           { week: 'Week 1', avgTime: 2.8 },
           { week: 'Week 2', avgTime: 2.6 },
           { week: 'Week 3', avgTime: 2.4 },
-          { week: 'Week 4', avgTime: 2.5 }
-        ]
+          { week: 'Week 4', avgTime: 2.5 },
+        ],
       },
       customerReviews: {
         overallRating: satisfactionData._avg.rating || 0,
         totalReviews: satisfactionData._count.id,
         ratingDistribution: [
-          { stars: 5, count: Math.floor(satisfactionData._count.id * 0.5), percentage: 50.0 },
-          { stars: 4, count: Math.floor(satisfactionData._count.id * 0.3), percentage: 30.0 },
-          { stars: 3, count: Math.floor(satisfactionData._count.id * 0.1), percentage: 10.0 },
-          { stars: 2, count: Math.floor(satisfactionData._count.id * 0.05), percentage: 5.0 },
-          { stars: 1, count: Math.floor(satisfactionData._count.id * 0.05), percentage: 5.0 }
+          {
+            stars: 5,
+            count: Math.floor(satisfactionData._count.id * 0.5),
+            percentage: 50.0,
+          },
+          {
+            stars: 4,
+            count: Math.floor(satisfactionData._count.id * 0.3),
+            percentage: 30.0,
+          },
+          {
+            stars: 3,
+            count: Math.floor(satisfactionData._count.id * 0.1),
+            percentage: 10.0,
+          },
+          {
+            stars: 2,
+            count: Math.floor(satisfactionData._count.id * 0.05),
+            percentage: 5.0,
+          },
+          {
+            stars: 1,
+            count: Math.floor(satisfactionData._count.id * 0.05),
+            percentage: 5.0,
+          },
         ],
-        recentReviews: recentReviews.map(review => ({
+        recentReviews: recentReviews.map((review) => ({
           id: review.id,
           customerName: review.parcel.sender?.name || 'Unknown Customer',
           rating: review.rating,
           comment: review.comment,
           createdAt: review.createdAt.toISOString(),
           driverName: review.parcel.driver?.name || 'Unknown Driver',
-          parcelId: review.parcelId
+          parcelId: review.parcelId,
         })),
         satisfactionTrends: [
           { month: 'Jan', rating: 4.4 },
@@ -434,15 +542,30 @@ export class AdminService {
           { month: 'Mar', rating: 4.3 },
           { month: 'Apr', rating: 4.6 },
           { month: 'May', rating: 4.5 },
-          { month: 'Jun', rating: 4.6 }
+          { month: 'Jun', rating: 4.6 },
         ],
         feedbackCategories: [
-          { category: 'Delivery Speed', positive: 78, neutral: 15, negative: 7 },
-          { category: 'Driver Courtesy', positive: 92, neutral: 6, negative: 2 },
-          { category: 'Package Condition', positive: 95, neutral: 4, negative: 1 },
-          { category: 'Communication', positive: 85, neutral: 12, negative: 3 }
-        ]
-      }
+          {
+            category: 'Delivery Speed',
+            positive: 78,
+            neutral: 15,
+            negative: 7,
+          },
+          {
+            category: 'Driver Courtesy',
+            positive: 92,
+            neutral: 6,
+            negative: 2,
+          },
+          {
+            category: 'Package Condition',
+            positive: 95,
+            neutral: 4,
+            negative: 1,
+          },
+          { category: 'Communication', positive: 85, neutral: 12, negative: 3 },
+        ],
+      },
     };
   }
 
@@ -457,21 +580,28 @@ export class AdminService {
     const totalUsers = await this.prisma.user.count();
     const usersWithDeletedAt = await this.prisma.user.findMany({
       take: 10,
-      select: { id: true, name: true, email: true, deletedAt: true, role: true, isActive: true }
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        deletedAt: true,
+        role: true,
+        isActive: true,
+      },
     });
-    
+
     const activeUsers = await this.prisma.user.count({
-      where: { deletedAt: null }
+      where: { deletedAt: null },
     });
-    
+
     console.log('Debug - Total users in database:', totalUsers);
     console.log('Debug - Active users (not deleted):', activeUsers);
     console.log('Debug - Sample users:', usersWithDeletedAt);
-    
+
     return {
       totalUsers,
       activeUsers,
-      sampleUsers: usersWithDeletedAt
+      sampleUsers: usersWithDeletedAt,
     };
   }
 
@@ -480,15 +610,21 @@ export class AdminService {
     const totalUsers = await this.prisma.user.count();
     const usersWithDeletedAt = await this.prisma.user.findMany({
       take: 10,
-      select: { id: true, name: true, email: true, deletedAt: true, role: true }
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        deletedAt: true,
+        role: true,
+      },
     });
-    
+
     console.log('Debug - Total users in database:', totalUsers);
     console.log('Debug - Sample users:', usersWithDeletedAt);
-    
+
     return {
       totalUsers,
-      sampleUsers: usersWithDeletedAt
+      sampleUsers: usersWithDeletedAt,
     };
   }
 
@@ -558,7 +694,10 @@ export class AdminService {
       // ];
     }
 
-    console.log('🔍 Backend Debug - Final where clause:', JSON.stringify(where, null, 2));
+    console.log(
+      '🔍 Backend Debug - Final where clause:',
+      JSON.stringify(where, null, 2),
+    );
     console.log('🔍 Backend Debug - Skip:', skip, 'Limit:', limit);
 
     const [users, total] = await Promise.all([
@@ -581,7 +720,12 @@ export class AdminService {
 
     console.log('🔍 Backend Debug - Found users:', users.length);
     console.log('🔍 Backend Debug - Total count:', total);
-    console.log('🔍 Backend Debug - Sample users:', users.slice(0, 2).map(u => ({ id: u.id, name: u.name, email: u.email })));
+    console.log(
+      '🔍 Backend Debug - Sample users:',
+      users
+        .slice(0, 2)
+        .map((u) => ({ id: u.id, name: u.name, email: u.email })),
+    );
 
     return {
       users: users.map((user) => this.mapToUserResponse(user)),
@@ -633,26 +777,26 @@ export class AdminService {
         OR: [
           { senderId: userId },
           { recipientId: userId },
-          { driverId: userId }
+          { driverId: userId },
         ],
         deletedAt: null,
       },
       include: {
         sender: {
-          select: { name: true, email: true }
+          select: { name: true, email: true },
         },
         recipient: {
-          select: { name: true, email: true }
+          select: { name: true, email: true },
         },
         driver: {
-          select: { name: true, email: true }
-        }
+          select: { name: true, email: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
 
-    const formattedParcels = parcels.map(parcel => ({
+    const formattedParcels = parcels.map((parcel) => ({
       id: parcel.id,
       trackingNumber: parcel.trackingNumber,
       status: parcel.status,
@@ -675,7 +819,7 @@ export class AdminService {
         OR: [
           { senderId: userId },
           { recipientId: userId },
-          { driverId: userId }
+          { driverId: userId },
         ],
         deletedAt: null,
       },
@@ -693,10 +837,7 @@ export class AdminService {
     // Get user's review activities
     const reviews = await this.prisma.review.findMany({
       where: {
-        OR: [
-          { reviewerId: userId },
-          { revieweeId: userId }
-        ],
+        OR: [{ reviewerId: userId }, { revieweeId: userId }],
       },
       select: {
         id: true,
@@ -710,22 +851,26 @@ export class AdminService {
 
     // Combine and format activities
     const activities = [
-      ...parcels.map(parcel => ({
+      ...parcels.map((parcel) => ({
         id: `parcel-${parcel.id}`,
         activityType: 'Parcel',
         description: `Parcel ${parcel.trackingNumber} - ${parcel.status}`,
         status: parcel.status,
         createdAt: parcel.createdAt,
       })),
-      ...reviews.map(review => ({
+      ...reviews.map((review) => ({
         id: `review-${review.id}`,
         activityType: 'Review',
         description: `Rating: ${review.rating}/5 - ${review.comment?.substring(0, 50)}...`,
         status: 'completed',
         createdAt: review.createdAt,
-      }))
-    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 20);
+      })),
+    ]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 20);
 
     return { activities };
   }
@@ -777,6 +922,42 @@ export class AdminService {
       where: { id: userId },
       data: updateData,
     });
+
+    // Send suspension/activation email notifications
+    try {
+      if (action === 'suspend') {
+        await this.mailerService.sendGenericEmail({
+          to: updatedUser.email,
+          subject: 'Account Suspended - SendIT',
+          template: 'suspended',
+          context: {
+            name: updatedUser.name,
+            suspensionDate: new Date().toLocaleDateString(),
+            adminName: 'SendIT Admin Team',
+            reason: managementDto.reason || 'Violation of terms of service',
+          },
+        });
+        this.logger.log(`Suspension email sent to: ${updatedUser.email}`);
+      } else if (action === 'unsuspend') {
+        await this.mailerService.sendGenericEmail({
+          to: updatedUser.email,
+          subject: 'Account Reactivated - SendIT',
+          template: 'welcome',
+          context: {
+            name: updatedUser.name,
+            reactivationDate: new Date().toLocaleDateString(),
+            adminName: 'SendIT Admin Team',
+          },
+        });
+        this.logger.log(`Reactivation email sent to: ${updatedUser.email}`);
+      }
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send ${action} email to ${updatedUser.email}:`,
+        emailError,
+      );
+      // Don't fail the operation if email fails
+    }
 
     return this.mapToUserResponse(updatedUser);
   }
@@ -924,8 +1105,8 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {
-      driverApplicationStatus: { 
-        in: ['PENDING', 'APPROVED', 'REJECTED'] 
+      driverApplicationStatus: {
+        in: ['PENDING', 'APPROVED', 'REJECTED'],
       },
       deletedAt: null,
     };
@@ -977,16 +1158,44 @@ export class AdminService {
   ): Promise<UserResponseDto> {
     const { action, reason } = managementDto;
 
+    this.logger.log(`Managing driver application for user: ${userId}, action: ${action}, reason: ${reason}`);
+
+    // Check if user exists and has a driver application
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        driverApplicationStatus: 'PENDING',
+        // Allow both PENDING and REJECTED applications to be managed
+        driverApplicationStatus: {
+          in: ['PENDING', 'REJECTED']
+        },
         deletedAt: null,
       },
     });
 
+    this.logger.log(`Found user: ${user ? 'Yes' : 'No'}, status: ${user?.driverApplicationStatus}`);
+
     if (!user) {
-      throw new NotFoundException('Driver application not found');
+      this.logger.error(`Driver application not found for user: ${userId}`);
+      
+      // Check if user exists at all
+      const userExists = await this.prisma.user.findFirst({
+        where: { id: userId, deletedAt: null },
+        select: { id: true, driverApplicationStatus: true, role: true }
+      });
+      
+      if (!userExists) {
+        throw new NotFoundException('User not found');
+      }
+      
+      if (!userExists.driverApplicationStatus || userExists.driverApplicationStatus === 'NOT_APPLIED') {
+        throw new BadRequestException('User has not submitted a driver application yet');
+      }
+      
+      if (userExists.driverApplicationStatus === 'APPROVED') {
+        throw new BadRequestException('User is already an approved driver');
+      }
+      
+      throw new NotFoundException('Driver application not found or already processed');
     }
 
     let updateData: Prisma.UserUpdateInput = {
@@ -996,15 +1205,29 @@ export class AdminService {
 
     switch (action) {
       case 'approve':
+        // Only allow approval of PENDING applications
+        if (user.driverApplicationStatus !== 'PENDING') {
+          this.logger.error(`Cannot approve application with status: ${user.driverApplicationStatus}`);
+          throw new BadRequestException('Only pending applications can be approved');
+        }
+        
         updateData = {
           ...updateData,
           role: 'DRIVER',
           driverApplicationStatus: 'APPROVED',
           isAvailable: true,
           isActive: true,
+          // Clear rejection reason when approved
+          driverRejectionReason: null,
         };
         break;
       case 'reject':
+        // Allow rejection of both PENDING and REJECTED applications (for updating rejection reason)
+        if (user.driverApplicationStatus !== 'PENDING' && user.driverApplicationStatus !== 'REJECTED') {
+          this.logger.error(`Cannot reject application with status: ${user.driverApplicationStatus}`);
+          throw new BadRequestException('Only pending or rejected applications can be rejected');
+        }
+        
         updateData = {
           ...updateData,
           driverApplicationStatus: 'REJECTED',
@@ -1012,13 +1235,61 @@ export class AdminService {
         };
         break;
       default:
+        this.logger.error(`Invalid action: ${action}`);
         throw new BadRequestException('Invalid action');
     }
+
+    this.logger.log(`Updating user with data:`, updateData);
 
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: updateData,
     });
+
+    this.logger.log(`User updated successfully. New status: ${updatedUser.driverApplicationStatus}`);
+
+    // Send application approval/rejection email
+    try {
+      if (action === 'approve') {
+        await this.mailerService.sendGenericEmail({
+          to: updatedUser.email,
+          subject: 'Driver Application Approved - SendIT',
+          template: 'application-approved',
+          context: {
+            name: updatedUser.name,
+            approvalDate: new Date().toLocaleDateString(),
+            adminName: 'SendIT Admin Team',
+          },
+        });
+        this.logger.log(
+          `Application approval email sent to: ${updatedUser.email}`,
+        );
+      } else if (action === 'reject') {
+        await this.mailerService.sendGenericEmail({
+          to: updatedUser.email,
+          subject: 'Driver Application Status - SendIT',
+          template: 'application-rejected',
+          context: {
+            name: updatedUser.name,
+            rejectionReason:
+              reason || 'Application did not meet our current requirements',
+            adminName: 'SendIT Admin Team',
+            // Add information about reapplication
+            canReapply: true,
+            reapplyInstructions: 'You can reapply for driver status at any time by updating your application in your profile.',
+          },
+        });
+        this.logger.log(
+          `Application rejection email sent to: ${updatedUser.email}`,
+        );
+      }
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send application ${action} email to ${updatedUser.email}:`,
+        emailError,
+      );
+      // Don't fail the operation if email fails
+    }
 
     return this.mapToUserResponse(updatedUser);
   }
@@ -1185,7 +1456,7 @@ export class AdminService {
         updateData = {
           driver: { connect: { id: newDriverId } },
           assignedAt: new Date(),
-          status: 'assigned',
+          status: 'assigned', // Status remains 'assigned' until driver starts journey
         };
         break;
       }
@@ -1206,6 +1477,19 @@ export class AdminService {
         deliveryProof: true,
       },
     });
+
+    // Create status history entry for reassignment
+    if (action === 'reassign') {
+      await this.prisma.parcelStatusHistory.create({
+        data: {
+          parcelId,
+          status: 'assigned',
+          location: 'Driver reassigned - Pending pickup',
+          updatedBy: newDriverId,
+          notes: `Parcel reassigned to new driver. Status: Pending driver to start journey.`,
+        },
+      });
+    }
 
     return this.mapToParcelResponse(updatedParcel as ParcelWithRelations);
   }
@@ -1253,7 +1537,7 @@ export class AdminService {
       data: {
         driverId,
         assignedAt: new Date(),
-        status: 'assigned',
+        status: 'assigned', // Status remains 'assigned' until driver starts journey
         notes: assignmentNotes,
       },
       include: {
@@ -1262,6 +1546,80 @@ export class AdminService {
         driver: true,
       },
     });
+
+    // Create status history entry for assignment
+    await this.prisma.parcelStatusHistory.create({
+      data: {
+        parcelId,
+        status: 'assigned',
+        location: 'Driver assigned - Pending pickup',
+        updatedBy: driverId,
+        notes: `Parcel assigned to driver ${driver.name}. Status: Pending driver to start journey.${assignmentNotes ? ` Notes: ${assignmentNotes}` : ''}`,
+      },
+    });
+
+    // Send driver assignment email to driver
+    try {
+      await this.mailerService.sendDriverAssignment({
+        to: driver.email,
+        name: driver.name,
+        parcelId: updatedParcel.id,
+        trackingNumber: updatedParcel.trackingNumber,
+        pickupAddress: updatedParcel.pickupAddress,
+        deliveryAddress: updatedParcel.deliveryAddress,
+        estimatedDelivery:
+          updatedParcel.estimatedDeliveryTime?.toISOString() ||
+          'To be determined',
+      });
+      this.logger.log(
+        `Driver assignment email sent to driver: ${driver.email}`,
+      );
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send driver assignment email to driver ${driver.email}:`,
+        emailError,
+      );
+    }
+
+    // Send notification email to sender
+    try {
+      await this.mailerService.sendParcelStatusUpdate({
+        to: updatedParcel.senderEmail,
+        name: updatedParcel.senderName,
+        parcelId: updatedParcel.id,
+        status: 'assigned',
+        trackingNumber: updatedParcel.trackingNumber,
+        estimatedDelivery: updatedParcel.estimatedDeliveryTime?.toISOString(),
+      });
+      this.logger.log(
+        `Assignment notification email sent to sender: ${updatedParcel.senderEmail}`,
+      );
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send assignment notification email to sender ${updatedParcel.senderEmail}:`,
+        emailError,
+      );
+    }
+
+    // Send notification email to recipient
+    try {
+      await this.mailerService.sendParcelStatusUpdate({
+        to: updatedParcel.recipientEmail,
+        name: updatedParcel.recipientName,
+        parcelId: updatedParcel.id,
+        status: 'assigned',
+        trackingNumber: updatedParcel.trackingNumber,
+        estimatedDelivery: updatedParcel.estimatedDeliveryTime?.toISOString(),
+      });
+      this.logger.log(
+        `Assignment notification email sent to recipient: ${updatedParcel.recipientEmail}`,
+      );
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send assignment notification email to recipient ${updatedParcel.recipientEmail}:`,
+        emailError,
+      );
+    }
 
     return this.mapToParcelResponse(updatedParcel);
   }
@@ -1350,6 +1708,7 @@ export class AdminService {
       preferredPaymentMethod: user.preferredPaymentMethod || undefined,
       driverApplicationStatus: user.driverApplicationStatus || undefined,
       driverApplicationDate: user.driverApplicationDate || undefined,
+      driverApplicationReason: user.driverApplicationReason || undefined,
       driverApprovalDate: user.driverApprovalDate || undefined,
       driverRejectionReason: user.driverRejectionReason || undefined,
       deletedAt: user.deletedAt || undefined,

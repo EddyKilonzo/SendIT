@@ -96,3 +96,138 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# SendIT Backend
+
+This is the backend API for the SendIT delivery application.
+
+## Features
+
+- User authentication and authorization
+- Parcel management
+- Driver assignment and tracking
+- Email notifications
+- Real-time updates
+
+## Prerequisites
+
+- Node.js (v18 or higher)
+- PostgreSQL database
+- SMTP email service (Gmail, SendGrid, etc.)
+
+## Installation
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Set up environment variables:
+```bash
+# Create a .env file in the backend directory
+cp .env.example .env
+```
+
+3. Configure your environment variables in `.env`:
+
+## Environment Configuration
+
+### Database Configuration
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/sendit_db"
+```
+
+### SMTP Email Configuration
+For Gmail:
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=your-email@gmail.com
+```
+
+For SendGrid:
+```env
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASSWORD=your-sendgrid-api-key
+SMTP_FROM=your-verified-sender@yourdomain.com
+```
+
+### Important Email Setup Notes:
+
+1. **For Gmail:**
+   - Enable 2-factor authentication
+   - Generate an "App Password" (not your regular password)
+   - Use the app password in SMTP_PASSWORD
+
+2. **For SendGrid:**
+   - Verify your sender email address
+   - Use "apikey" as SMTP_USER
+   - Use your SendGrid API key as SMTP_PASSWORD
+
+3. **For other providers:**
+   - Check their SMTP settings documentation
+   - Ensure the port and security settings match
+
+### Frontend URL
+```env
+FRONTEND_URL=http://localhost:4200
+```
+
+4. Run database migrations:
+```bash
+npx prisma migrate dev
+```
+
+5. Start the development server:
+```bash
+npm run start:dev
+```
+
+## Email Troubleshooting
+
+If emails are not being sent, check the following:
+
+1. **Check SMTP Configuration:**
+   - Verify all SMTP environment variables are set
+   - Check the terminal logs for SMTP configuration status
+   - Ensure credentials are correct
+
+2. **Test Email Sending:**
+   ```bash
+   # Use the test endpoint
+   POST /auth/test-email
+   {
+     "email": "your-email@example.com"
+   }
+   ```
+
+3. **Check Logs:**
+   - Look for detailed SMTP error messages in the terminal
+   - Check for authentication failures
+   - Verify email template rendering
+
+4. **Common Issues:**
+   - Gmail: Use App Password, not regular password
+   - SendGrid: Verify sender email address
+   - Network: Check firewall/network restrictions
+   - Rate limits: Some providers have sending limits
+
+## API Documentation
+
+The API documentation is available at `/api` when the server is running.
+
+## Testing
+
+Run the test suite:
+```bash
+npm run test
+```
+
+Run e2e tests:
+```bash
+npm run test:e2e
+```

@@ -1,5 +1,14 @@
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsNumber, IsBoolean, IsEnum, IsNotEmpty, IsIn, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsIn,
+  MaxLength,
+} from 'class-validator';
 
 export class DashboardStatsDto {
   totalUsers: number;

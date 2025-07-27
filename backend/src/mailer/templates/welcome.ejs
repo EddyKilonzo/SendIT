@@ -13,9 +13,10 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #f6f8fa;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             color: #333;
             line-height: 1.6;
+            min-height: 100vh;
         }
         
         .container {
@@ -62,6 +63,26 @@
             color: #fff;
             font-size: 32px;
             font-weight: bold;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        .user-avatar .initial {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            z-index: 1;
         }
         
         .card-heading {
@@ -181,18 +202,18 @@
             <div style="text-align: center; margin: 0;">
                 <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
             </div>
-            <div class="user-avatar" style="margin: 0 auto;">
+            <div class="user-avatar">
                 <% if (typeof profilePicture !== 'undefined' && profilePicture) { %>
-                    <img src="<%= profilePicture %>" alt="<%= name %>'s profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                    <img src="<%= profilePicture %>" alt="<%= typeof name !== 'undefined' ? name : 'User' %>'s profile">
                 <% } else { %>
-                    <%= name.charAt(0).toUpperCase() %>
+                    <span class="initial"><%= typeof name !== 'undefined' && name ? name.charAt(0).toUpperCase() : 'U' %></span>
                 <% } %>
             </div>
             
             <h2 class="card-heading">Welcome to <span style="color: #DBBB02;">SendIT!</span></h2>
             
             <div class="greeting">
-                Greetings, <strong><%= name %></strong>
+                Greetings, <strong><%= typeof name !== 'undefined' ? name : 'User' %></strong>
             </div>
             
             <div class="content-text">
@@ -210,21 +231,21 @@
             
             
             <div style="text-align: center;">
-                <a href="<%= baseUrl %>/dashboard" class="cta-button">
+                <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/dashboard" class="cta-button">
                     Start Sending
                 </a>
             </div>
             
             <div class="support-link">
-                Need help, Visit our help center</a> or <a href="<%= baseUrl %>/contact">contact our support team</a>.
+                Need help, Visit our help center</a> or <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/contact">contact our support team</a>.
             </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            <a href="<%= baseUrl %>/help">Help Center</a>
+            <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/help">Help Center</a>
             <span class="separator-dot">•</span>
-            <a href="<%= baseUrl %>/contact">Contact us</a>
+            <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/contact">Contact us</a>
         </div>
     </div>
 </body>

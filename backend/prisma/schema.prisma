@@ -30,6 +30,7 @@ model User {
   // Driver application fields
   driverApplicationStatus DriverApplicationStatus? @default(NOT_APPLIED)
   driverApplicationDate   DateTime?
+  driverApplicationReason String?
   driverApprovalDate      DateTime?
   driverApprovedBy        String?
   driverRejectionReason   String?
@@ -71,6 +72,12 @@ model User {
   confirmedDeliveries DeliveryProof[] @relation("DeliveryConfirmations")
 
   @@map("users")
+  @@index([name])
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@index([isActive])
+  @@index([createdAt])
 }
 
 model Parcel {
@@ -115,29 +122,41 @@ model Parcel {
   deliveryFee           Float?
   paymentStatus         PaymentStatus @default(PENDING)
   
-  // Customer delivery confirmation
+  // Delivery confirmation
   deliveredToRecipient  Boolean     @default(false)
-  deliveryConfirmedAt   DateTime?   // When customer marked as received
-  deliveryConfirmedBy   String?     // Recipient ID who confirmed
-  customerSignature     String?     // Customer signature URL
-  customerNotes         String?     // Any notes from customer
+  deliveryConfirmedAt   DateTime?
+  deliveryConfirmedBy   String?
+  customerSignature     String?
+  customerNotes         String?
   
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  deletedAt            DateTime?     // soft delete
+  // Completion tracking
+  completedAt           DateTime?
+  completedBy           String?
+  
+  // Timestamps
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  deletedAt             DateTime?    // soft delete
 
   // Relations
-  sender    User? @relation("SenderParcels", fields: [senderId], references: [id])
-  recipient User? @relation("RecipientParcels", fields: [recipientId], references: [id])
-  driver    User? @relation("DriverParcels", fields: [driverId], references: [id])
-  
-  // New relations
-  statusHistory ParcelStatusHistory[]
-  reviews       Review[]
-  notifications Notification[]
-  deliveryProof DeliveryProof?
+  sender                User?        @relation("SenderParcels", fields: [senderId], references: [id])
+  recipient             User?        @relation("RecipientParcels", fields: [recipientId], references: [id])
+  driver                User?        @relation("DriverParcels", fields: [driverId], references: [id])
+  statusHistory         ParcelStatusHistory[]
+  reviews               Review[]
+  deliveryProof         DeliveryProof?
+  notifications         Notification[]
 
   @@map("parcels")
+  @@index([senderName])
+  @@index([senderEmail])
+  @@index([recipientName])
+  @@index([recipientEmail])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([driverId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Review {
@@ -241,6 +260,7 @@ enum ParcelStatus {
   in_transit
   delivered_to_recipient  // Driver delivered, waiting for customer confirmation
   delivered              // Customer confirmed delivery
+  completed              // Customer marked as complete, can leave review
   cancelled
 }
 
@@ -259,6 +279,7 @@ enum NotificationType {
   PARCEL_IN_TRANSIT
   PARCEL_DELIVERED_TO_RECIPIENT  // Driver delivered, waiting for customer confirmation
   PARCEL_DELIVERED              // Customer confirmed delivery
+  PARCEL_COMPLETED              // Customer marked as complete
   DRIVER_ASSIGNED
   PAYMENT_RECEIVED
   REVIEW_RECEIVED

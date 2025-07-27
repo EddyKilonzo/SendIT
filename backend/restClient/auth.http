@@ -83,3 +83,81 @@ Content-Type: application/json
 ### Logout
 POST {{baseUrl}}/auth/logout
 # Authorization: Bearer {{accessToken}} 
+
+### Password Reset Flow
+
+### Step 1: Request password reset
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "customer@example.com"
+}
+
+### Step 2: Verify reset token (use the token from the email)
+POST {{baseUrl}}/auth/verify-reset-token
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "token": "123456"
+}
+
+### Step 3: Reset password with valid token
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "token": "123456",
+  "newPassword": "newpassword123"
+}
+
+### Test invalid token
+POST {{baseUrl}}/auth/verify-reset-token
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "token": "000000"
+}
+
+### Test expired token (if you have one)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "token": "expired_token_here",
+  "newPassword": "newpassword123"
+}
+
+### Test non-existent email
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "nonexistent@example.com"
+}
+
+### Change password (requires authentication)
+# Note: Replace {{accessToken}} with actual token from login response
+POST {{baseUrl}}/auth/change-password
+# Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword123"
+}
+
+### Test Email Sending (for debugging)
+POST {{baseUrl}}/auth/test-email
+Content-Type: application/json
+
+{
+  "email": "eddymax3715@gmail.com"
+}
+
+### Test Environment Variables (for debugging)
+GET {{baseUrl}}/auth/test-env 
