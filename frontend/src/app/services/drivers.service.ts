@@ -10,24 +10,17 @@ export interface Driver {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  role: string;
-  isAvailable: boolean;
-  vehicleType: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  vehicleNumber: string;
-  licenseNumber: string;
-  rating: number;
-  totalDeliveries: number;
-  completedDeliveries: number;
-  averageRating: number;
-  totalRatings: number;
-  onTimeDeliveryRate: number;
-  averageDeliveryTime: number;
-  lastActiveAt: Date | null;
+  phone?: string;
+  vehicleType?: string;
+  vehicleNumber?: string;
+  licenseNumber?: string;
   currentLat?: number;
   currentLng?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  averageRating?: number;
+  totalRatings?: number;
+  completedDeliveries?: number;
+  onTimeDeliveryRate?: number;
+  lastActiveAt?: Date;
 }
 
 export interface DriversResponse {
@@ -107,7 +100,6 @@ export class DriversService {
     page?: number;
     limit?: number;
     search?: string;
-    isAvailable?: boolean;
     vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
     minimumRating?: number;
     sortBy?: string;
@@ -182,7 +174,6 @@ export class DriversService {
   getAvailableDrivers(): Observable<DriversResponse> {
     console.log('🚗 Getting available drivers...');
     const query = {
-      isAvailable: true,
       limit: 50,
       sortBy: 'averageRating',
       sortOrder: 'desc' as const

@@ -50,18 +50,27 @@ export class MapService {
    * @returns The created Leaflet map instance.
    */
   createMap(containerId: string, center?: MapCoordinates, zoom?: number): L.Map {
-    const mapCenter = center || this.DEFAULT_CENTER;
-    const mapZoom = zoom || this.DEFAULT_ZOOM;
-    
-    const map = L.map(containerId).setView([mapCenter.lat, mapCenter.lng], mapZoom);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      // attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 18,
-      minZoom: 1
-    }).addTo(map);
+    try {
+      const mapCenter = center || this.DEFAULT_CENTER;
+      const mapZoom = zoom || this.DEFAULT_ZOOM;
+      
+      console.log(`🗺️ Creating map in container: ${containerId}`);
+      console.log(`📍 Center: ${mapCenter.lat}, ${mapCenter.lng}, Zoom: ${mapZoom}`);
+      
+      const map = L.map(containerId).setView([mapCenter.lat, mapCenter.lng], mapZoom);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+        minZoom: 1
+      }).addTo(map);
 
-    return map;
+      console.log('✅ Map created successfully');
+      return map;
+    } catch (error) {
+      console.error('❌ Error creating map:', error);
+      throw error;
+    }
   }
   /**
    * Creates a custom marker with a colored icon based on the type.

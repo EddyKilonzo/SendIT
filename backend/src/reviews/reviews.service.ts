@@ -21,7 +21,7 @@ interface ReviewWithRelations {
   parcelId: string;
   reviewerId: string;
   rating: number;
-  comment: string;
+  comment: string | null;
   reviewType: string;
   isPublic: boolean;
   createdAt: Date;
@@ -107,6 +107,7 @@ interface UserWithRelations {
   driverApplicationDate: Date | null;
   driverApprovalDate: Date | null;
   driverRejectionReason: string | null;
+  profilePicture: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -137,7 +138,7 @@ export class ReviewsService {
     const parcel = await this.prisma.parcel.findFirst({
       where: {
         id: parcelId,
-        status: 'delivered',
+        status: { in: ['delivered', 'completed'] },
         deletedAt: null,
       },
       include: {
@@ -480,22 +481,60 @@ export class ReviewsService {
       where: {
         reviewerId: userId,
       },
-      orderBy: { createdAt: 'desc' },
       include: {
         parcel: {
           include: {
-            sender: true,
-            recipient: true,
-            driver: true,
+            driver: { select: { name: true } },
+            sender: { select: { name: true } },
           },
         },
-        reviewer: true,
+        reviewer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profilePicture: true,
+          },
+        },
       },
+      orderBy: { createdAt: 'desc' },
     });
 
-    return reviews.map((review) =>
-      this.mapToReviewResponse(review as ReviewWithRelations),
-    );
+    return reviews.map((review) => this.mapToReviewResponse(review as unknown as ReviewWithRelations));
+  }
+
+  async getReviewStats(): Promise<{
+    totalReviews: number;
+    averageRating: number;
+    ratingDistribution: Array<{ stars: number; count: number; percentage: number }>;
+  }> {
+    const [totalStats, ratingDistribution] = await Promise.all([
+      this.prisma.review.aggregate({
+        _count: { id: true },
+        _avg: { rating: true },
+      }),
+      this.prisma.review.groupBy({
+        by: ['rating'],
+        _count: { id: true },
+      }),
+    ]);
+
+    const totalReviews = totalStats._count?.id || 0;
+    const averageRating = totalStats._avg?.rating || 0;
+
+    // Calculate rating distribution
+    const distribution = [5, 4, 3, 2, 1].map(stars => {
+      const ratingGroup = ratingDistribution.find(r => r.rating === stars);
+      const count = ratingGroup?._count?.id || 0;
+      const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+      return { stars, count, percentage };
+    });
+
+    return {
+      totalReviews,
+      averageRating,
+      ratingDistribution: distribution,
+    };
   }
 
   // Helper method to map review to response DTO
@@ -505,9 +544,15 @@ export class ReviewsService {
       parcelId: review.parcelId,
       reviewerId: review.reviewerId,
       rating: review.rating,
-      comment: review.comment,
+      comment: review.comment || '',
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
+      // Add customer information for frontend display
+      customerName: review.reviewer?.name || review.parcel?.sender?.name || 'Unknown Customer',
+      customerId: review.reviewer?.id || review.parcel?.sender?.id || '',
+      customerProfilePicture: review.reviewer?.profilePicture || review.parcel?.sender?.profilePicture || undefined,
+      driverName: review.parcel?.driver?.name || 'Unknown Driver',
+      driverId: review.parcel?.driver?.id || '',
       reviewer: review.reviewer
         ? this.mapToUserResponse(review.reviewer)
         : undefined,
@@ -532,7 +577,6 @@ export class ReviewsService {
       vehicleType:
         (user.vehicleType as 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK') ||
         undefined,
-      isAvailable: user.isAvailable || undefined,
       currentLat: user.currentLat || undefined,
       currentLng: user.currentLng || undefined,
       averageRating: user.averageRating || undefined,

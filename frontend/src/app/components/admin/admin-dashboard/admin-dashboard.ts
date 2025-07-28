@@ -38,6 +38,7 @@ export class AdminDashboard implements OnInit, OnDestroy {
 
   isLoading = true;
   isLoadingAnalytics = false;
+  isLoadingReviews = false;
 
   dashboardStats: DashboardStats | null = null;
   systemStats: SystemStats | null = null;
@@ -92,6 +93,10 @@ export class AdminDashboard implements OnInit, OnDestroy {
   currentReviewPage: number = 1;
   reviewsPerPage: number = 3;
 
+  // Real reviews data
+  allReviews: Review[] = [];
+  reviewsTotal: number = 0;
+
   menuItems = [
     { label: 'Dashboard', icon: 'fas fa-tachometer-alt', route: '/admin/dashboard' },
     { label: 'Create Delivery', icon: 'fas fa-plus', route: '/admin/create-delivery' },
@@ -120,6 +125,10 @@ export class AdminDashboard implements OnInit, OnDestroy {
 
   switchTab(tab: string) {
     this.activeTab = tab;
+    if (tab === 'analytics') {
+      this.loadAnalyticsData();
+      this.loadReviewsData();
+    }
   }
 
   switchChartPeriod(period: string) {
@@ -163,7 +172,6 @@ export class AdminDashboard implements OnInit, OnDestroy {
     this.currentUser = this.authService.getCurrentUser();
     this.checkMobileView();
     this.loadDashboardData();
-    this.loadAnalyticsData();
     
     // Listen for window resize events
     window.addEventListener('resize', () => {
@@ -262,6 +270,9 @@ export class AdminDashboard implements OnInit, OnDestroy {
         console.log('📊 Analytics API response:', data);
         
         if (data) {
+          console.log('💰 Revenue trends:', data.revenueTrends);
+          console.log('📦 Delivery performance:', data.deliveryPerformance);
+          console.log('⭐ Customer reviews:', data.customerReviews);
           
           // Ensure the data structure matches what the frontend expects
           const processedData = {
@@ -304,8 +315,10 @@ export class AdminDashboard implements OnInit, OnDestroy {
             this.topDrivers = data.deliveryPerformance.performanceByDriver
               .sort((a: Driver, b: Driver) => b.averageRating - a.averageRating)
               .slice(0, 3);
+            console.log('🚚 Top drivers loaded from analytics:', this.topDrivers);
           } else {
             // Load real drivers from API if no analytics driver data
+            console.log('🚚 Loading drivers from separate API...');
             this.loadTopDriversFromAPI();
           }
           
@@ -313,11 +326,115 @@ export class AdminDashboard implements OnInit, OnDestroy {
           this.updateFilteredReviews();
         } else {
           console.log('⚠️ No analytics data received');
-          this.isLoadingAnalytics = false;
+          // Initialize with empty data
+          this.analyticsData = {
+            revenueTrends: {
+              currentMonth: 0,
+              previousMonth: 0,
+              growth: '0%',
+              monthlyData: [],
+              dailyData: []
+            },
+            deliveryPerformance: {
+              totalDeliveries: 0,
+              onTimeDeliveries: 0,
+              lateDeliveries: 0,
+              failedDeliveries: 0,
+              onTimeRate: 0,
+              averageDeliveryTime: 0,
+              performanceByDriver: [],
+              performanceByVehicle: [],
+              deliveryTimeTrends: []
+            },
+            customerReviews: {
+              overallRating: 0,
+              totalReviews: 0,
+              ratingDistribution: [],
+              recentReviews: [],
+              satisfactionTrends: [],
+              feedbackCategories: []
+            }
+          };
         }
         this.isLoadingAnalytics = false;
       }
     });
+  }
+
+  // Load real reviews data from API
+  private loadReviewsData(): void {
+    this.isLoadingReviews = true;
+    console.log('🔍 Loading reviews data...');
+    
+    this.adminService.getReviews({ 
+      page: 1, 
+      limit: 50, 
+      sortBy: 'createdAt', 
+      sortOrder: 'desc' 
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Error loading reviews data:', error);
+        this.isLoadingReviews = false;
+        this.toastService.showError('Failed to load reviews data');
+        return of({ reviews: [], total: 0 });
+      })
+    ).subscribe({
+      next: (response: { reviews: Review[]; total: number }) => {
+        console.log('📝 Reviews API response:', response);
+        console.log('📝 Reviews count:', response.reviews.length);
+        console.log('📝 Total reviews:', response.total);
+        
+        if (response.reviews.length > 0) {
+          console.log('📝 Sample review:', response.reviews[0]);
+        }
+        
+        this.allReviews = response.reviews;
+        this.reviewsTotal = response.total;
+        
+        // Update analytics data with real reviews
+        if (this.allReviews.length > 0) {
+          console.log('📝 Updating analytics with real reviews...');
+          this.updateAnalyticsWithRealReviews();
+        } else {
+          console.log('📝 No reviews found, using analytics data');
+        }
+        
+        // Initialize filtered reviews
+        this.updateFilteredReviews();
+        
+        this.isLoadingReviews = false;
+      }
+    });
+  }
+
+  // Update analytics data with real reviews
+  private updateAnalyticsWithRealReviews(): void {
+    if (this.allReviews.length === 0) return;
+
+    // Calculate overall rating
+    const totalRating = this.allReviews.reduce((sum, review) => sum + review.rating, 0);
+    const overallRating = totalRating / this.allReviews.length;
+
+    // Calculate rating distribution
+    const ratingDistribution = [5, 4, 3, 2, 1].map(stars => {
+      const count = this.allReviews.filter(review => review.rating === stars).length;
+      const percentage = (count / this.allReviews.length) * 100;
+      return { stars, count, percentage };
+    });
+
+    // Get recent reviews (last 10)
+    const recentReviews = this.allReviews.slice(0, 10);
+
+    // Update analytics data
+    this.analyticsData.customerReviews = {
+      ...this.analyticsData.customerReviews,
+      overallRating,
+      totalReviews: this.allReviews.length,
+      ratingDistribution,
+      recentReviews
+    };
+
+    console.log('✅ Updated analytics with real reviews data:', this.analyticsData.customerReviews);
   }
 
   private loadTopDriversFromAPI(): void {
@@ -436,12 +553,26 @@ export class AdminDashboard implements OnInit, OnDestroy {
   }
 
   updateFilteredReviews(): void {
+    // Use real reviews data if available, otherwise use analytics data
+    const reviewsToFilter = this.allReviews.length > 0 ? this.allReviews : this.analyticsData.customerReviews.recentReviews;
+    
+    console.log('🔍 Filtering reviews...');
+    console.log('🔍 All reviews count:', this.allReviews.length);
+    console.log('🔍 Analytics reviews count:', this.analyticsData.customerReviews.recentReviews.length);
+    console.log('🔍 Reviews to filter count:', reviewsToFilter.length);
+    console.log('🔍 Selected rating filter:', this.selectedRatingFilter);
+    
     if (this.selectedRatingFilter === 0) {
-      this.filteredReviews = [...this.analyticsData.customerReviews.recentReviews];
+      this.filteredReviews = [...reviewsToFilter];
     } else {
-      this.filteredReviews = this.analyticsData.customerReviews.recentReviews.filter(
+      this.filteredReviews = reviewsToFilter.filter(
         review => review.rating === this.selectedRatingFilter
       );
+    }
+    
+    console.log('🔍 Filtered reviews count:', this.filteredReviews.length);
+    if (this.filteredReviews.length > 0) {
+      console.log('🔍 Sample filtered review:', this.filteredReviews[0]);
     }
   }
 
@@ -465,11 +596,16 @@ export class AdminDashboard implements OnInit, OnDestroy {
   hasRevenueData(): boolean {
     const currentMonth = this.analyticsData.revenueTrends.currentMonth;
     const previousMonth = this.analyticsData.revenueTrends.previousMonth;
-    return currentMonth > 0 || previousMonth > 0;
+    const hasData = currentMonth > 0 || previousMonth > 0;
+    console.log('💰 Revenue data check - Current month:', currentMonth, 'Previous month:', previousMonth, 'Has data:', hasData);
+    return hasData;
   }
 
   hasReviewsData(): boolean {
-    const totalReviews = this.analyticsData.customerReviews.totalReviews;
-    return totalReviews > 0;
+    // Check both real reviews and analytics reviews
+    const totalReviews = this.allReviews.length > 0 ? this.allReviews.length : this.analyticsData.customerReviews.totalReviews;
+    const hasData = totalReviews > 0;
+    console.log('⭐ Reviews data check - All reviews:', this.allReviews.length, 'Analytics reviews:', this.analyticsData.customerReviews.totalReviews, 'Total:', totalReviews, 'Has data:', hasData);
+    return hasData;
   }
 }

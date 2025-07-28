@@ -10,17 +10,48 @@ import { switchMap, of } from 'rxjs';
 export interface Parcel {
   id: string;
   trackingNumber: string;
-  status: string;
-  pickupAddress: string;
-  deliveryAddress: string;
-  weight: number;
-  price: number;
+  senderId?: string;
   senderName: string;
+  senderEmail: string;
+  senderPhone: string;
+  recipientId?: string;
   recipientName: string;
+  recipientEmail: string;
+  recipientPhone: string;
   driverId?: string;
   assignedAt?: Date;
+  pickupAddress: string;
+  deliveryAddress: string;
+  currentLocation?: string;
+  status: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered_to_recipient' | 'delivered' | 'completed' | 'cancelled';
+  weight: number;
+  description?: string;
+  value?: number;
+  deliveryInstructions?: string;
+  notes?: string;
+  latitude?: number;
+  longitude?: number;
+  estimatedPickupTime?: Date;
+  actualPickupTime?: Date;
+  estimatedDeliveryTime?: Date;
+  actualDeliveryTime?: Date;
+  totalDeliveryTime?: number;
+  deliveryAttempts: number;
+  deliveryFee?: number;
+  paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+  deliveredToRecipient: boolean;
+  deliveryConfirmedAt?: Date;
+  deliveryConfirmedBy?: string;
+  customerSignature?: string;
+  customerNotes?: string;
   createdAt: Date;
   updatedAt: Date;
+  sender?: any;
+  recipient?: any;
+  driver?: any;
+  statusHistory?: any[];
+  reviews?: any[];
+  deliveryProof?: any;
 }
 
 export interface ParcelsResponse {
@@ -256,10 +287,17 @@ export class ParcelsService {
   }
 
   markAsCompleted(id: string, markAsCompletedDto: MarkAsCompletedDto): Observable<Parcel> {
+    const url = this.getApiUrl(`/parcels/${id}/mark-as-completed`);
+    const headers = this.getHeaders();
+    
+    console.log('🌐 Making markAsCompleted API call to:', url);
+    console.log('📦 Request data:', markAsCompletedDto);
+    console.log('🔑 Headers:', headers);
+    
     return this.http.patch<Parcel>(
-      this.getApiUrl(`/parcels/${id}/mark-as-completed`),
+      url,
       markAsCompletedDto,
-      { headers: this.getHeaders() }
+      { headers }
     ).pipe(
       catchError(this.handleError.bind(this))
     );
@@ -276,7 +314,7 @@ export class ParcelsService {
 
   getParcelHistory(id: string): Observable<any[]> {
     return this.http.get<any[]>(
-      this.getApiUrl(`/parcels/${id}/history`),
+      this.getApiUrl(`/parcels/status-history/${id}`),
       { headers: this.getHeaders() }
     ).pipe(
       catchError(error => this.handleError(error))

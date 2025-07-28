@@ -10,7 +10,7 @@
           <i class="fas fa-arrow-left"></i>
           Back to Parcels
         </button>
-        <h1 class="page-title">{{ isReassignment ? 'Reassign Driver' : 'Assign Driver to Parcel' }}</h1>
+        <h1 class="page-title">{{ isReassignment ? 'Reassign Driver' : 'Assign Parcel to Driver' }}</h1>
       </div>
     </div>
 
@@ -79,13 +79,6 @@
           </div>
           
           <div class="filter-group">
-            <label for="availability">Availability</label>
-            <select id="availability" formControlName="availability" class="filter-select">
-              <option *ngFor="let option of availabilityOptions" [value]="option">{{ option }}</option>
-            </select>
-          </div>
-          
-          <div class="filter-group">
             <label for="rating">Ratings</label>
             <select id="rating" formControlName="rating" class="filter-select">
               <option *ngFor="let rating of ratingOptions" [value]="rating">{{ rating }}</option>
@@ -103,7 +96,7 @@
           </div>
           
           <div 
-            *ngFor="let driver of filteredDrivers; let i = index" 
+            *ngFor="let driver of paginatedDrivers; let i = index" 
             class="driver-item"
             [class.selected]="driver.isSelected"
             (click)="selectDriver(driver)"
@@ -126,9 +119,6 @@
                 <span class="driver-rating">{{ (driver.averageRating || 0).toFixed(1) }} ★ ({{ driver.totalRatings || 0 }})</span>
                 <span class="driver-deliveries">{{ driver.completedDeliveries || 0 }} Deliveries</span>
                 <span class="driver-vehicle">{{ driver.vehicleType || 'N/A' }}</span>
-                <span class="driver-status" [class]="getDriverStatusClass(driver)">
-                  {{ getDriverStatusText(driver) }}
-                </span>
               </div>
               <div class="driver-extra-info">
                 <span class="driver-phone">{{ driver.phone || 'N/A' }}</span>
@@ -144,6 +134,43 @@
             <p>No drivers match the selected filters</p>
           </div>
         </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" *ngIf="!isLoading && totalDrivers > 0">
+          <div class="pagination-info">
+            <span>Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ endIndex }} of {{ totalDrivers }} drivers</span>
+          </div>
+          <div class="pagination-controls">
+            <button 
+              class="pagination-btn" 
+              [disabled]="currentPage === 1"
+              (click)="goToPreviousPage()"
+            >
+              <i class="fas fa-chevron-left"></i>
+              Previous
+            </button>
+            
+            <div class="page-numbers">
+              <button 
+                *ngFor="let page of pageNumbers"
+                class="page-number"
+                [class.active]="page === currentPage"
+                (click)="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+            </div>
+            
+            <button 
+              class="pagination-btn" 
+              [disabled]="currentPage === totalPages"
+              (click)="goToNextPage()"
+            >
+              Next
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Map Section -->
@@ -155,6 +182,10 @@
               <button class="btn-secondary" (click)="fitMapToMarkers()">
                 <i class="fas fa-expand-arrows-alt"></i>
                 Fit to Route
+              </button>
+              <button class="btn-secondary" (click)="refreshMap()">
+                <i class="fas fa-redo"></i>
+                Refresh Map
               </button>
             </div>
             <div class="map-legend">
@@ -175,9 +206,17 @@
           <div class="tracking-map">
             <!-- Map will be loaded here dynamically -->
             <div id="assign-driver-map" class="tracking-map-placeholder">
-              <div class="map-loading">
-                <i class="fas fa-map"></i>
+              <div class="map-loading" *ngIf="mapLoading">
+                <i class="fas fa-spinner fa-spin"></i>
                 <p>Loading map...</p>
+              </div>
+              <div class="map-error" *ngIf="mapError">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Failed to load map</p>
+                <button class="btn-retry" (click)="initializeMap()">
+                  <i class="fas fa-redo"></i>
+                  Retry
+                </button>
               </div>
             </div>
           </div>

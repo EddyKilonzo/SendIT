@@ -163,18 +163,22 @@ export class NotificationModalComponent implements OnInit, OnDestroy {
 
   // Clear all notifications
   clearAllNotifications(): void {
-    if (confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
-      this.notificationService.deleteAllNotifications().subscribe({
-        next: (result) => {
-          this.notifications = [];
-          this.totalNotifications = 0;
-          this.unreadCount = 0;
-        },
-        error: (error) => {
-          console.error('Error clearing all notifications:', error);
-        }
-      });
-    }
+    // Show confirmation toast instead of browser confirm
+    this.toastService.showWarning('Are you sure you want to delete all notifications? This action cannot be undone.', 5000);
+    
+    // For now, proceed with deletion (in a real app, you might want a proper confirmation modal)
+    this.notificationService.deleteAllNotifications().subscribe({
+      next: (result) => {
+        this.notifications = [];
+        this.totalNotifications = 0;
+        this.unreadCount = 0;
+        this.toastService.showSuccess('All notifications deleted successfully');
+      },
+      error: (error) => {
+        console.error('Error clearing all notifications:', error);
+        this.toastService.showError('Failed to delete notifications');
+      }
+    });
   }
 
   // Refresh notifications

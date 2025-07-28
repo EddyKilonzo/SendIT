@@ -359,9 +359,13 @@ export class UsersService {
       },
     });
 
-    // Calculate statistics
-    const totalParcelsSent = user.sentParcels.length;
-    const totalParcelsReceived = user.receivedParcels.length;
+    // Calculate statistics using allParcels instead of limited user.sentParcels
+    const totalParcelsSent = allParcels.filter(
+      (parcel) => parcel.senderId === userId,
+    ).length;
+    const totalParcelsReceived = allParcels.filter(
+      (parcel) => parcel.recipientId === userId,
+    ).length;
 
     const parcelsInTransit = allParcels.filter((parcel) =>
       ['assigned', 'picked_up', 'in_transit'].includes(parcel.status),
@@ -489,7 +493,6 @@ export class UsersService {
       licenseNumber: user.licenseNumber || undefined,
       vehicleNumber: user.vehicleNumber || undefined,
       vehicleType: user.vehicleType || undefined,
-      isAvailable: user.isAvailable,
       currentLat: user.currentLat || undefined,
       currentLng: user.currentLng || undefined,
       // Driver application fields

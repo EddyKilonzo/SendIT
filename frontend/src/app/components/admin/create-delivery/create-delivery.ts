@@ -998,12 +998,11 @@ export class CreateDelivery implements OnInit {
   }
 
   private showLocationSelectionDialog(coordinates: MapCoordinates): void {
-    const choice = confirm('Both pickup and destination are set. Click OK to update pickup location, or Cancel to update destination.');
-    if (choice) {
-      this.setPickupFromMap(coordinates);
-    } else {
-      this.setDestinationFromMap(coordinates);
-    }
+    // Show toast notification instead of browser confirm
+    this.toastService.showInfo('Both pickup and destination are set. Updating pickup location...');
+    
+    // For now, default to updating pickup location (in a real app, you might want a proper selection modal)
+    this.setPickupFromMap(coordinates);
   }
 
 

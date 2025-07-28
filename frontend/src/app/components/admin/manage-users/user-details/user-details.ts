@@ -98,64 +98,86 @@ export class UserDetails implements OnInit {
   ) {}
 
   ngOnInit() {
+    console.log('🔄 UserDetails ngOnInit called');
+    
     // Get data passed from navigation state
     const navigation = this.router.getCurrentNavigation();
     if (navigation?.extras.state) {
       const state = navigation.extras.state as any;
+      console.log('📊 Navigation state received:', state);
       this.user = state.userData;
       
       // Load comprehensive real data
       this.route.params.subscribe(params => {
         const userId = params['id'];
+        console.log('🆔 User ID from route params:', userId);
         this.loadComprehensiveUserData(userId);
       });
     } else {
+      console.log('⚠️ No navigation state, loading from API');
       // Fallback: load user data from API
       this.route.params.subscribe(params => {
         const userId = params['id'];
-        this.loadUserDetails(userId);
+        console.log('🆔 User ID from route params (fallback):', userId);
+        this.loadComprehensiveUserData(userId);
       });
     }
   }
 
   private loadComprehensiveUserData(userId: string) {
+    console.log('🔄 loadComprehensiveUserData called for user ID:', userId);
     this.isLoadingStats = true;
     
-    // Load user statistics
-    this.adminService.getUserStats(userId).subscribe({
-      next: (stats) => {
-        this.userStats = stats;
-        console.log('✅ User stats loaded:', stats);
-        
-        // Load role-specific data
-        if (this.user?.role === 'DRIVER') {
-          this.loadDriverComprehensiveData(userId);
-        } else if (this.user?.role === 'CUSTOMER') {
-          this.loadCustomerComprehensiveData(userId);
+    // If user data is not available, load it first
+    if (!this.user) {
+      console.log('👤 User data not available, loading user details first...');
+      this.adminService.getUserById(userId).subscribe({
+        next: (user) => {
+          this.user = user;
+          console.log('✅ User data loaded:', user);
+          this.loadUserStatsAndRoleData(userId);
+        },
+        error: (error) => {
+          console.error('❌ Error loading user data:', error);
+          this.toastService.showError('Failed to load user data');
+          this.isLoadingStats = false;
         }
-        
-        // Load common data
-        this.loadUserParcels(userId);
-        this.loadUserActivity(userId);
-        
-        this.isLoadingStats = false;
-      },
-      error: (error) => {
-        console.error('❌ Error loading user stats:', error);
-        this.isLoadingStats = false;
-        
-        // Still load other data even if stats fail
-        this.loadUserParcels(userId);
-        this.loadUserActivity(userId);
-      }
-    });
+      });
+    } else {
+      this.loadUserStatsAndRoleData(userId);
+    }
+  }
+
+  private loadUserStatsAndRoleData(userId: string) {
+    console.log('🔄 loadUserStatsAndRoleData called for user ID:', userId);
+    
+    // Skip getUserStats since it doesn't exist in backend
+    // Go directly to role-specific data loading
+    if (this.user?.role === 'DRIVER') {
+      console.log('🚚 User is a driver, loading driver data...');
+      this.loadDriverComprehensiveData(userId);
+    } else if (this.user?.role === 'CUSTOMER') {
+      console.log('👤 User is a customer, loading customer data...');
+      this.loadCustomerComprehensiveData(userId);
+    } else {
+      console.log('⚠️ User role not recognized:', this.user?.role);
+      this.isLoadingStats = false;
+    }
+    
+    // Load common data
+    this.loadUserParcels(userId);
+    this.loadUserActivity(userId);
   }
 
   private loadDriverComprehensiveData(driverId: string) {
-    // Load driver parcels and statistics
-    this.adminService.getDriverParcels(driverId).subscribe({
+    console.log('🔄 Loading driver comprehensive data for ID:', driverId);
+    
+    // Load driver parcels and statistics using the new comprehensive endpoint
+    this.adminService.getDriverComprehensiveData(driverId).subscribe({
       next: (driverData) => {
-        console.log('✅ Driver data loaded:', driverData);
+        console.log('✅ Driver comprehensive data loaded:', driverData);
+        console.log('📊 Stats received:', driverData.stats);
+        console.log('📦 Parcels received:', driverData.parcels?.length || 0);
         
         // Update assigned parcels
         this.assignedParcels = driverData.parcels || [];
@@ -164,6 +186,7 @@ export class UserDetails implements OnInit {
         if (driverData.stats) {
           this.driverStats = driverData.stats;
           this.updateDriverPerformanceData(driverData.stats);
+          console.log('📈 Updated driver performance data:', this.driverPerformance);
         }
         
         // Update user object with driver data
@@ -173,39 +196,50 @@ export class UserDetails implements OnInit {
             ...driverData.stats
           };
         }
+        
+        // Set loading to false when data is loaded
+        this.isLoadingStats = false;
       },
       error: (error) => {
-        console.error('❌ Error loading driver data:', error);
+        console.error('❌ Error loading driver comprehensive data:', error);
+        this.toastService.showError('Failed to load driver data');
+        // Set loading to false even on error
+        this.isLoadingStats = false;
       }
     });
   }
 
   private loadCustomerComprehensiveData(customerId: string) {
-    // Calculate customer statistics from parcels
-    this.calculateCustomerStats();
+    console.log('🔄 Loading customer comprehensive data for ID:', customerId);
+    
+    // For customers, stats are calculated after parcels are loaded
+    // So we just set loading to false here
+    this.isLoadingStats = false;
   }
 
   private updateDriverPerformanceData(stats: any) {
-    // Calculate actual delivery time from assigned parcels
-    const actualDeliveryTime = this.calculateAverageDeliveryTime(this.assignedParcels);
-    const timeComparison = this.calculateEstimatedVsActualTime(this.assignedParcels);
+    console.log('🔄 Updating driver performance data with stats:', stats);
+    console.log('📊 Average Rating from stats:', stats.averageRating);
     
+    // Use real statistics from backend instead of calculating
     this.driverPerformance = {
       totalDeliveries: stats.totalDeliveries || 0,
       completedDeliveries: stats.completedDeliveries || 0,
       onTimeDeliveries: stats.onTimeDeliveries || 0,
       averageRating: stats.averageRating || 0,
       totalEarnings: stats.totalEarnings || 0,
-      averageDeliveryTime: actualDeliveryTime,
-      successRate: stats.completedDeliveries && stats.totalDeliveries ? 
-        ((stats.completedDeliveries / stats.totalDeliveries) * 100) : 0,
-      currentAssignments: this.assignedParcels.length,
+      averageDeliveryTime: stats.averageDeliveryTime || 0,
+      successRate: stats.successRate || 0,
+      currentAssignments: stats.currentAssignments || 0,
       monthlyEarnings: stats.monthlyEarnings || 0,
       weeklyDeliveries: stats.weeklyDeliveries || 0,
-      estimatedTime: timeComparison.estimated,
-      actualTime: timeComparison.actual,
-      timeAccuracy: timeComparison.accuracy
+      estimatedTime: stats.estimatedTime || 0,
+      actualTime: stats.actualTime || 0,
+      timeAccuracy: stats.timeAccuracy || 0
     };
+    
+    console.log('✅ Updated driver performance:', this.driverPerformance);
+    console.log('📊 Final average rating:', this.driverPerformance.averageRating);
   }
 
   private calculateCustomerStats() {
@@ -251,11 +285,17 @@ export class UserDetails implements OnInit {
     if (!completedParcels.length) return 0;
     
     const totalDeliveryTime = completedParcels.reduce((sum, parcel) => {
-      const pickupTime = new Date(parcel.actualPickupTime).getTime();
-      const deliveryTime = new Date(parcel.actualDeliveryTime).getTime();
-      const actualTimeMinutes = (deliveryTime - pickupTime) / (1000 * 60); // Convert to minutes
-      
-      return sum + actualTimeMinutes;
+      try {
+        const pickupTime = new Date(parcel.actualPickupTime).getTime();
+        const deliveryTime = new Date(parcel.actualDeliveryTime).getTime();
+        
+        if (isNaN(pickupTime) || isNaN(deliveryTime)) return sum;
+        
+        const actualTimeMinutes = (deliveryTime - pickupTime) / (1000 * 60); // Convert to minutes
+        return sum + actualTimeMinutes;
+      } catch (error) {
+        return sum;
+      }
     }, 0);
     
     return Math.round(totalDeliveryTime / completedParcels.length);
@@ -275,15 +315,23 @@ export class UserDetails implements OnInit {
     let totalActual = 0;
     
     completedParcels.forEach(parcel => {
-      const pickupTime = new Date(parcel.actualPickupTime).getTime();
-      const deliveryTime = new Date(parcel.actualDeliveryTime).getTime();
-      const actualTimeMinutes = (deliveryTime - pickupTime) / (1000 * 60);
-      
-      // Get estimated time from parcel data (in minutes)
-      const estimatedTimeMinutes = parcel.estimatedDeliveryTime || 0;
-      
-      totalEstimated += estimatedTimeMinutes;
-      totalActual += actualTimeMinutes;
+      try {
+        const pickupTime = new Date(parcel.actualPickupTime).getTime();
+        const deliveryTime = new Date(parcel.actualDeliveryTime).getTime();
+        
+        if (isNaN(pickupTime) || isNaN(deliveryTime)) return;
+        
+        const actualTimeMinutes = (deliveryTime - pickupTime) / (1000 * 60);
+        
+        // Get estimated time from parcel data (in minutes)
+        const estimatedTimeMinutes = parcel.estimatedDeliveryTime || 0;
+        
+        totalEstimated += estimatedTimeMinutes;
+        totalActual += actualTimeMinutes;
+      } catch (error) {
+        // Skip this parcel if there's an error with date parsing
+        return;
+      }
     });
     
     const avgEstimated = totalEstimated / completedParcels.length;
@@ -364,6 +412,8 @@ export class UserDetails implements OnInit {
           // Calculate customer stats after parcels are loaded
           if (this.user?.role === 'CUSTOMER') {
             this.calculateCustomerStats();
+            // Set loading stats to false for customers after calculating stats
+            this.isLoadingStats = false;
           }
         }
       });

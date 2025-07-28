@@ -32,6 +32,7 @@ import { createJoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { assignParcelToDriverSchema } from './dto/admin.schemas';
 
 // Define request interface
 interface AuthenticatedRequest extends Request {
@@ -65,32 +66,6 @@ export class AdminController {
     return this.adminService.getAnalyticsData();
   }
 
-  // Temporary debug endpoint (no auth required)
-  @Get('debug/db')
-  @UseGuards() // Remove all guards temporarily
-  async debugDatabase() {
-    return this.adminService.debugDatabase();
-  }
-
-  // Debug endpoint to check database
-  @Get('debug/users')
-  async debugUsers() {
-    const totalUsers = await this.adminService.debugUsers();
-    return { totalUsers };
-  }
-
-  @Get('debug/user/:id/driver-status')
-  async debugUserDriverStatus(@Param('id') userId: string) {
-    const user = await this.adminService.findUserById(userId);
-    return {
-      userId,
-      driverApplicationStatus: user.driverApplicationStatus,
-      role: user.role,
-      driverApplicationDate: user.driverApplicationDate,
-      driverRejectionReason: user.driverRejectionReason
-    };
-  }
-
   // User Management
   @Get('users')
   @UseGuards(JwtAuthGuard)
@@ -121,6 +96,11 @@ export class AdminController {
   @Get('users/:id/activity')
   async getUserActivity(@Param('id') id: string) {
     return this.adminService.getUserActivity(id);
+  }
+
+  @Get('users/:id/driver-data')
+  async getDriverComprehensiveData(@Param('id') id: string) {
+    return this.adminService.getDriverComprehensiveData(id);
   }
 
   @Patch('users/:id/manage')
@@ -166,26 +146,35 @@ export class AdminController {
   ) {
     console.log('🔍 DEBUG - manageDriverApplication called');
     console.log('🔍 DEBUG - URL userId:', userId);
-    console.log('🔍 DEBUG - Raw request body:', JSON.stringify(managementDto, null, 2));
+    console.log(
+      '🔍 DEBUG - Raw request body:',
+      JSON.stringify(managementDto, null, 2),
+    );
     console.log('🔍 DEBUG - Request headers:', req.headers);
     console.log('🔍 DEBUG - User from token:', req.user);
-    
+
     // Manual validation
-    const validationResult = driverApplicationManagementSchema.validate(managementDto, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-    
+    const validationResult = driverApplicationManagementSchema.validate(
+      managementDto,
+      {
+        abortEarly: false,
+        stripUnknown: true,
+      },
+    );
+
     if (validationResult.error) {
-      console.log('🔍 DEBUG - Manual validation failed:', validationResult.error.details);
+      console.log(
+        '🔍 DEBUG - Manual validation failed:',
+        validationResult.error.details,
+      );
       throw new BadRequestException({
         message: 'Validation failed',
-        errors: validationResult.error.details.map(detail => detail.message),
+        errors: validationResult.error.details.map((detail) => detail.message),
       });
     }
-    
+
     console.log('🔍 DEBUG - Manual validation passed:', validationResult.value);
-    
+
     return this.adminService.manageDriverApplication(
       userId,
       validationResult.value,
@@ -214,6 +203,7 @@ export class AdminController {
 
   // Parcel Assignment
   @Post('parcels/assign')
+  @UsePipes(createJoiValidationPipe(assignParcelToDriverSchema))
   async assignParcelToDriver(@Body() assignmentDto: AssignParcelToDriverDto) {
     return this.adminService.assignParcelToDriver(assignmentDto);
   }

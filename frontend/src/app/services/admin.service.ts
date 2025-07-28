@@ -134,44 +134,93 @@ export class AdminService {
 
   // Dashboard Statistics
   getDashboardStats(): Observable<DashboardStats> {
-    return this.http.get<DashboardStats>(`${this.apiUrl}/admin/dashboard/stats`);
+    const headers = this.getAuthHeaders();
+    return this.http.get<DashboardStats>(`${this.apiUrl}/admin/dashboard/stats`, { headers });
   }
 
   getSystemStats(): Observable<SystemStats> {
-    return this.http.get<SystemStats>(`${this.apiUrl}/admin/dashboard/system-stats`);
+    const headers = this.getAuthHeaders();
+    return this.http.get<SystemStats>(`${this.apiUrl}/admin/dashboard/system-stats`, { headers });
   }
 
   // Reviews
   getReviews(query?: any): Observable<{ reviews: Review[]; total: number }> {
-    return this.http.get<{ reviews: Review[]; total: number }>(`${this.apiUrl}/reviews`, { params: query });
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ reviews: Review[]; total: number }>(`${this.apiUrl}/reviews`, { 
+      params: query,
+      headers 
+    });
+  }
+
+  // Get reviews with pagination and filtering
+  getReviewsWithFilters(page: number = 1, limit: number = 10, filters?: any): Observable<{ reviews: Review[]; total: number }> {
+    const params = { 
+      page: page.toString(), 
+      limit: limit.toString(),
+      ...filters 
+    };
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ reviews: Review[]; total: number }>(`${this.apiUrl}/reviews`, { 
+      params,
+      headers 
+    });
+  }
+
+  // Get review statistics
+  getReviewStats(): Observable<{
+    totalReviews: number;
+    averageRating: number;
+    ratingDistribution: Array<{ stars: number; count: number; percentage: number }>;
+  }> {
+    const headers = this.getAuthHeaders();
+    return this.http.get<{
+      totalReviews: number;
+      averageRating: number;
+      ratingDistribution: Array<{ stars: number; count: number; percentage: number }>;
+    }>(`${this.apiUrl}/reviews/stats`, { headers });
   }
 
   // Drivers
   getDrivers(query?: any): Observable<{ drivers: Driver[]; total: number }> {
-    return this.http.get<{ drivers: Driver[]; total: number }>(`${this.apiUrl}/admin/drivers`, { params: query });
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ drivers: Driver[]; total: number }>(`${this.apiUrl}/admin/drivers`, { 
+      params: query,
+      headers 
+    });
   }
 
   // Parcels
   getParcels(query?: any): Observable<{ parcels: any[]; total: number }> {
-    return this.http.get<{ parcels: any[]; total: number }>(`${this.apiUrl}/admin/parcels`, { params: query });
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ parcels: any[]; total: number }>(`${this.apiUrl}/admin/parcels`, { 
+      params: query,
+      headers 
+    });
   }
 
   // Users
   getUsers(page: number = 1, limit: number = 10, query?: any): Observable<{ users: any[]; total: number }> {
     const params = { page: page.toString(), limit: limit.toString(), ...query };
-    return this.http.get<{ users: any[]; total: number }>(`${this.apiUrl}/admin/users`, { params });
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ users: any[]; total: number }>(`${this.apiUrl}/admin/users`, { 
+      params,
+      headers 
+    });
   }
 
   getUserById(userId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}`);
+    const headers = this.getAuthHeaders();
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}`, { headers });
   }
 
   getUserParcels(userId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}/parcels`);
+    const headers = this.getAuthHeaders();
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}/parcels`, { headers });
   }
 
   getUserActivity(userId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}/activity`);
+    const headers = this.getAuthHeaders();
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}/activity`, { headers });
   }
 
   updateUserStatus(userId: string, status: string): Observable<any> {
@@ -192,51 +241,65 @@ export class AdminService {
         action = 'activate';
     }
     
+    const headers = this.getAuthHeaders();
     // Send request body with action and userId (to satisfy validation)
     return this.http.patch(`${this.apiUrl}/admin/users/${userId}/manage`, { 
       action,
       userId 
-    });
+    }, { headers });
   }
 
   // Driver Applications
   getDriverApplications(page: number = 1, limit: number = 10, query?: any): Observable<{ applications: any[]; total: number }> {
     const params = { page: page.toString(), limit: limit.toString(), ...query };
-    return this.http.get<{ applications: any[]; total: number }>(`${this.apiUrl}/admin/driver-applications`, { params });
-  }
-
-  approveDriverApplication(userId: string): Observable<any> {
-    return this.http.patch(`${this.apiUrl}/admin/driver-applications/${userId}/manage`, {
-      userId: userId,
-      action: 'approve'
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ applications: any[]; total: number }>(`${this.apiUrl}/admin/driver-applications`, { 
+      params,
+      headers 
     });
   }
 
+  approveDriverApplication(userId: string): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.patch(`${this.apiUrl}/admin/driver-applications/${userId}/manage`, {
+      userId: userId,
+      action: 'approve'
+    }, { headers });
+  }
+
   rejectDriverApplication(userId: string, reason: string): Observable<any> {
+    const headers = this.getAuthHeaders();
     return this.http.patch(`${this.apiUrl}/admin/driver-applications/${userId}/manage`, {
       userId: userId,
       action: 'reject',
       reason
-    });
+    }, { headers });
   }
 
   // Get driver statistics and assigned parcels
   getDriverStats(driverId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/admin/drivers/${driverId}/stats`);
+    const headers = this.getAuthHeaders();
+    return this.http.get<any>(`${this.apiUrl}/admin/drivers/${driverId}/stats`, { headers });
   }
 
   getDriverParcels(driverId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/admin/drivers/${driverId}/parcels`);
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${driverId}/parcels`, {
+      headers: this.getAuthHeaders(),
+    });
   }
 
-  // Get user statistics and activity
-  getUserStats(userId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/admin/users/${userId}/stats`);
+  getDriverComprehensiveData(driverId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/admin/users/${driverId}/driver-data`, {
+      headers: this.getAuthHeaders(),
+    });
   }
+
+
 
   // Analytics Data
   getAnalyticsData(): Observable<AnalyticsData> {
-    return this.http.get<AnalyticsData>(`${this.apiUrl}/admin/analytics`);
+    const headers = this.getAuthHeaders();
+    return this.http.get<AnalyticsData>(`${this.apiUrl}/admin/analytics`, { headers });
   }
 
   // Helper method to calculate revenue growth
@@ -283,5 +346,11 @@ export class AdminService {
       monthlyData,
       dailyData
     };
+  }
+
+  // Helper method to get authentication headers
+  private getAuthHeaders(): { [key: string]: string } {
+    const token = localStorage.getItem('token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
   }
 } 

@@ -126,24 +126,41 @@
               <th>Pickup Address</th>
               <th>Delivery Address</th>
               <th>Created Date</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr 
               *ngFor="let parcel of getFilteredParcels()"
               class="parcel-row"
-              (click)="viewParcelDetails(parcel.id)"
             >
-              <td class="parcel-id">{{ parcel.trackingNumber }}</td>
-              <td class="parcel-weight">{{ parcel.weight }}kg</td>
-              <td>
+              <td class="parcel-id" (click)="viewParcelDetails(parcel.id)">{{ parcel.trackingNumber }}</td>
+              <td class="parcel-weight" (click)="viewParcelDetails(parcel.id)">{{ parcel.weight }}kg</td>
+              <td (click)="viewParcelDetails(parcel.id)">
                 <span class="status-badge" [ngClass]="getStatusClass(parcel.status)">
                   {{ getStatusDisplayName(parcel.status) }}
                 </span>
               </td>
-              <td class="address">{{ parcel.pickupAddress }}</td>
-              <td class="address">{{ parcel.deliveryAddress }}</td>
-              <td class="delivery-date">{{ parcel.createdAt | date:'shortDate' }}</td>
+              <td class="address" (click)="viewParcelDetails(parcel.id)">{{ parcel.pickupAddress }}</td>
+              <td class="address" (click)="viewParcelDetails(parcel.id)">{{ parcel.deliveryAddress }}</td>
+              <td class="delivery-date" (click)="viewParcelDetails(parcel.id)">{{ parcel.createdAt | date:'shortDate' }}</td>
+              <td class="actions">
+                <button 
+                  class="action-btn view-btn" 
+                  (click)="viewParcelDetails(parcel.id)"
+                  title="View Details"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button 
+                  *ngIf="canMarkAsComplete(parcel.status)"
+                  class="action-btn complete-btn" 
+                  (click)="markAsComplete(parcel)"
+                  title="Mark as Complete"
+                >
+                  <i class="fas fa-check-double"></i>
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>

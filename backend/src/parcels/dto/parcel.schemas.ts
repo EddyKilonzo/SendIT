@@ -71,11 +71,20 @@ export const createParcelSchema = Joi.object({
 
 export const updateParcelStatusSchema = Joi.object({
   status: Joi.string()
-    .valid('pending', 'picked_up', 'in_transit', 'delivered', 'cancelled')
+    .valid(
+      'pending',
+      'assigned',
+      'picked_up',
+      'in_transit',
+      'delivered_to_recipient',
+      'delivered',
+      'completed',
+      'cancelled',
+    )
     .required()
     .messages({
       'any.only':
-        'Status must be pending, picked_up, in_transit, delivered, or cancelled',
+        'Status must be pending, assigned, picked_up, in_transit, delivered_to_recipient, delivered, completed, or cancelled',
       'any.required': 'Status is required',
     }),
   notes: Joi.string().max(300).optional().messages({
@@ -102,11 +111,20 @@ export const parcelsQuerySchema = Joi.object({
       'number.max': 'Limit cannot exceed 100',
     }),
   status: Joi.string()
-    .valid('pending', 'picked_up', 'in_transit', 'delivered', 'cancelled')
+    .valid(
+      'pending',
+      'assigned',
+      'picked_up',
+      'in_transit',
+      'delivered_to_recipient',
+      'delivered',
+      'completed',
+      'cancelled',
+    )
     .optional()
     .messages({
       'any.only':
-        'Status must be pending, picked_up, in_transit, delivered, or cancelled',
+        'Status must be pending, assigned, picked_up, in_transit, delivered_to_recipient, delivered, completed, or cancelled',
     }),
   search: Joi.string().max(100).optional().messages({
     'string.max': 'Search term cannot exceed 100 characters',

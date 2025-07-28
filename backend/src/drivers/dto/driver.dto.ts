@@ -1,9 +1,4 @@
 // Driver-specific DTOs
-export interface DriverAvailabilityDto {
-  isAvailable: boolean;
-  reason?: string;
-}
-
 export interface DriverLocationUpdateDto {
   latitude: number;
   longitude: number;
@@ -31,7 +26,6 @@ export interface DriverResponseDto {
   licenseNumber?: string;
   vehicleNumber?: string;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  isAvailable?: boolean;
   currentLat?: number;
   currentLng?: number;
 
@@ -144,7 +138,6 @@ export interface DriverAssignmentResponseDto {
 export interface DriversQueryDto {
   page?: number;
   limit?: number;
-  isAvailable?: boolean;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
   location?: {
     latitude: number;

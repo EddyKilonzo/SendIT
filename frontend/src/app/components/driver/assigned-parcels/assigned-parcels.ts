@@ -11,7 +11,7 @@ interface AssignedParcel {
   trackingNumber: string;
   pickupAddress: string;
   deliveryAddress: string;
-  status: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered_to_recipient' | 'delivered' | 'completed' | 'cancelled';
   scheduledTime?: string;
   customerName?: string;
   customerPhone?: string;
@@ -98,19 +98,44 @@ export class AssignedParcels implements OnInit {
       customerPhone: parcel.recipientPhone,
       weight: parcel.weight,
       specialInstructions: parcel.deliveryInstructions,
-      assignedDate: new Date(parcel.assignedAt || parcel.createdAt).toLocaleDateString(),
+      assignedDate: this.formatDate(parcel.assignedAt || parcel.createdAt),
       createdAt: parcel.createdAt,
       updatedAt: parcel.updatedAt
     }));
   }
 
   formatTime(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      
+      return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch (error) {
+      return 'N/A';
+    }
+  }
+
+  formatDate(dateString: string | Date | null | undefined): string {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      if (isNaN(date.getTime())) return 'N/A';
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'N/A';
+    }
   }
 
   get filteredParcels(): AssignedParcel[] {
@@ -174,8 +199,12 @@ export class AssignedParcels implements OnInit {
         return 'status-picked-up';
       case 'in_transit':
         return 'status-in-transit';
+      case 'delivered_to_recipient':
+        return 'status-delivered';
       case 'delivered':
         return 'status-delivered';
+      case 'completed':
+        return 'status-completed';
       case 'cancelled':
         return 'status-cancelled';
       default:
@@ -193,8 +222,12 @@ export class AssignedParcels implements OnInit {
         return 'Picked Up';
       case 'in_transit':
         return 'In Transit';
+      case 'delivered_to_recipient':
+        return 'Delivered to Recipient';
       case 'delivered':
         return 'Delivered';
+      case 'completed':
+        return 'Completed';
       case 'cancelled':
         return 'Cancelled';
       default:

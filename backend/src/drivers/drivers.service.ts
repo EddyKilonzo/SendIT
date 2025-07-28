@@ -8,7 +8,6 @@ import { PrismaService } from '../database/prisma.service';
 import { Prisma } from '@prisma/client';
 import {
   UpdateLocationDto,
-  UpdateAvailabilityDto,
   DriverApplicationDto,
   DriverApplicationResponseDto,
   UserResponseDto,
@@ -51,7 +50,6 @@ export class DriversService {
     page?: number;
     limit?: number;
     search?: string;
-    isAvailable?: boolean;
     vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
     driverApplicationStatus?:
       | 'NOT_APPLIED'
@@ -71,7 +69,6 @@ export class DriversService {
       page = 1,
       limit = 10,
       search,
-      isAvailable,
       vehicleType,
       driverApplicationStatus,
       sortBy = 'createdAt',
@@ -83,14 +80,6 @@ export class DriversService {
     const pageNum = typeof page === 'string' ? parseInt(page, 10) : page;
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit;
     const skip = (pageNum - 1) * limitNum;
-
-    // Convert isAvailable string to boolean
-    const isAvailableBool =
-      isAvailable !== undefined
-        ? typeof isAvailable === 'string'
-          ? isAvailable === 'true'
-          : isAvailable
-        : undefined;
 
     // Build where clause with proper typing
     const where: Prisma.UserWhereInput = {
@@ -106,10 +95,6 @@ export class DriversService {
         { licenseNumber: { contains: search, mode: 'insensitive' } },
         { vehicleNumber: { contains: search, mode: 'insensitive' } },
       ];
-    }
-
-    if (isAvailableBool !== undefined) {
-      where.isAvailable = isAvailableBool;
     }
 
     if (vehicleType) {
@@ -196,7 +181,7 @@ export class DriversService {
     id: string,
     updateLocationDto: UpdateLocationDto,
   ): Promise<UserResponseDto> {
-    const { currentLat, currentLng, address } = updateLocationDto;
+    const { currentLat, currentLng } = updateLocationDto;
 
     // Check if driver exists
     const driver = await this.prisma.user.findFirst({
@@ -216,37 +201,6 @@ export class DriversService {
       data: {
         currentLat,
         currentLng,
-        address,
-        lastActiveAt: new Date(),
-      },
-    });
-
-    return this.mapToDriverResponse(updatedDriver);
-  }
-
-  async updateAvailability(
-    id: string,
-    updateAvailabilityDto: UpdateAvailabilityDto,
-  ): Promise<UserResponseDto> {
-    const { isAvailable } = updateAvailabilityDto;
-
-    // Check if driver exists
-    const driver = await this.prisma.user.findFirst({
-      where: {
-        id,
-        role: 'DRIVER',
-        deletedAt: null,
-      },
-    });
-
-    if (!driver) {
-      throw new NotFoundException('Driver not found');
-    }
-
-    const updatedDriver = await this.prisma.user.update({
-      where: { id },
-      data: {
-        isAvailable,
         lastActiveAt: new Date(),
       },
     });
@@ -570,7 +524,6 @@ export class DriversService {
       licenseNumber: driver.licenseNumber ?? undefined,
       vehicleNumber: driver.vehicleNumber ?? undefined,
       vehicleType: driver.vehicleType ?? undefined,
-      isAvailable: driver.isAvailable,
       currentLat: driver.currentLat ?? undefined,
       currentLng: driver.currentLng ?? undefined,
       averageRating: driver.averageRating ?? undefined,

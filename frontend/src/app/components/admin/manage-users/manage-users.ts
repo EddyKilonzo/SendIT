@@ -151,17 +151,10 @@ export class ManageUsers implements OnInit {
     console.log('User role:', currentUser?.role);
     console.log('Component userRole:', this.userRole);
     
-    // Show alert with auth info
-    const authInfo = `
-Authentication Debug Info:
-- Is Authenticated: ${isAuthenticated}
-- User Role: ${currentUser?.role || 'None'}
-- Component Role: ${this.userRole}
-- Token: ${token ? 'Present' : 'Missing'}
-- User Email: ${currentUser?.email || 'None'}
-    `;
+    // Show toast with auth info
+    const authInfo = `Authentication Debug Info: Is Authenticated: ${isAuthenticated}, User Role: ${currentUser?.role || 'None'}, Component Role: ${this.userRole}, Token: ${token ? 'Present' : 'Missing'}, User Email: ${currentUser?.email || 'None'}`;
     
-    alert(authInfo);
+    this.toastService.showInfo(authInfo);
   }
 
   loadUsers() {
@@ -309,57 +302,47 @@ Authentication Debug Info:
   }
 
   private loadUserDetails(userId: string, user: User) {
-    // Load user statistics and activity
-    this.adminService.getUserStats(userId).subscribe({
-      next: (stats) => {
-        console.log('✅ User stats loaded:', stats);
-        
-        // If user is a driver, also load driver-specific data
-        if (user.role === 'DRIVER') {
-          this.loadDriverDetails(userId, user, stats);
-        } else {
-          // Navigate with user data and stats
-          this.router.navigate(['/admin', 'user-details', userId], {
-            state: { 
-              userData: user,
-              userStats: stats
-            }
-          });
+    console.log('🔄 loadUserDetails called for user:', user);
+    
+    // Skip getUserStats since it doesn't exist in backend
+    // If user is a driver, load driver-specific data
+    if (user.role === 'DRIVER') {
+      this.loadDriverDetails(userId, user, null);
+    } else {
+      // Navigate with user data
+      this.router.navigate(['/admin', 'user-details', userId], {
+        state: { 
+          userData: user
         }
-      },
-      error: (error) => {
-        console.error('❌ Error loading user stats:', error);
-        // Navigate with just user data if stats fail to load
-        this.router.navigate(['/admin', 'user-details', userId], {
-          state: { userData: user }
-        });
-      }
-    });
+      });
+    }
   }
 
   private loadDriverDetails(driverId: string, driver: User, userStats: any) {
-    // Load driver parcels and statistics
-    this.adminService.getDriverParcels(driverId).subscribe({
+    console.log('🔄 loadDriverDetails called for driver:', driver);
+    
+    // Load driver parcels and statistics using the comprehensive endpoint
+    this.adminService.getDriverComprehensiveData(driverId).subscribe({
       next: (driverData) => {
-        console.log('✅ Driver data loaded:', driverData);
+        console.log('✅ Driver comprehensive data loaded:', driverData);
         
         // Navigate with complete driver data
         this.router.navigate(['/admin', 'user-details', driverId], {
           state: { 
             userData: driver,
-            userStats: userStats,
+            userStats: userStats || {},
             driverParcels: driverData.parcels || [],
             driverStats: driverData.stats || {}
           }
         });
       },
       error: (error) => {
-        console.error('❌ Error loading driver data:', error);
-        // Navigate with user data and stats if driver data fails
+        console.error('❌ Error loading driver comprehensive data:', error);
+        // Navigate with user data if driver data fails
         this.router.navigate(['/admin', 'user-details', driverId], {
           state: { 
             userData: driver,
-            userStats: userStats
+            userStats: userStats || {}
           }
         });
       }

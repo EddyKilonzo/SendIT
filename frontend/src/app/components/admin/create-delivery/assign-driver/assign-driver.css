@@ -114,6 +114,7 @@
   min-height: 100vh;
   padding: 0;
   overflow-y: auto;
+  margin-left: 80px; 
 }
 
 .assign-driver-header {
@@ -467,8 +468,115 @@
 .no-drivers {
   text-align: center;
   padding: 40px 20px;
-  color: #6b7280;
+  color: #6c757d;
   font-style: italic;
+}
+
+/* Pagination Styles */
+.pagination-container {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination-btn {
+  background-color: white;
+  color: #DBBB02;
+  border: 1px solid #DBBB02;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #DBBB02;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(219, 187, 2, 0.3);
+}
+
+.pagination-btn:disabled {
+  background-color: #f8f9fa;
+  color: #adb5bd;
+  border-color: #dee2e6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 5px;
+}
+
+.page-number {
+  background-color: white;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  min-width: 40px;
+  text-align: center;
+}
+
+.page-number:hover:not(.active) {
+  background-color: #f8f9fa;
+  border-color: #DBBB02;
+  color: #DBBB02;
+}
+
+.page-number.active {
+  background-color: #DBBB02;
+  color: white;
+  border-color: #DBBB02;
+  font-weight: 500;
+}
+
+/* Responsive pagination */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .pagination-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .page-numbers {
+    order: 2;
+  }
+  
+  .pagination-btn {
+    order: 1;
+  }
 }
 
 /* Map Section */
@@ -570,6 +678,92 @@
   background: #f8f9fa;
 }
 
+/* Ensure Leaflet map container has proper dimensions */
+#assign-driver-map {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 400px;
+}
+
+/* Leaflet map styles */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 400px;
+}
+
+.leaflet-map-pane {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tracking-map-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.map-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #6b7280;
+}
+
+.map-loading i {
+  font-size: 2rem;
+  color: #DBBB02;
+}
+
+.map-loading p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.map-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #dc3545;
+}
+
+.map-error i {
+  font-size: 2rem;
+  color: #dc3545;
+}
+
+.map-error p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.btn-retry {
+  background: #DBBB02;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-retry:hover {
+  background: #c4a902;
+  transform: translateY(-1px);
+}
+
 .tracking-map-image {
   width: 100%;
   height: 100%;
@@ -638,12 +832,16 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .assign-driver {
-    grid-template-columns: 180px 1fr;
+    grid-template-columns: 1fr;
   }
   
   .assign-driver-content {
     grid-template-columns: 1fr;
-    max-width: 100%;
+    gap: 20px;
+  }
+  
+  .main-content {
+    margin-left: 0; /* Remove margin on smaller screens */
   }
 }
 
@@ -654,10 +852,16 @@
   }
   
   .sidebar {
-    position: relative;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid #e9ecef;
+    position: fixed;
+    left: -200px;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    transition: left 0.3s ease;
+  }
+  
+  .sidebar.show {
+    left: 0;
   }
   
   .sidebar-nav {
@@ -665,60 +869,55 @@
   }
   
   .nav-menu {
-    display: flex;
-    overflow-x: auto;
-    padding: 0 20px;
+    gap: 5px;
   }
   
   .nav-item {
-    margin-bottom: 0;
-    margin-right: 20px;
-    white-space: nowrap;
+    margin-bottom: 2px;
   }
   
   .nav-link {
-    border-radius: 25px;
-    margin-right: 0;
+    padding: 8px 15px;
+    font-size: 14px;
   }
   
   .assign-driver-header {
     padding: 15px 20px;
+    margin-bottom: 15px;
   }
   
   .assign-driver-content {
     padding: 0 20px 20px 20px;
-    grid-template-columns: 1fr;
-    gap: 20px;
-    max-width: 100%;
+    gap: 15px;
   }
   
   .filter-options {
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
-
+  
   .map-legend {
-    flex-direction: column;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
-
+  
   .map-header {
     flex-direction: column;
-    align-items: stretch;
+    gap: 10px;
   }
-
+  
   .map-controls {
-    justify-content: center;
+    width: 100%;
   }
-
+  
   .legend-item {
-    font-size: 0.85rem;
+    font-size: 12px;
   }
   
   .driver-details,
   .driver-extra-info {
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
   }
   
   .tracking-map {
@@ -726,12 +925,13 @@
   }
   
   .assign-actions {
-    justify-content: center;
+    padding: 15px 20px;
   }
   
   .assign-btn {
     width: 100%;
-    max-width: 300px;
+    padding: 15px;
+    font-size: 16px;
   }
   
   .page-title {
@@ -739,9 +939,9 @@
   }
   
   .back-btn {
-    padding: 10px 16px;
+    margin-left: 0;
+    padding: 10px 15px;
     font-size: 13px;
-    gap: 6px;
   }
   
   .back-btn i {
@@ -751,30 +951,98 @@
   .header-content {
     flex-direction: column;
     gap: 15px;
-    align-items: flex-start;
+    align-items: stretch;
   }
 }
 
 /* Extra small devices */
 @media (max-width: 480px) {
   .back-btn {
-    padding: 8px 12px;
-    font-size: 12px;
-    gap: 4px;
     width: 100%;
     justify-content: center;
+    padding: 12px 15px;
+    font-size: 14px;
   }
   
   .back-btn i {
-    font-size: 10px;
+    font-size: 12px;
   }
   
   .page-title {
     font-size: 20px;
-    text-align: left;
+    text-align: center;
   }
   
   .assign-driver-header {
     padding: 10px 15px;
+    margin-bottom: 10px;
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .assign-driver-content {
+    padding: 0 15px 15px 15px;
+    gap: 10px;
+  }
+  
+  .parcel-details-section,
+  .drivers-section,
+  .map-section {
+    padding: 15px;
+  }
+  
+  .section-title {
+    font-size: 1.2rem;
+  }
+  
+  .filter-options {
+    gap: 8px;
+  }
+  
+  .filter-select {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .driver-item {
+    padding: 12px;
+  }
+  
+  .driver-name {
+    font-size: 14px;
+  }
+  
+  .driver-details {
+    font-size: 12px;
+  }
+  
+  .pagination-container {
+    padding: 15px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .pagination-info {
+    font-size: 12px;
+    text-align: center;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .pagination-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .page-number {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-width: 35px;
   }
 } 

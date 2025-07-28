@@ -31,12 +31,6 @@ export const updateLocationSchema = Joi.object({
   }),
 });
 
-export const updateAvailabilitySchema = Joi.object({
-  isAvailable: Joi.boolean().required().messages({
-    'any.required': 'Availability status is required',
-  }),
-});
-
 export const assignParcelSchema = Joi.object({
   driverId: Joi.string().required().messages({
     'any.required': 'Driver ID is required',

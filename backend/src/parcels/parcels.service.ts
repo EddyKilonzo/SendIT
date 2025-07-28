@@ -18,6 +18,7 @@ import {
 import { UserResponseDto } from '../users/dto';
 import { MailerService } from '../mailer/mailer.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { DELIVERY_FEE_CONFIG } from '../common/constants';
 
 @Injectable()
 export class ParcelsService {
@@ -52,6 +53,9 @@ export class ParcelsService {
     // Generate unique tracking number
     const trackingNumber = await this.generateTrackingNumber();
 
+    // Calculate delivery fee based on weight and distance
+    const deliveryFee = this.calculateDeliveryFee(weight, pickupAddress, deliveryAddress);
+
     // Create parcel
     const parcel = await this.prisma.parcel.create({
       data: {
@@ -69,6 +73,7 @@ export class ParcelsService {
         description,
         value,
         deliveryInstructions,
+        deliveryFee,
         status: 'pending',
       },
       include: {
@@ -614,7 +619,7 @@ export class ParcelsService {
       where: {
         id,
         recipientId: userId,
-        status: 'delivered',
+        status: 'delivered_to_recipient',
         deletedAt: null,
       },
     });
@@ -710,15 +715,23 @@ export class ParcelsService {
     userId: string,
     type: 'sent' | 'received' = 'sent',
   ): Promise<ParcelResponseDto[]> {
+    console.log(
+      `🔍 Service - getUserParcels(userId: ${userId}, type: ${type})`,
+    );
+
     const where: Prisma.ParcelWhereInput = {
       deletedAt: null,
     };
 
     if (type === 'sent') {
       where.senderId = userId;
+      console.log(`📋 Sent query - where.senderId = ${userId}`);
     } else {
       where.recipientId = userId;
+      console.log(`📋 Received query - where.recipientId = ${userId}`);
     }
+
+    console.log(`📋 Final where clause:`, JSON.stringify(where, null, 2));
 
     const parcels = await this.prisma.parcel.findMany({
       where,
@@ -734,7 +747,18 @@ export class ParcelsService {
       },
     });
 
-    return parcels.map((parcel) => this.mapToParcelResponse(parcel));
+    console.log(`📦 Database query result: ${parcels.length} parcels`);
+    parcels.forEach((p, i) => {
+      console.log(
+        `  Parcel ${i + 1}: ${p.trackingNumber} (${p.senderName} → ${p.recipientName})`,
+      );
+      console.log(`    senderId: ${p.senderId}, recipientId: ${p.recipientId}`);
+    });
+
+    const result = parcels.map((parcel) => this.mapToParcelResponse(parcel));
+    console.log(`✅ Returning ${result.length} parcels for ${type} query`);
+
+    return result;
   }
 
   // Get driver's assigned parcels
@@ -768,7 +792,7 @@ export class ParcelsService {
     return parcels.map((parcel) => this.mapToParcelResponse(parcel));
   }
 
-  // Link anonymous parcels to newly registered user
+  // Link anonymous parcels to user (enhanced version)
   async linkAnonymousParcelsToUser(
     userId: string,
     userEmail: string,
@@ -826,7 +850,183 @@ export class ParcelsService {
         `Failed to link anonymous parcels for user ${userId}:`,
         error,
       );
-      throw new Error('Failed to link previous parcels to your account.');
+      return {
+        linkedParcels: 0,
+        message: 'Failed to link previous parcels to your account.',
+      };
+    }
+  }
+
+  // Enhanced method to link parcels to both sender and recipient
+  async linkParcelToUsers(
+    parcelId: string,
+    senderId?: string,
+    recipientId?: string,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    updatedParcel?: any;
+  }> {
+    try {
+      // Get the parcel first
+      const parcel = await this.prisma.parcel.findUnique({
+        where: { id: parcelId },
+      });
+
+      if (!parcel) {
+        return {
+          success: false,
+          message: 'Parcel not found.',
+        };
+      }
+
+      // Prepare update data
+      const updateData: any = {};
+
+      if (senderId) {
+        updateData.senderId = senderId;
+      }
+
+      if (recipientId) {
+        updateData.recipientId = recipientId;
+      }
+
+      // Update the parcel
+      const updatedParcel = await this.prisma.parcel.update({
+        where: { id: parcelId },
+        data: updateData,
+        include: {
+          sender: true,
+          recipient: true,
+          driver: true,
+        },
+      });
+
+      // Update user statistics if needed
+      if (senderId) {
+        await this.prisma.user.update({
+          where: { id: senderId },
+          data: {
+            totalParcelsEverSent: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      if (recipientId) {
+        await this.prisma.user.update({
+          where: { id: recipientId },
+          data: {
+            totalParcelsReceived: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      this.logger.log(
+        `Linked parcel ${parcelId} to sender: ${senderId}, recipient: ${recipientId}`,
+      );
+
+      return {
+        success: true,
+        message: 'Parcel successfully linked to users.',
+        updatedParcel: this.mapToParcelResponse(updatedParcel),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to link parcel ${parcelId} to users:`, error);
+      return {
+        success: false,
+        message: 'Failed to link parcel to users.',
+      };
+    }
+  }
+
+  // Link parcels by email matching (for bulk operations)
+  async linkParcelsByEmail(
+    userEmail: string,
+    userId: string,
+    linkType: 'sender' | 'recipient' | 'both' = 'both',
+  ): Promise<{
+    success: boolean;
+    linkedParcels: number;
+    message: string;
+  }> {
+    try {
+      let whereCondition: any = {};
+      let updateData: any = {};
+
+      if (linkType === 'sender' || linkType === 'both') {
+        whereCondition.senderEmail = userEmail;
+        whereCondition.senderId = null;
+        updateData.senderId = userId;
+      }
+
+      if (linkType === 'recipient' || linkType === 'both') {
+        whereCondition.recipientEmail = userEmail;
+        whereCondition.recipientId = null;
+        updateData.recipientId = userId;
+      }
+
+      // Find parcels to link
+      const parcelsToLink = await this.prisma.parcel.findMany({
+        where: whereCondition,
+      });
+
+      if (parcelsToLink.length === 0) {
+        return {
+          success: true,
+          linkedParcels: 0,
+          message: 'No parcels found to link.',
+        };
+      }
+
+      // Update parcels
+      const updateResult = await this.prisma.parcel.updateMany({
+        where: whereCondition,
+        data: updateData,
+      });
+
+      // Update user statistics
+      const senderParcels = parcelsToLink.filter(
+        (p) => p.senderEmail === userEmail,
+      ).length;
+      const recipientParcels = parcelsToLink.filter(
+        (p) => p.recipientEmail === userEmail,
+      ).length;
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          totalParcelsEverSent: {
+            increment: senderParcels,
+          },
+          totalParcelsReceived: {
+            increment: recipientParcels,
+          },
+        },
+      });
+
+      this.logger.log(
+        `Linked ${updateResult.count} parcels to user ${userId} (${userEmail})`,
+      );
+
+      return {
+        success: true,
+        linkedParcels: updateResult.count,
+        message: `Successfully linked ${updateResult.count} parcels to your account.`,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to link parcels by email for user ${userId}:`,
+        error,
+      );
+      return {
+        success: false,
+        linkedParcels: 0,
+        message: 'Failed to link parcels to your account.',
+      };
     }
   }
 
@@ -855,7 +1055,7 @@ export class ParcelsService {
         `Failed to get anonymous parcels for email ${email}:`,
         error,
       );
-      throw new Error('Failed to retrieve previous parcels.');
+      return [];
     }
   }
 
@@ -981,7 +1181,10 @@ export class ParcelsService {
         `Failed to get autocomplete suggestions for query "${query}":`,
         error,
       );
-      throw new Error('Failed to get suggestions.');
+      return {
+        users: [],
+        parcelHistory: [],
+      };
     }
   }
 
@@ -1090,7 +1293,7 @@ export class ParcelsService {
         `Failed to get contact suggestions for ${contactType}:`,
         error,
       );
-      throw new Error('Failed to get contact suggestions.');
+      return [];
     }
   }
 
@@ -1122,10 +1325,11 @@ export class ParcelsService {
     const validTransitions: Record<string, string[]> = {
       pending: ['assigned', 'cancelled'],
       assigned: ['picked_up', 'cancelled'],
-      picked_up: ['in_transit', 'cancelled'],
+      picked_up: ['in_transit', 'delivered_to_recipient', 'cancelled'],
       in_transit: ['delivered_to_recipient', 'cancelled'],
-      delivered_to_recipient: ['delivered'],
-      delivered: [], // Final state
+      delivered_to_recipient: ['delivered', 'cancelled'],
+      delivered: ['completed', 'cancelled'],
+      completed: [], // Final state - can only be reached after customer marks as complete
       cancelled: [], // Final state
     };
 
@@ -1204,7 +1408,6 @@ export class ParcelsService {
       licenseNumber: user.licenseNumber || undefined,
       vehicleNumber: user.vehicleNumber || undefined,
       vehicleType: user.vehicleType || undefined,
-      isAvailable: user.isAvailable,
       currentLat: user.currentLat || undefined,
       currentLng: user.currentLng || undefined,
       averageRating: user.averageRating || undefined,
@@ -1226,5 +1429,46 @@ export class ParcelsService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+  }
+
+  /**
+   * Calculate delivery fee based on weight and estimated distance
+   * @param weight - Parcel weight in kg
+   * @param pickupAddress - Pickup address
+   * @param deliveryAddress - Delivery address
+   * @returns Calculated delivery fee in KSH
+   */
+  public calculateDeliveryFee(
+    weight: number,
+    pickupAddress: string,
+    deliveryAddress: string,
+  ): number {
+    const baseFee = 500; // Base delivery fee in KES
+    const weightFee = weight * 100; // 100 KES per kg
+    const distanceFee = this.estimateDistanceFee(pickupAddress, deliveryAddress);
+    
+    return baseFee + weightFee + distanceFee;
+  }
+
+  /**
+   * Estimate distance fee based on address complexity
+   * This is a simplified version - in a real app, you'd use geocoding APIs
+   */
+  private estimateDistanceFee(
+    pickupAddress: string,
+    deliveryAddress: string,
+  ): number {
+    // Simple estimation based on address length and complexity
+    const pickupComplexity = pickupAddress.length / 10;
+    const deliveryComplexity = deliveryAddress.length / 10;
+
+    // Base distance fee
+    let distanceFee = DELIVERY_FEE_CONFIG.MIN_DISTANCE_FEE;
+
+    // Add complexity-based fee
+    distanceFee += (pickupComplexity + deliveryComplexity) * 25;
+
+    // Cap the distance fee at maximum
+    return Math.min(distanceFee, DELIVERY_FEE_CONFIG.MAX_DISTANCE_FEE);
   }
 }

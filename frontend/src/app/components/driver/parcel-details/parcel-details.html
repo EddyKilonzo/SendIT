@@ -8,50 +8,120 @@
     <div class="content-header">
       <div class="header-left">
         <h1>Parcel Details</h1>
+        <div class="breadcrumb">
+          <a routerLink="/driver/dashboard" class="breadcrumb-link">Dashboard</a>
+          <span class="breadcrumb-separator">/</span>
+          <a routerLink="/driver/assigned-parcels" class="breadcrumb-link">Assigned Parcels</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Parcel Details</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-container" *ngIf="isLoading">
+      <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading parcel details...</p>
       </div>
     </div>
 
     <!-- Dashboard Content -->
-    <div class="dashboard-content">
+    <div class="dashboard-content" *ngIf="!isLoading && parcel">
       <!-- Parcel Information Section -->
       <div class="parcel-info-section animate-fade-in-up">
         <h2 class="section-title">Parcel Information</h2>
         <div class="info-grid">
           <div class="info-column">
             <div class="info-item">
-              <label class="info-label">Parcel ID:</label>
-              <span class="info-value">{{ parcel?.parcelId || '#123456' }}</span>
+              <label class="info-label">Tracking Number:</label>
+              <span class="info-value">{{ parcel.trackingNumber || 'N/A' }}</span>
             </div>
             <div class="info-item">
               <label class="info-label">Delivery Address:</label>
-              <span class="info-value">{{ parcel?.deliveryAddress || '456 Oak Avenue, Anytown, USA' }}</span>
+              <span class="info-value">{{ parcel.deliveryAddress || 'N/A' }}</span>
             </div>
             <div class="info-item">
-              <label class="info-label">Scheduled Delivery Time:</label>
-              <span class="info-value">{{ parcel?.scheduledDeliveryTime || '2024-03-15 12:00 PM' }}</span>
+              <label class="info-label">Recipient Name:</label>
+              <span class="info-value">{{ parcel.recipientName || 'N/A' }}</span>
             </div>
             <div class="info-item">
               <label class="info-label">Recipient Phone:</label>
-              <span class="info-value">{{ parcel?.recipientPhone || '+1-555-123-4567' }}</span>
+              <span class="info-value">
+                <a href="tel:{{ parcel.recipientPhone }}" class="contact-link">
+                  <i class="fas fa-phone"></i> {{ parcel.recipientPhone || 'N/A' }}
+                </a>
+              </span>
+            </div>
+            <div class="info-item">
+              <label class="info-label">Weight:</label>
+              <span class="info-value">{{ parcel.weight || 'N/A' }} kg</span>
+            </div>
+            <div class="info-item">
+              <label class="info-label">Delivery Fee:</label>
+              <span class="info-value">${{ parcel.deliveryFee || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <label class="info-label">Estimated Delivery:</label>
+              <span class="info-value">{{ getEstimatedDeliveryTime() }}</span>
             </div>
           </div>
           
           <div class="info-column">
             <div class="info-item">
               <label class="info-label">Pickup Address:</label>
-              <span class="info-value">{{ parcel?.pickupAddress || '123 Maple Street, Anytown, USA' }}</span>
+              <span class="info-value">{{ parcel.pickupAddress || 'N/A' }}</span>
             </div>
             <div class="info-item">
-              <label class="info-label">Scheduled Pickup Time:</label>
-              <span class="info-value">{{ parcel?.scheduledPickupTime || '2024-03-15 10:00 AM' }}</span>
+              <label class="info-label">Sender Name:</label>
+              <span class="info-value">{{ parcel.senderName || 'N/A' }}</span>
             </div>
             <div class="info-item">
-              <label class="info-label">Recipient Name:</label>
-              <span class="info-value">{{ parcel?.recipientName || 'Liam Carter' }}</span>
+              <label class="info-label">Sender Phone:</label>
+              <span class="info-value">
+                <a href="tel:{{ parcel.senderPhone }}" class="contact-link">
+                  <i class="fas fa-phone"></i> {{ parcel.senderPhone || 'N/A' }}
+                </a>
+              </span>
             </div>
             <div class="info-item">
-              <label class="info-label">Special Instructions:</label>
-              <span class="info-value">{{ parcel?.specialInstructions || 'Handle with care' }}</span>
+              <label class="info-label">Description:</label>
+              <span class="info-value">{{ parcel.description || 'No description' }}</span>
+            </div>
+            <div class="info-item">
+              <label class="info-label">Value:</label>
+              <span class="info-value">${{ parcel.value || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <label class="info-label">Created:</label>
+              <span class="info-value">{{ parcel.createdAt ? (parcel.createdAt | date:'medium') : 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <label class="info-label">Route Distance:</label>
+              <span class="info-value">{{ routeInfo.distance || 'Calculating...' }} km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Timeline Section -->
+      <div class="status-timeline-section animate-fade-in-up">
+        <h2 class="section-title">Status Timeline</h2>
+        <div class="timeline-container">
+          <div class="timeline-item" *ngFor="let status of statusHistory; let i = index" [class.completed]="status.completed">
+            <div class="timeline-icon">
+              <i [class]="getStatusIcon(status.status)"></i>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <h4>{{ getStatusDisplayName(status.status) }}</h4>
+                <span class="timeline-time">{{ status.timestamp | date:'short' }}</span>
+              </div>
+              <p class="timeline-description">{{ status.notes || getStatusDescription(status.status) }}</p>
+              <div class="timeline-location" *ngIf="status.location">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ status.location }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -59,18 +129,47 @@
 
       <!-- Status Section -->
       <div class="status-section animate-fade-in-up">
-        <h2 class="section-title">Status</h2>
+        <h2 class="section-title">Current Status</h2>
         <div class="status-content">
           <div class="status-input-group">
             <label class="status-label">Current Status:</label>
-            <div class="status-display" [ngClass]="getStatusClass(parcel?.status || 'Pending')">
-              {{ parcel?.status || 'Pending' }}
+            <div class="status-display" [ngClass]="getStatusClass(parcel.status || 'Pending')">
+              {{ getStatusDisplayName(parcel.status || 'Pending') }}
             </div>
           </div>
+          
+          <!-- Delivery Progress -->
+          <div class="delivery-progress" *ngIf="parcel">
+            <div class="progress-step" [class.completed]="deliveryInstructions[0] && deliveryInstructions[0].completed">
+              <div class="step-icon">
+                <i class="fas fa-box-open"></i>
+              </div>
+              <div class="step-label">Pickup</div>
+            </div>
+            <div class="progress-line" [class.completed]="deliveryInstructions[0] && deliveryInstructions[0].completed"></div>
+            <div class="progress-step" [class.completed]="deliveryInstructions[1] && deliveryInstructions[1].completed">
+              <div class="step-icon">
+                <i class="fas fa-truck"></i>
+              </div>
+              <div class="step-label">Delivery</div>
+            </div>
+            <div class="progress-line" [class.completed]="deliveryInstructions[1] && deliveryInstructions[1].completed"></div>
+            <div class="progress-step" [class.completed]="parcel.status === 'delivered' || parcel.status === 'completed'">
+              <div class="step-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="step-label">Completed</div>
+            </div>
+          </div>
+          
           <div class="status-actions">
             <button class="btn-secondary" (click)="toggleView()" [class.active]="showMapView">
               <i class="fas fa-map-marker-alt"></i>
               {{ showMapView ? 'Show Instructions' : 'Show Map' }}
+            </button>
+            <button class="btn-secondary" (click)="optimizeRoute()" *ngIf="showMapView">
+              <i class="fas fa-route"></i>
+              Optimize Route
             </button>
           </div>
         </div>
@@ -89,73 +188,143 @@
               <i class="fas fa-sync-alt"></i>
               Refresh
             </button>
+            <button class="btn-secondary" (click)="updateCurrentLocation()">
+              <i class="fas fa-crosshairs"></i>
+              Update Location
+            </button>
           </div>
         </div>
         <div class="map-container">
-                      <app-map
-              #mapComponent
-              [height]="'400px'"
-              [markers]="mapMarkers"
-              [center]="mapCenter"
-              [showRoute]="mapMarkers.length >= 2"
-              [zoom]="mapMarkers.length > 1 ? 11 : 13"
-              [showControls]="true"
-              (mapReady)="onMapReady($event)"
-              (markerClick)="onMarkerClick($event)"
-              (mapClick)="onMapClick($event)"
-              (mapErrorEvent)="onMapError($event)"
-              (routeUpdated)="onRouteUpdated($event)">
-            </app-map>
+          <app-map
+            #mapComponent
+            [height]="'400px'"
+            [markers]="mapMarkers"
+            [markerTypes]="mapMarkerTypes"
+            [center]="mapCenter"
+            [showRoute]="mapMarkers.length >= 2"
+            [zoom]="mapMarkers.length > 1 ? 11 : 13"
+            [showControls]="true"
+            (mapReady)="onMapReady($event)"
+            (markerClick)="onMarkerClick($event)"
+            (mapClick)="onMapClick($event)"
+            (mapErrorEvent)="onMapError($event)"
+            (routeUpdated)="onRouteUpdated($event)">
+          </app-map>
           <div class="map-overlay">
             <div class="map-legend">
               <div class="legend-item">
-                <div class="legend-marker current-marker"></div>
+                <div class="legend-pin current"></div>
                 <span>Your Location</span>
               </div>
               <div class="legend-item">
-                <div class="legend-marker pickup-marker"></div>
+                <div class="legend-pin pickup"></div>
                 <span>Pickup Location</span>
               </div>
               <div class="legend-item">
-                <div class="legend-marker delivery-marker"></div>
+                <div class="legend-pin delivery"></div>
                 <span>Delivery Location</span>
+              </div>
+            </div>
+            <div class="route-info" *ngIf="routeInfo.distance">
+              <div class="route-item">
+                <i class="fas fa-road"></i>
+                <span>{{ routeInfo.distance }} km</span>
+              </div>
+              <div class="route-item">
+                <i class="fas fa-clock"></i>
+                <span>{{ routeInfo.estimatedTime }} min</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Delivery Instructions Section -->
+      <!-- Enhanced Delivery Instructions Section -->
       <div class="instructions-section animate-fade-in" *ngIf="!showMapView">
         <h2 class="section-title">Delivery Instructions</h2>
+        
+        <!-- Delivery Instructions List -->
         <div class="instructions-list">
-          <div class="instruction-item" *ngFor="let instruction of deliveryInstructions; let i = index">
-            <input 
-              type="checkbox" 
-              [id]="'instruction-' + i"
-              [checked]="instruction.completed"
-              (change)="toggleInstruction(i)"
-              class="instruction-checkbox"
-              [disabled]="!canCompleteInstruction(i)"
-            >
-            <label [for]="'instruction-' + i" class="instruction-label">
-              <span class="instruction-number">{{ i + 1 }}.</span>
-              <span class="instruction-text">{{ instruction.text }}</span>
-            </label>
+          <div class="instruction-item" *ngFor="let instruction of deliveryInstructions; let i = index" [class.completed]="instruction.completed">
+            <div class="instruction-header">
+              <input 
+                type="checkbox" 
+                [id]="'instruction-' + i"
+                [checked]="instruction.completed"
+                (change)="toggleInstruction(i)"
+                class="instruction-checkbox"
+                [disabled]="!canCompleteInstruction(i)"
+              >
+              <label [for]="'instruction-' + i" class="instruction-label">
+                <span class="instruction-number">{{ i + 1 }}.</span>
+                <span class="instruction-text">{{ instruction.text }}</span>
+              </label>
+            </div>
+            
+            <!-- Instruction Details -->
+            <div class="instruction-details" *ngIf="instruction.completed">
+              <div class="detail-item">
+                <i class="fas fa-clock"></i>
+                <span>Completed at {{ getCurrentTime() }}</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ getLocationForInstruction(i) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+        <!-- Emergency Contacts -->
+        <div class="emergency-contacts">
+          <h3>Emergency Contacts</h3>
+          <div class="contact-grid">
+            <div class="contact-item">
+              <i class="fas fa-user"></i>
+              <div class="contact-info">
+                <span class="contact-name">Recipient</span>
+                <span class="contact-phone">{{ parcel.recipientPhone }}</span>
+              </div>
+              <a href="tel:{{ parcel.recipientPhone }}" class="contact-btn">
+                <i class="fas fa-phone"></i>
+              </a>
+            </div>
+            <div class="contact-item">
+              <i class="fas fa-user"></i>
+              <div class="contact-info">
+                <span class="contact-name">Sender</span>
+                <span class="contact-phone">{{ parcel.senderPhone }}</span>
+              </div>
+              <a href="tel:{{ parcel.senderPhone }}" class="contact-btn">
+                <i class="fas fa-phone"></i>
+              </a>
+            </div>
           </div>
         </div>
       </div>
 
+
+
       <!-- Bottom Action Buttons -->
       <div class="bottom-actions animate-fade-in-up">
         <button 
-          class="btn-primary" 
-          (click)="markAsCompleted()"
-          [disabled]="!canMarkAsCompleted()"
+          class="btn-secondary" 
+          (click)="goBack()"
         >
-          <i class="fas fa-check"></i>
-          Mark as Delivered
+          <i class="fas fa-arrow-left"></i>
+          Back to Parcels
         </button>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div class="error-container" *ngIf="!isLoading && !parcel">
+      <div class="error-content">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h3>Parcel Not Found</h3>
+        <p>The parcel you're looking for could not be found or you don't have permission to view it.</p>
       </div>
     </div>
   </main>

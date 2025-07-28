@@ -102,11 +102,28 @@ export class DeliveryHistory implements OnInit {
       status: parcel.status,
       customerRating: parcel.reviews?.[0]?.rating,
       customerName: parcel.recipientName,
-      completedTime: new Date(parcel.updatedAt).toLocaleTimeString(),
+      completedTime: this.formatDateTime(parcel.updatedAt),
       notes: parcel.statusHistory?.[0]?.notes || 'Delivery completed',
       createdAt: parcel.createdAt,
       updatedAt: parcel.updatedAt
     }));
+  }
+
+  formatDateTime(dateTime: string | Date | null | undefined): string {
+    if (!dateTime) return 'N/A';
+    
+    try {
+      const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime;
+      if (isNaN(date.getTime())) return 'N/A';
+      
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return 'N/A';
+    }
   }
 
   get filteredHistory(): DeliveryHistoryItem[] {

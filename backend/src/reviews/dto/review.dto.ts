@@ -18,6 +18,12 @@ export interface ReviewResponseDto {
   comment: string;
   createdAt: Date;
   updatedAt: Date;
+  // Customer information for frontend display
+  customerName?: string;
+  customerId?: string;
+  customerProfilePicture?: string | undefined;
+  driverName?: string;
+  driverId?: string;
   reviewer?: any; // UserResponseDto
   parcel?: any; // ParcelResponseDto
 }

@@ -716,7 +716,6 @@ export class AuthService {
       licenseNumber: user.licenseNumber || undefined,
       vehicleNumber: user.vehicleNumber || undefined,
       vehicleType: user.vehicleType || undefined,
-      isAvailable: user.isAvailable,
       currentLat: user.currentLat || undefined,
       currentLng: user.currentLng || undefined,
       averageRating: user.averageRating || undefined,

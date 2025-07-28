@@ -15,7 +15,6 @@ import {
 import { DriversService } from './drivers.service';
 import {
   UpdateLocationDto,
-  UpdateAvailabilityDto,
   DriverApplicationDto,
   AssignParcelDto,
   UpdateParcelStatusDto,
@@ -25,7 +24,6 @@ import { createJoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import {
   driverApplicationSchema,
   updateLocationSchema,
-  updateAvailabilitySchema,
   assignParcelSchema,
   updateParcelStatusSchema,
 } from '../users/dto/driver.schemas';
@@ -110,20 +108,6 @@ export class DriversController {
     @Body() updateLocationDto: UpdateLocationDto,
   ) {
     return this.driversService.updateLocation(params.id, updateLocationDto);
-  }
-
-  @Patch(':id/availability')
-  @HttpCode(HttpStatus.OK)
-  @UsePipes(createJoiValidationPipe(updateAvailabilitySchema))
-  @Roles('DRIVER')
-  updateAvailability(
-    @Param() params: IdParamDto,
-    @Body() updateAvailabilityDto: UpdateAvailabilityDto,
-  ) {
-    return this.driversService.updateAvailability(
-      params.id,
-      updateAvailabilityDto,
-    );
   }
 
   @Post('apply')

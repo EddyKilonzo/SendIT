@@ -12,6 +12,7 @@ export interface CreateParcelDto {
   description?: string;
   value?: number;
   deliveryInstructions?: string;
+  // Note: deliveryFee is calculated automatically and not included in the DTO
 }
 
 export interface UpdateParcelDto {

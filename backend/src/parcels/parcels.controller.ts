@@ -25,7 +25,8 @@ import { Roles } from '../common/decorators';
 
 interface AuthenticatedRequest {
   user: {
-    id: string;
+    sub: string;
+    email: string;
     role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   };
 }
@@ -41,7 +42,7 @@ export class ParcelsController {
     @Body() createParcelDto: CreateParcelDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.parcelsService.create(createParcelDto, req.user.id);
+    return this.parcelsService.create(createParcelDto, req.user.sub);
   }
 
   @Get()
@@ -50,7 +51,7 @@ export class ParcelsController {
     @Query() query: ParcelQueryDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.parcelsService.findAll(query, req.user.id, req.user.role);
+    return this.parcelsService.findAll(query, req.user.sub, req.user.role);
   }
 
   @Get('tracking/:trackingNumber')
@@ -64,6 +65,57 @@ export class ParcelsController {
     return this.parcelsService.getAnonymousParcelsByEmail(email);
   }
 
+  @Post('link-parcel/:id')
+  @Roles('ADMIN')
+  async linkParcelToUsers(
+    @Param('id') parcelId: string,
+    @Body() linkData: { senderId?: string; recipientId?: string },
+  ): Promise<{
+    success: boolean;
+    message: string;
+    updatedParcel?: any;
+  }> {
+    const result = await this.parcelsService.linkParcelToUsers(
+      parcelId,
+      linkData.senderId,
+      linkData.recipientId,
+    );
+    return result;
+  }
+
+  @Post('link-by-email')
+  @Roles('ADMIN')
+  async linkParcelsByEmail(
+    @Body()
+    linkData: {
+      userEmail: string;
+      userId: string;
+      linkType?: 'sender' | 'recipient' | 'both';
+    },
+  ): Promise<{
+    success: boolean;
+    linkedParcels: number;
+    message: string;
+  }> {
+    try {
+      return (await this.parcelsService.linkParcelsByEmail(
+        linkData.userEmail,
+        linkData.userId,
+        linkData.linkType || 'both',
+      )) as {
+        success: boolean;
+        linkedParcels: number;
+        message: string;
+      };
+    } catch {
+      return {
+        success: false,
+        linkedParcels: 0,
+        message: 'Failed to link parcels by email.',
+      };
+    }
+  }
+
   @Get('suggestions/autocomplete')
   async getAutocompleteSuggestions(
     @Query('q') query: string,
@@ -71,6 +123,23 @@ export class ParcelsController {
     @Query('limit') limit: number = 10,
   ) {
     return this.parcelsService.getAutocompleteSuggestions(query, type, limit);
+  }
+
+  @Get('calculate-delivery-fee')
+  calculateDeliveryFee(
+    @Query('weight') weight: number,
+    @Query('pickupAddress') pickupAddress: string,
+    @Query('deliveryAddress') deliveryAddress: string,
+  ): number {
+    try {
+      return this.parcelsService.calculateDeliveryFee(
+        weight,
+        pickupAddress,
+        deliveryAddress,
+      ) as number;
+    } catch {
+      return 0;
+    }
   }
 
   @Get('suggestions/contact/:type')
@@ -88,7 +157,31 @@ export class ParcelsController {
     @Query('type') type: 'sent' | 'received' = 'sent',
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.parcelsService.getUserParcels(req.user.id, type);
+    console.log(
+      `🔍 API Request - getMyParcels(type: ${type}, userId: ${req.user.sub})`,
+    );
+    console.log(`📋 Query parameters:`, { type });
+    console.log(`👤 User details:`, { id: req.user.sub, role: req.user.role });
+
+    const result = await this.parcelsService.getUserParcels(req.user.sub, type);
+    console.log(
+      `📦 API Response - getMyParcels(${type}): ${result.length} parcels`,
+    );
+
+    // Log the first parcel details if any
+    if (result.length > 0) {
+      const firstParcel = result[0];
+      console.log(`📦 First parcel:`, {
+        id: firstParcel.id,
+        trackingNumber: firstParcel.trackingNumber,
+        senderId: firstParcel.senderId,
+        recipientId: firstParcel.recipientId,
+        senderName: firstParcel.senderName,
+        recipientName: firstParcel.recipientName,
+      });
+    }
+
+    return result;
   }
 
   @Get('assigned')
@@ -97,7 +190,7 @@ export class ParcelsController {
     @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
   ) {
-    return this.parcelsService.getDriverParcels(req.user.id, status);
+    return this.parcelsService.getDriverParcels(req.user.sub, status);
   }
 
   @Get('status-history/:id')
@@ -106,13 +199,17 @@ export class ParcelsController {
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.parcelsService.getStatusHistory(id, req.user.id, req.user.role);
+    return this.parcelsService.getStatusHistory(
+      id,
+      req.user.sub,
+      req.user.role,
+    );
   }
 
   @Get(':id')
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    return this.parcelsService.findOne(id, req.user.id, req.user.role);
+    return this.parcelsService.findOne(id, req.user.sub, req.user.role);
   }
 
   @Patch(':id')
@@ -125,7 +222,7 @@ export class ParcelsController {
     return this.parcelsService.update(
       id,
       updateParcelDto,
-      req.user.id,
+      req.user.sub,
       req.user.role,
     );
   }
@@ -137,7 +234,7 @@ export class ParcelsController {
     @Body() statusUpdateDto: ParcelStatusUpdateDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.parcelsService.updateStatus(id, statusUpdateDto, req.user.id);
+    return this.parcelsService.updateStatus(id, statusUpdateDto, req.user.sub);
   }
 
   @Patch(':id/confirm-delivery')
@@ -150,7 +247,7 @@ export class ParcelsController {
     return this.parcelsService.confirmDelivery(
       id,
       confirmationDto,
-      req.user.id,
+      req.user.sub,
     );
   }
 
@@ -164,13 +261,13 @@ export class ParcelsController {
     return this.parcelsService.markAsCompleted(
       id,
       markAsCompletedDto,
-      req.user.id,
+      req.user.sub,
     );
   }
 
   @Delete(':id')
   @Roles('CUSTOMER', 'ADMIN')
   async remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    return this.parcelsService.cancel(id, req.user.id, req.user.role);
+    return this.parcelsService.cancel(id, req.user.sub, req.user.role);
   }
 }

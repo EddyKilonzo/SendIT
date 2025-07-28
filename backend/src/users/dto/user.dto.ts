@@ -27,7 +27,6 @@ export interface UpdateUserDto {
   licenseNumber?: string;
   vehicleNumber?: string;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  isAvailable?: boolean;
   currentLat?: number;
   currentLng?: number;
 }
@@ -41,11 +40,6 @@ export interface UpdateLocationDto {
   currentLat: number;
   currentLng: number;
   address?: string;
-}
-
-export interface UpdateAvailabilityDto {
-  isAvailable: boolean;
-  reason?: string;
 }
 
 export interface DriverApplicationDto {
@@ -84,7 +78,6 @@ export interface UserResponseDto {
   licenseNumber?: string;
   vehicleNumber?: string;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
-  isAvailable?: boolean;
   currentLat?: number;
   currentLng?: number;
 
@@ -137,7 +130,6 @@ export interface UsersQueryDto {
   search?: string;
   role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   isActive?: boolean;
-  isAvailable?: boolean;
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
   driverApplicationStatus?: 'NOT_APPLIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   sortBy?: 'name' | 'email' | 'createdAt' | 'averageRating' | 'totalDeliveries';

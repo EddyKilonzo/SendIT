@@ -63,8 +63,13 @@ export class UsersController {
 
   @Get('dashboard')
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
-  getDashboard(@Request() req: { user: { sub: string } }) {
-    return this.usersService.getDashboard(req.user.sub);
+  async getDashboard(@Request() req: { user: { sub: string } }) {
+    const dashboardData = await this.usersService.getDashboard(req.user.sub);
+    return {
+      success: true,
+      data: dashboardData,
+      message: 'Dashboard data retrieved successfully',
+    };
   }
 
   @Get(':id')

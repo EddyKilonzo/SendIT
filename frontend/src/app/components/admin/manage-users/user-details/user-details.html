@@ -235,7 +235,7 @@
                   <div class="metric-label">Completed Deliveries</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{{ driverPerformance.averageRating || 'N/A' }}</div>
+                  <div class="metric-value">{{ driverPerformance.averageRating !== undefined && driverPerformance.averageRating !== null ? driverPerformance.averageRating.toFixed(1) : 'N/A' }}</div>
                   <div class="metric-label">Average Rating</div>
                 </div>
                 <div class="metric-card">
@@ -243,12 +243,12 @@
                   <div class="metric-label">On-Time Deliveries</div>
                 </div>
                 <div class="metric-card">
-                  <div class="metric-value">{{ formatCurrency(driverPerformance.totalEarnings) }}</div>
-                  <div class="metric-label">Total Earnings</div>
-                </div>
-                <div class="metric-card">
                   <div class="metric-value">{{ driverPerformance.currentAssignments }}</div>
                   <div class="metric-label">Current Assignments</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value">{{ driverPerformance.weeklyDeliveries }}</div>
+                  <div class="metric-label">Weekly Deliveries</div>
                 </div>
               </div>
 
@@ -266,10 +266,6 @@
                       <span>{{ driverPerformance.averageDeliveryTime || 'N/A' }} minutes</span>
                     </div>
                     <div class="stat-item">
-                      <label>Estimated vs Actual Time</label>
-                      <span>{{ driverPerformance.estimatedTime }} vs {{ driverPerformance.actualTime }} min</span>
-                    </div>
-                    <div class="stat-item">
                       <label>Time Accuracy</label>
                       <span>{{ driverPerformance.timeAccuracy }}%</span>
                     </div>
@@ -278,16 +274,26 @@
                       <span>{{ driverPerformance.onTimeDeliveries && driverPerformance.totalDeliveries ? ((driverPerformance.onTimeDeliveries / driverPerformance.totalDeliveries) * 100).toFixed(1) : 0 }}%</span>
                     </div>
                     <div class="stat-item">
+                      <label>Current Status</label>
+                      <span>{{ user.isAvailable ? 'Available' : 'Unavailable' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="stats-section">
+                  <h3 class="subsection-title">Financial Overview</h3>
+                  <div class="stats-grid">
+                    <div class="stat-item">
+                      <label>Total Earnings</label>
+                      <span>{{ formatCurrency(driverPerformance.totalEarnings) }}</span>
+                    </div>
+                    <div class="stat-item">
                       <label>Monthly Earnings</label>
                       <span>{{ formatCurrency(driverPerformance.monthlyEarnings) }}</span>
                     </div>
                     <div class="stat-item">
-                      <label>Weekly Deliveries</label>
-                      <span>{{ driverPerformance.weeklyDeliveries }}</span>
-                    </div>
-                    <div class="stat-item">
-                      <label>Current Status</label>
-                      <span>{{ user.isAvailable ? 'Available' : 'Unavailable' }}</span>
+                      <label>Estimated vs Actual Time</label>
+                      <span>{{ driverPerformance.estimatedTime }} vs {{ driverPerformance.actualTime }} min</span>
                     </div>
                   </div>
                 </div>
@@ -302,6 +308,7 @@
                       </div>
                       <div class="assignment-details">
                         <span>{{ parcel.senderName }} → {{ parcel.recipientName }}</span>
+                        <span class="delivery-fee" *ngIf="parcel.deliveryFee">{{ formatCurrency(parcel.deliveryFee) }}</span>
                       </div>
                     </div>
                   </div>
@@ -332,10 +339,11 @@
                       <th>Status</th>
                       <th>Sender</th>
                       <th>Receiver</th>
-                      <th>Pickup Date</th>
-                      <th>Delivery Date</th>
+                      <th>Pickup Address</th>
+                      <th>Delivery Address</th>
+                      <th>Assigned Date</th>
                       <th>Weight</th>
-                      <th>Price</th>
+                      <th>Fee</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -354,10 +362,11 @@
                       </td>
                       <td>{{ parcel.senderName }}</td>
                       <td>{{ parcel.recipientName }}</td>
-                      <td>{{ parcel.estimatedPickupTime | date:'short' }}</td>
-                      <td>{{ parcel.estimatedDeliveryTime | date:'short' }}</td>
+                      <td class="address-cell">{{ parcel.pickupAddress }}</td>
+                      <td class="address-cell">{{ parcel.deliveryAddress }}</td>
+                      <td>{{ parcel.assignedAt | date:'short' }}</td>
                       <td>{{ parcel.weight }} kg</td>
-                      <td>{{ parcel.deliveryFee | currency:'KSH ' }}</td>
+                      <td>{{ formatCurrency(parcel.deliveryFee) }}</td>
                       <td>
                         <button class="btn-secondary" (click)="viewParcelDetails(parcel.id)">
                           <i class="fas fa-eye"></i>

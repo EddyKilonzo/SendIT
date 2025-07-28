@@ -52,8 +52,12 @@ export class AssignDriver implements OnInit, OnDestroy {
 
   // Filter options
   vehicleTypes = ['All', 'MOTORCYCLE', 'CAR', 'VAN', 'TRUCK'];
-  availabilityOptions = ['All', 'Available', 'Busy', 'Offline'];
   ratingOptions = ['All', '4.5+', '4.0+', '3.5+'];
+
+  // Pagination properties
+  currentPage = 1;
+  itemsPerPage = 5;
+  totalDrivers = 0;
 
   // Map properties
   private map: L.Map | null = null;
@@ -62,6 +66,8 @@ export class AssignDriver implements OnInit, OnDestroy {
   private driverMarkers: L.Marker[] = [];
   private routeLine: L.Polyline | null = null;
   private markers: L.Marker[] = [];
+  mapLoading: boolean = true;
+  mapError: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -73,7 +79,6 @@ export class AssignDriver implements OnInit, OnDestroy {
   ) {
     this.assignForm = this.fb.group({
       vehicleType: ['All'],
-      availability: ['All'],
       rating: ['All']
     });
   }
@@ -82,6 +87,9 @@ export class AssignDriver implements OnInit, OnDestroy {
     console.log('🚀 AssignDriver component initializing...');
     this.loadAvailableDrivers();
     this.setupFilterListeners();
+    
+    // Add window resize listener for map
+    window.addEventListener('resize', this.handleResize.bind(this));
     
     // Check if parcel details were passed from navigation
     const navigation = this.router.getCurrentNavigation();
@@ -120,15 +128,11 @@ export class AssignDriver implements OnInit, OnDestroy {
         }
         console.log('✅ Retrieved parcel details from service:', this.parcelDetails);
       } else {
-        // If still no parcel details, check if this is a direct navigation (e.g., from URL)
-        // In this case, we should allow the user to continue but show a warning
-        console.log('⚠️ No parcel details found in navigation state or service');
-        
-        // Don't redirect immediately - let the user see the component and handle the error gracefully
-        this.toastService.showError('No parcel details available. Please create a delivery first or go back to parcel details.');
-        
-        // Set a flag to disable the assign button
-        this.parcelDetails = null;
+        // If still no parcel details, redirect back to create delivery
+        console.log('⚠️ No parcel details found, redirecting to create delivery');
+        this.toastService.showError('No parcel details available. Please create a delivery first.');
+        this.router.navigate(['/admin-create-delivery']);
+        return;
       }
     }
 
@@ -137,8 +141,9 @@ export class AssignDriver implements OnInit, OnDestroy {
 
     // Initialize map after a short delay to ensure DOM is ready
     setTimeout(() => {
+      console.log('🕐 Starting map initialization...');
       this.initializeMap();
-    }, 100);
+    }, 500);
   }
 
   loadAvailableDrivers() {
@@ -160,6 +165,8 @@ export class AssignDriver implements OnInit, OnDestroy {
         }
         
         this.filteredDrivers = [...this.availableDrivers];
+        this.totalDrivers = this.availableDrivers.length;
+        this.currentPage = 1;
         this.isLoading = false;
         console.log('📦 Loaded drivers:', this.availableDrivers);
         console.log('📊 Total drivers found:', this.availableDrivers.length);
@@ -167,12 +174,6 @@ export class AssignDriver implements OnInit, OnDestroy {
         // Add driver markers to map after loading drivers
         if (this.map) {
           this.addDriverMarkers();
-        }
-        
-        // If no drivers found, try loading all drivers as fallback
-        if (this.availableDrivers.length === 0) {
-          console.log('⚠️ No available drivers found, trying to load all drivers...');
-          this.loadAllDrivers();
         }
       },
       error: (error: any) => {
@@ -184,46 +185,6 @@ export class AssignDriver implements OnInit, OnDestroy {
         });
         this.isLoading = false;
         this.toastService.showError('Failed to load available drivers');
-        
-        // Try loading all drivers as fallback
-        console.log('⚠️ Trying to load all drivers as fallback...');
-        this.loadAllDrivers();
-      }
-    });
-  }
-
-  loadAllDrivers() {
-    this.isLoading = true;
-    console.log('🔍 Loading all drivers...');
-    
-    this.driversService.getDrivers().subscribe({
-      next: (response: any) => {
-        console.log('✅ All drivers API response:', response);
-        this.availableDrivers = response.drivers.map((driver: any) => ({
-          ...driver,
-          isSelected: false
-        }));
-        
-        // If this is a reassignment, exclude the current driver
-        if (this.isReassignment && this.currentDriverId) {
-          this.availableDrivers = this.availableDrivers.filter(driver => driver.id !== this.currentDriverId);
-          console.log('🔄 Reassignment mode: Excluded current driver', this.currentDriverId);
-        }
-        
-        this.filteredDrivers = [...this.availableDrivers];
-        this.isLoading = false;
-        console.log('📦 Loaded all drivers:', this.availableDrivers);
-        console.log('📊 Total drivers found:', this.availableDrivers.length);
-        
-        // Add driver markers to map after loading drivers
-        if (this.map) {
-          this.addDriverMarkers();
-        }
-      },
-      error: (error: any) => {
-        console.error('❌ Error loading all drivers:', error);
-        this.isLoading = false;
-        this.toastService.showError('Failed to load drivers');
       }
     });
   }
@@ -235,7 +196,7 @@ export class AssignDriver implements OnInit, OnDestroy {
   }
 
   applyFilters() {
-    const { vehicleType, availability, rating } = this.assignForm.value;
+    const { vehicleType, rating } = this.assignForm.value;
     
     this.filteredDrivers = this.availableDrivers.filter(driver => {
       // Vehicle type filter
@@ -243,29 +204,70 @@ export class AssignDriver implements OnInit, OnDestroy {
         return false;
       }
       
-      // Availability filter
-      if (availability !== 'All') {
-        if (availability === 'Available' && !driver.isAvailable) {
-          return false;
-        }
-        if (availability === 'Busy' && driver.isAvailable) {
-          return false;
-        }
-        if (availability === 'Offline' && driver.isAvailable) {
-          return false;
-        }
-      }
-      
       // Rating filter
       if (rating !== 'All') {
         const minRating = parseFloat(rating.replace('+', ''));
-        if (driver.averageRating < minRating) {
+        if ((driver.averageRating || 0) < minRating) {
           return false;
         }
       }
       
       return true;
     });
+
+    // Reset pagination when filters change
+    this.currentPage = 1;
+    this.totalDrivers = this.filteredDrivers.length;
+  }
+
+  // Get paginated drivers
+  get paginatedDrivers(): DriverWithSelection[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredDrivers.slice(startIndex, endIndex);
+  }
+
+  // Get total pages
+  get totalPages(): number {
+    return Math.ceil(this.totalDrivers / this.itemsPerPage);
+  }
+
+  // Get page numbers to display
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxPagesToShow = 5;
+    const startPage = Math.max(1, this.currentPage - Math.floor(maxPagesToShow / 2));
+    const endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
+  }
+
+  // Navigation methods
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+    }
+  }
+
+  goToPreviousPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+    }
+  }
+
+  goToNextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+    }
+  }
+
+  // Helper method for template
+  get endIndex(): number {
+    return Math.min(this.currentPage * this.itemsPerPage, this.totalDrivers);
   }
 
   selectDriver(driver: DriverWithSelection) {
@@ -369,18 +371,6 @@ export class AssignDriver implements OnInit, OnDestroy {
     });
   }
 
-  getDriverStatusClass(driver: DriverWithSelection): string {
-    if (driver.isAvailable) {
-      return 'status-available';
-    } else {
-      return 'status-busy';
-    }
-  }
-
-  getDriverStatusText(driver: DriverWithSelection): string {
-    return driver.isAvailable ? 'Available' : 'Busy';
-  }
-
   getRatingStars(rating: number): string {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
@@ -400,10 +390,75 @@ export class AssignDriver implements OnInit, OnDestroy {
   }
 
   // Map Methods
-  private async initializeMap(): Promise<void> {
+  public async initializeMap(): Promise<void> {
     try {
+      console.log('🗺️ Initializing map...');
+      this.mapLoading = true;
+      this.mapError = false;
+      
+      // Check if map container exists
+      const mapContainer = document.getElementById('assign-driver-map');
+      if (!mapContainer) {
+        console.error('❌ Map container not found: assign-driver-map');
+        this.mapError = true;
+        this.mapLoading = false;
+        this.toastService.showError('Map container not found. Please refresh the page.');
+        return;
+      }
+      
+      console.log('✅ Map container found:', mapContainer);
+      console.log('📏 Container dimensions:', {
+        width: mapContainer.offsetWidth,
+        height: mapContainer.offsetHeight,
+        style: mapContainer.style.cssText
+      });
+      
+      console.log('✅ Map container found, creating map instance...');
+      
+      // Check if Leaflet is available
+      if (typeof L === 'undefined') {
+        console.error('❌ Leaflet is not loaded');
+        this.mapError = true;
+        this.mapLoading = false;
+        this.toastService.showError('Map library not loaded. Please refresh the page.');
+        return;
+      }
+      
+      console.log('✅ Leaflet is available:', L);
+      
       // Create map instance
-      this.map = this.mapService.createMap('assign-driver-map');
+      try {
+        this.map = this.mapService.createMap('assign-driver-map');
+      } catch (error) {
+        console.error('❌ Error creating map via service:', error);
+        
+        // Fallback: create map directly
+        try {
+          console.log('🔄 Attempting fallback map creation...');
+          this.map = L.map('assign-driver-map').setView([-1.2921, 36.8219], 13);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            minZoom: 1
+          }).addTo(this.map);
+          console.log('✅ Fallback map created successfully');
+        } catch (fallbackError) {
+          console.error('❌ Fallback map creation also failed:', fallbackError);
+          this.mapError = true;
+          this.mapLoading = false;
+          this.toastService.showError('Failed to create map. Please refresh the page.');
+          return;
+        }
+      }
+      
+      if (!this.map) {
+        console.error('❌ Failed to create map instance');
+        this.mapError = true;
+        this.mapLoading = false;
+        this.toastService.showError('Failed to create map. Please refresh the page.');
+        return;
+      }
+      
+      console.log('✅ Map instance created successfully');
       
       // Add markers for pickup and delivery locations
       await this.addLocationMarkers();
@@ -417,8 +472,21 @@ export class AssignDriver implements OnInit, OnDestroy {
       // Fit map to show all markers
       this.fitMapToBounds();
       
+      // Force map to refresh its size
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize();
+          console.log('🔄 Map size invalidated');
+        }
+      }, 100);
+      
+      console.log('✅ Map initialization completed successfully');
+      this.mapLoading = false;
+      
     } catch (error) {
-      console.error('Error initializing map:', error);
+      console.error('❌ Error initializing map:', error);
+      this.mapError = true;
+      this.mapLoading = false;
       this.toastService.showError('Failed to load map. Please refresh the page.');
     }
   }
@@ -539,7 +607,6 @@ export class AssignDriver implements OnInit, OnDestroy {
               <strong>Driver: ${driver.name}</strong><br>
               <strong>Vehicle:</strong> ${driver.vehicleType || 'N/A'} - ${driver.vehicleNumber || 'N/A'}<br>
               <strong>Rating:</strong> ${(driver.averageRating || 0).toFixed(1)} ★ (${driver.totalRatings || 0})<br>
-              <strong>Status:</strong> ${driver.isAvailable ? 'Available' : 'Busy'}<br>
               <strong>Phone:</strong> ${driver.phone || 'N/A'}<br>
               <strong>Completed Deliveries:</strong> ${driver.completedDeliveries || 0}
             `
@@ -613,6 +680,14 @@ export class AssignDriver implements OnInit, OnDestroy {
     this.toastService.showSuccess('Map adjusted to show all locations');
   }
 
+  public refreshMap(): void {
+    if (this.map) {
+      this.map.invalidateSize();
+      this.fitMapToBounds();
+      this.toastService.showSuccess('Map refreshed');
+    }
+  }
+
   // Update map when parcel details change
   private async updateMap(): Promise<void> {
     if (!this.map) return;
@@ -648,7 +723,20 @@ export class AssignDriver implements OnInit, OnDestroy {
     this.deliveryMarker = null;
     this.routeLine = null;
     
+    // Remove window resize listener
+    window.removeEventListener('resize', this.handleResize.bind(this));
+    
     // Clear temporary parcel details
     this.parcelsService.clearTempParcelDetails();
+  }
+
+  private handleResize(): void {
+    // Debounce resize events
+    setTimeout(() => {
+      if (this.map) {
+        this.map.invalidateSize();
+        console.log('🔄 Map resized');
+      }
+    }, 250);
   }
 } 

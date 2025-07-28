@@ -2,23 +2,27 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { MapComponent } from '../../../shared/map/map.component';
 import { MapService } from '../../../../services/map.service';
 import { MapLocation, MapCoordinates, MapError, MapMarkerType } from '../../../../types/map.types';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { SidebarComponent } from '../../../shared/sidebar/sidebar';
 import { ParcelsService } from '../../../../services/parcels.service';
+import { AuthService } from '../../../../services/auth.service';
 import * as L from 'leaflet';
 
 interface ParcelDetailsData {
   id: string;
   trackingNumber: string;
-  status: 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'In Transit' | 'Delivered' | 'Completed' | 'Cancelled';
   pickupDate: string;
   deliveryDate: string;
   weight: string;
   dimensions: string;
   price: string;
+  currentLocation?: string;
+  estimatedTime?: string;
   driver?: {
     id?: string;
     name: string;
@@ -72,16 +76,22 @@ export class ParcelDetails implements OnInit {
   mapCenter: MapCoordinates = { lat: -1.2921, lng: 36.8219 }; // Nairobi
   showMapView: boolean = true;
   mapMarkerTypes: MapMarkerType[] = [];
+  
+  // Route information for tracking details
+  routeDistance: string = '';
+  routeDuration: string = '';
 
   constructor(
     private route: ActivatedRoute, 
     private router: Router,
     private mapService: MapService,
     private toastService: ToastService,
-    private parcelsService: ParcelsService
+    private parcelsService: ParcelsService,
+    private http: HttpClient,
+    private authService: AuthService
   ) {}
 
-  ngOnInit() {
+  async ngOnInit() {
     this.route.params.subscribe(params => {
       this.parcelId = params['id'];
       this.loadParcelDetails();
@@ -93,7 +103,7 @@ export class ParcelDetails implements OnInit {
       const state = navigation.extras.state as any;
       if (state.newlyAssigned && state.assignedDriverId) {
         // Update the parcel with the newly assigned driver
-        this.updateParcelWithNewDriver(state.assignedDriverId, state.isReassignment);
+        await this.updateParcelWithNewDriver(state.assignedDriverId, state.isReassignment);
       }
     }
   }
@@ -132,9 +142,9 @@ export class ParcelDetails implements OnInit {
     // Call the API to get the actual parcel details
     console.log('🌐 Fetching parcel details from API for ID:', parcelId);
     this.parcelsService.getParcel(parcelId).subscribe({
-      next: (response: any) => {
+      next: async (response: any) => {
         console.log('✅ API response for parcel:', response);
-        this.createParcelFromApiResponse(response);
+        await this.createParcelFromApiResponse(response);
         this.loading = false;
       },
       error: (error: any) => {
@@ -194,7 +204,7 @@ export class ParcelDetails implements OnInit {
     }
   }
 
-  private createParcelFromApiResponse(apiResponse: any) {
+  private async createParcelFromApiResponse(apiResponse: any) {
     console.log('🔄 Creating parcel from API response:', apiResponse);
     
     // Convert API response to the format expected by the component
@@ -205,20 +215,14 @@ export class ParcelDetails implements OnInit {
       id: apiResponse.id,
       trackingNumber: apiResponse.trackingNumber || apiResponse.id,
       status: status,
-      pickupDate: this.getPickupDate(apiResponse.createdAt || new Date().toISOString()),
-      deliveryDate: apiResponse.assignedAt ? new Date(apiResponse.assignedAt).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }) : new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
+      pickupDate: this.formatDateTime(apiResponse.actualPickupTime || apiResponse.estimatedPickupTime),
+      deliveryDate: this.formatDateTime(apiResponse.actualDeliveryTime || apiResponse.estimatedDeliveryTime),
       weight: weight,
       dimensions: '25x15x8 cm',
       price: `KSH ${apiResponse.price || this.calculatePriceFromWeight(weight).replace('KSH ', '')}`,
-      driver: apiResponse.driverId ? this.getDriverInfo('John Smith') : undefined,
+      currentLocation: apiResponse.currentLocation,
+      estimatedTime: this.calculateEstimatedTime(apiResponse.actualPickupTime || apiResponse.estimatedPickupTime, apiResponse.actualDeliveryTime || apiResponse.estimatedDeliveryTime),
+      driver: apiResponse.driverId ? await this.getDriverInfoById(apiResponse.driverId) : undefined,
       sender: {
         name: apiResponse.senderName || 'Unknown Sender',
         address: apiResponse.pickupAddress || 'Address not available',
@@ -245,17 +249,19 @@ export class ParcelDetails implements OnInit {
 
 
 
-  private mapStatus(apiStatus: string): 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled' {
+  private mapStatus(apiStatus: string): 'Pending' | 'In Transit' | 'Delivered' | 'Completed' | 'Cancelled' {
     switch (apiStatus?.toLowerCase()) {
       case 'pending':
-        return 'Pending';
       case 'assigned':
+        return 'Pending';
       case 'picked_up':
       case 'in_transit':
         return 'In Transit';
       case 'delivered':
       case 'delivered_to_recipient':
         return 'Delivered';
+      case 'completed':
+        return 'Completed';
       case 'cancelled':
         return 'Cancelled';
       default:
@@ -272,6 +278,52 @@ export class ParcelDetails implements OnInit {
       month: 'long', 
       day: 'numeric' 
     });
+  }
+
+  formatDateTime(dateTime: string | Date | null | undefined): string {
+    if (!dateTime) return 'TBD';
+    
+    try {
+      const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime;
+      if (isNaN(date.getTime())) return 'TBD';
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return 'TBD';
+    }
+  }
+
+  calculateEstimatedTime(pickupTime: string | Date | null | undefined, deliveryTime: string | Date | null | undefined): string {
+    if (!pickupTime || !deliveryTime) return 'TBD';
+    
+    try {
+      const pickup = typeof pickupTime === 'string' ? new Date(pickupTime) : pickupTime;
+      const delivery = typeof deliveryTime === 'string' ? new Date(deliveryTime) : deliveryTime;
+      
+      if (isNaN(pickup.getTime()) || isNaN(delivery.getTime())) return 'TBD';
+      
+      const diffMs = delivery.getTime() - pickup.getTime();
+      const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+      
+      if (diffHours < 1) {
+        const diffMinutes = Math.round(diffMs / (1000 * 60));
+        return `${diffMinutes} minutes`;
+      } else if (diffHours < 24) {
+        return `${diffHours} hours`;
+      } else {
+        const diffDays = Math.round(diffHours / 24);
+        return `${diffDays} days`;
+      }
+    } catch (error) {
+      return 'TBD';
+    }
   }
 
 
@@ -299,16 +351,24 @@ export class ParcelDetails implements OnInit {
       }
     ];
 
-    if (status !== 'Pending') {
+    // Add "Driver Assigned" step if parcel has a driver but is still pending
+    if (this.parcel?.driver && status === 'Pending') {
+      history.push({
+        status: 'Driver Assigned',
+        date: this.getPickupDate(deliveryDate),
+        time: '11:30 AM',
+        icon: 'fas fa-user-plus'
+      });
+    }
+
+    if (status === 'In Transit' || status === 'Delivered') {
       history.push({
         status: 'Picked Up',
         date: this.getPickupDate(deliveryDate),
         time: '2:00 PM',
         icon: 'fas fa-box'
       });
-    }
-
-    if (status === 'In Transit' || status === 'Delivered') {
+      
       history.push({
         status: 'In Transit',
         date: deliveryDate,
@@ -330,7 +390,7 @@ export class ParcelDetails implements OnInit {
   }
 
   private getDriverInfo(driverName: string): {id?: string, name: string, phone: string, email: string, vehicleNumber: string, licenseNumber: string} {
-    // Return real driver data from API or empty data if not available
+    // This method is kept for backward compatibility but should be replaced with getDriverInfoById
     return {
       id: undefined,
       name: driverName || 'Unknown Driver',
@@ -339,6 +399,43 @@ export class ParcelDetails implements OnInit {
       vehicleNumber: 'Not available',
       licenseNumber: 'Not available'
     };
+  }
+
+  private async getDriverInfoById(driverId: string): Promise<{id?: string, name: string, phone: string, email: string, vehicleNumber: string, licenseNumber: string}> {
+    try {
+      // Import DriversService dynamically to avoid circular dependency
+      const { DriversService } = await import('../../../../services/drivers.service');
+      const driversService = new DriversService(
+        this.http,
+        this.authService,
+        this.toastService
+      );
+
+      const driver = await driversService.getDriver(driverId).toPromise();
+      
+      if (!driver) {
+        throw new Error('Driver not found');
+      }
+      
+      return {
+        id: driver.id,
+        name: driver.name || 'Unknown Driver',
+        phone: driver.phone || 'Not available',
+        email: driver.email || 'Not available',
+        vehicleNumber: driver.vehicleNumber || 'Not available',
+        licenseNumber: driver.licenseNumber || 'Not available'
+      };
+    } catch (error) {
+      console.error('Error fetching driver info:', error);
+      return {
+        id: driverId,
+        name: 'Unknown Driver',
+        phone: 'Not available',
+        email: 'Not available',
+        vehicleNumber: 'Not available',
+        licenseNumber: 'Not available'
+      };
+    }
   }
 
   private generateActivityLog(status: string, deliveryDate: string): Array<{action: string, date: string, time: string, user: string, icon: string}> {
@@ -352,7 +449,8 @@ export class ParcelDetails implements OnInit {
       }
     ];
 
-    if (status !== 'Pending') {
+    // Add "Driver Assigned" if parcel has a driver (even if still pending)
+    if (this.parcel?.driver) {
       log.push({
         action: 'Driver Assigned',
         date: this.getPickupDate(deliveryDate),
@@ -466,14 +564,13 @@ export class ParcelDetails implements OnInit {
     window.history.back();
   }
 
-  private updateParcelWithNewDriver(driverId: string, isReassignment: boolean = false) {
+  private async updateParcelWithNewDriver(driverId: string, isReassignment: boolean = false) {
     if (this.parcel) {
-      // Get driver name from ID
-      const driverName = this.getDriverNameById(driverId);
+      // Get real driver data from API
+      const driverInfo = await this.getDriverInfoById(driverId);
       
-      // Update parcel status and driver
-      this.parcel.status = 'In Transit';
-      this.parcel.driver = this.getDriverInfo(driverName);
+      // Update parcel driver (status remains 'Pending' until driver starts journey)
+      this.parcel.driver = driverInfo;
       
       // Add new activity log entry
       const action = isReassignment ? 'Driver Reassigned' : 'Driver Assigned';
@@ -515,17 +612,8 @@ export class ParcelDetails implements OnInit {
   }
 
   private getDriverNameById(driverId: string): string {
-    // This is a simple mapping - in a real app, you'd fetch this from the API
-    const driverMap: { [key: string]: string } = {
-      '1': 'John Smith',
-      '2': 'Mike Johnson',
-      '3': 'Sarah Wilson',
-      '4': 'David Brown',
-      '5': 'Lisa Davis',
-      '6': 'Tom Miller'
-    };
-    
-    return driverMap[driverId] || 'Unknown Driver';
+    // This method is kept for backward compatibility but should be replaced with API calls
+    return 'Unknown Driver';
   }
 
   // Map-related methods
@@ -564,15 +652,34 @@ export class ParcelDetails implements OnInit {
 
       // Add driver location marker if parcel is in transit and has a driver
       if (this.parcel.status === 'In Transit' && this.parcel.driver) {
-        // For demo purposes, we'll add a marker near the pickup location
-        const driverLocation = {
-          lat: this.mapMarkers[0]?.lat ? this.mapMarkers[0].lat + 0.01 : -1.2921,
-          lng: this.mapMarkers[0]?.lng ? this.mapMarkers[0].lng + 0.01 : 36.8219
-        };
+        // Try to get driver's current location from the parcel data
+        let driverLocation: MapCoordinates;
+        
+        // For admin view, we can try to get driver's actual location from API
+        // For now, we'll place driver between pickup and delivery or near pickup
+        if (this.mapMarkers.length >= 2) {
+          // Place driver between pickup and delivery points
+          driverLocation = {
+            lat: (this.mapMarkers[0].lat + this.mapMarkers[1].lat) / 2,
+            lng: (this.mapMarkers[0].lng + this.mapMarkers[1].lng) / 2
+          };
+        } else if (this.mapMarkers.length === 1) {
+          // Place driver near pickup location
+          driverLocation = {
+            lat: this.mapMarkers[0].lat + 0.005,
+            lng: this.mapMarkers[0].lng + 0.005
+          };
+        } else {
+          // Fallback to default location
+          driverLocation = {
+            lat: -1.2921,
+            lng: 36.8219
+          };
+        }
         
         this.mapMarkers.push({
           ...driverLocation,
-          description: `<strong>Driver Location</strong><br>${this.parcel.driver.name} - ${this.parcel.driver.vehicleNumber}`,
+          description: `<strong>Driver Location</strong><br>${this.parcel.driver.name} - ${this.parcel.driver.vehicleNumber}<br>Phone: ${this.parcel.driver.phone}<br>Email: ${this.parcel.driver.email}`,
           address: `Driver: ${this.parcel.driver.name}`
         });
         this.mapMarkerTypes.push(MapMarkerType.DRIVER);
@@ -584,6 +691,9 @@ export class ParcelDetails implements OnInit {
 
       // Update map center to show all markers
       this.updateMapCenter();
+      
+      // Calculate route information for tracking details
+      this.calculateRouteInfo();
       
       // Now that all markers are loaded, fit the map if it's ready
       this.fitMapAfterMarkersLoaded();
@@ -719,6 +829,71 @@ export class ParcelDetails implements OnInit {
 
   onRouteUpdated(routeInfo: { distance: number; estimatedTime: number }): void {
     console.log('Route updated:', routeInfo);
+    
+    // Update route information for tracking details
+    this.routeDistance = routeInfo.distance ? `${routeInfo.distance.toFixed(1)}` : '';
+    this.routeDuration = routeInfo.estimatedTime ? `${Math.round(routeInfo.estimatedTime)} min` : '';
+  }
+
+  /**
+   * Calculate delivery progress percentage based on parcel status
+   */
+  getDeliveryProgress(): number {
+    if (!this.parcel) return 0;
+    
+    switch (this.parcel.status) {
+      case 'Pending':
+        return 25;
+      case 'In Transit':
+        return 60;
+      case 'Delivered':
+        return 90;
+      case 'Completed':
+        return 100;
+      case 'Cancelled':
+        return 0;
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Calculate route information when map markers are available
+   */
+  private calculateRouteInfo(): void {
+    if (this.mapMarkers.length >= 2) {
+      // Calculate distance between pickup and delivery
+      const pickup = this.mapMarkers[0];
+      const delivery = this.mapMarkers[1];
+      
+      if (pickup && delivery) {
+        const distance = this.calculateDistance(pickup.lat, pickup.lng, delivery.lat, delivery.lng);
+        this.routeDistance = `${distance.toFixed(1)}`;
+        
+        // Estimate time based on distance (assuming average speed of 30 km/h)
+        const estimatedTimeMinutes = Math.round((distance / 30) * 60);
+        this.routeDuration = `${estimatedTimeMinutes} min`;
+      }
+    }
+  }
+
+  /**
+   * Calculate distance between two points using Haversine formula
+   */
+  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLng = this.deg2rad(lng2 - lng1);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI/180);
   }
 
   fitMapToMarkers(): void {

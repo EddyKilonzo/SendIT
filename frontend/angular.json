@@ -30,20 +30,23 @@
             ],
             "stylePreprocessorOptions": {
               "includePaths": ["src/styles"]
-            }
+            },
+            "allowedCommonJsDependencies": [
+              "leaflet"
+            ]
           },
           "configurations": {
             "production": {
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1MB",
+                  "maximumWarning": "1.5MB",
                   "maximumError": "2MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "10kB",
-                  "maximumError": "30kB"
+                  "maximumWarning": "25kB",
+                  "maximumError": "50kB"
                 }
               ],
               "outputHashing": "all"

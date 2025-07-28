@@ -71,13 +71,10 @@ export const driverApplicationManagementSchema = Joi.object({
   userId: Joi.string().required().messages({
     'any.required': 'User ID is required',
   }),
-  action: Joi.string()
-    .valid('approve', 'reject')
-    .required()
-    .messages({
-      'any.only': 'Action must be approve or reject',
-      'any.required': 'Action is required',
-    }),
+  action: Joi.string().valid('approve', 'reject').required().messages({
+    'any.only': 'Action must be approve or reject',
+    'any.required': 'Action is required',
+  }),
   reason: Joi.string().max(500).optional().messages({
     'string.max': 'Reason cannot exceed 500 characters',
   }),

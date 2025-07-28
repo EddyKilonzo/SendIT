@@ -89,7 +89,7 @@ export interface Parcel {
   pickupAddress: string;
   deliveryAddress: string;
   currentLocation?: string;
-  status: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered_to_recipient' | 'delivered' | 'cancelled';
+  status: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered_to_recipient' | 'delivered' | 'completed' | 'cancelled';
   weight: number;
   description?: string;
   value?: number;
@@ -210,26 +210,38 @@ export class BaseApiService {
       limit: limit.toString()
     };
 
+    console.log(`🚀 API Call - getUserParcels(${type})`);
+    console.log(`📋 Parameters:`, params);
+
     return this.http.get<Parcel[]>(`${this.apiUrl}/parcels/my-parcels`, { 
       headers: this.getHeaders(),
       params: this.buildParams(params)
     }).pipe(
-      catchError(error => this.handleError(error)),
+      catchError(error => {
+        console.error(`❌ API Error - getUserParcels(${type}):`, error);
+        return this.handleError(error);
+      }),
       // Transform the response to match the expected format
-      map(parcels => ({
-        parcels: parcels,
-        total: parcels.length,
-        page: page,
-        limit: limit
-      }))
+      map(parcels => {
+        console.log(`📦 API Response - getUserParcels(${type}):`, parcels);
+        return {
+          parcels: parcels,
+          total: parcels.length,
+          page: page,
+          limit: limit
+        };
+      })
     );
   }
 
   // Get user dashboard data
   getUserDashboardData(): Observable<UserDashboardData> {
-    return this.http.get<UserDashboardData>(`${this.apiUrl}/users/dashboard`, {
+    return this.http.get<{success: boolean; data: UserDashboardData; message: string}>(`${this.apiUrl}/users/dashboard`, {
       headers: this.getHeaders()
-    });
+    }).pipe(
+      map(response => response.data),
+      catchError(error => this.handleError(error))
+    );
   }
 
   // Get all parcels for current user (both sent and received)
@@ -246,7 +258,9 @@ export class BaseApiService {
       limit: number;
     }>(`${this.apiUrl}/parcels`, {
       headers: this.getHeaders()
-    });
+    }).pipe(
+      catchError(error => this.handleError(error))
+    );
   }
 
   // Get parcel by ID
@@ -259,6 +273,13 @@ export class BaseApiService {
   // Get parcel by tracking number
   getParcelByTrackingNumber(trackingNumber: string): Observable<Parcel> {
     return this.http.get<Parcel>(`${this.apiUrl}/parcels/tracking/${trackingNumber}`, {
+      headers: this.getHeaders()
+    });
+  }
+
+  // Mark parcel as completed
+  markAsCompleted(parcelId: string, data: any = {}): Observable<Parcel> {
+    return this.http.patch<Parcel>(`${this.apiUrl}/parcels/${parcelId}/mark-as-completed`, data, {
       headers: this.getHeaders()
     });
   }

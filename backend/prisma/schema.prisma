@@ -23,7 +23,6 @@ model User {
   licenseNumber String?       @unique
   vehicleNumber String?
   vehicleType   VehicleType?
-  isAvailable   Boolean       @default(true)
   currentLat    Float?
   currentLng    Float?
   
