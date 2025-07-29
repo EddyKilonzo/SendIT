@@ -326,6 +326,8 @@ export class UsersService {
   }
 
   async getDashboard(userId: string): Promise<any> {
+    console.log(`🔍 Dashboard Request - User ID: ${userId}`);
+    
     // Get user with parcels
     const user = await this.prisma.user.findUnique({
       where: {
@@ -348,28 +350,45 @@ export class UsersService {
     });
 
     if (!user) {
+      console.log(`❌ User not found: ${userId}`);
       throw new NotFoundException('User not found');
     }
 
-    // Get all user parcels for statistics
+    console.log(`✅ User found: ${user.name} (${user.email})`);
+
+    // Get all user parcels for statistics - check by ID, name, and email
     const allParcels = await this.prisma.parcel.findMany({
       where: {
-        OR: [{ senderId: userId }, { recipientId: userId }],
+        OR: [
+          { senderId: userId },
+          { recipientId: userId },
+          { senderName: user.name },
+          { recipientName: user.name },
+          { senderEmail: user.email },
+          { recipientEmail: user.email }
+        ],
         deletedAt: null,
       },
     });
 
+    console.log(`📦 Total parcels found: ${allParcels.length}`);
+
     // Calculate statistics using allParcels instead of limited user.sentParcels
     const totalParcelsSent = allParcels.filter(
-      (parcel) => parcel.senderId === userId,
+      (parcel) => parcel.senderId === userId || parcel.senderName === user.name || parcel.senderEmail === user.email,
     ).length;
     const totalParcelsReceived = allParcels.filter(
-      (parcel) => parcel.recipientId === userId,
+      (parcel) => parcel.recipientId === userId || parcel.recipientName === user.name || parcel.recipientEmail === user.email,
     ).length;
+
+    console.log(`📤 Sent parcels: ${totalParcelsSent}`);
+    console.log(`📥 Received parcels: ${totalParcelsReceived}`);
 
     const parcelsInTransit = allParcels.filter((parcel) =>
       ['assigned', 'picked_up', 'in_transit'].includes(parcel.status),
     ).length;
+
+    console.log(`🚚 Parcels in transit: ${parcelsInTransit}`);
 
     // Calculate scheduled for tomorrow
     const tomorrow = new Date();
@@ -385,10 +404,18 @@ export class UsersService {
       return pickupDate >= tomorrow && pickupDate < dayAfterTomorrow;
     }).length;
 
-    // Calculate total spent
-    const totalSpent = allParcels
+    console.log(`📅 Scheduled for tomorrow: ${scheduledForTomorrow}`);
+
+    // Calculate total spent - only for parcels where user is the sender (not recipient)
+    const sentParcels = allParcels.filter(
+      (parcel) => parcel.senderId === userId || parcel.senderName === user.name || parcel.senderEmail === user.email,
+    );
+    
+    const totalSpent = sentParcels
       .filter((parcel) => parcel.deliveryFee)
       .reduce((sum, parcel) => sum + (parcel.deliveryFee || 0), 0);
+
+    console.log(`💰 Total spent: ksh${totalSpent.toFixed(0)}`);
 
     // Get recent parcels for activity feed
     const recentParcels = allParcels
@@ -397,6 +424,8 @@ export class UsersService {
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       )
       .slice(0, 5);
+
+    console.log(`🕒 Recent parcels: ${recentParcels.length}`);
 
     // Create summary cards
     const summaryCards = [
@@ -417,17 +446,29 @@ export class UsersService {
       },
     ];
 
-    return {
+    const result = {
       totalParcelsSent,
       totalParcelsReceived,
       parcelsInTransit,
       scheduledForTomorrow,
+      totalSpent,
       recentParcels: recentParcels.map((parcel) =>
         this.mapToParcelResponse(parcel),
       ),
       summaryCards,
       totalParcels: allParcels.length,
     };
+
+    console.log(`✅ Dashboard response:`, {
+      totalParcelsSent: result.totalParcelsSent,
+      totalParcelsReceived: result.totalParcelsReceived,
+      parcelsInTransit: result.parcelsInTransit,
+      scheduledForTomorrow: result.scheduledForTomorrow,
+      totalParcels: result.totalParcels,
+      recentParcelsCount: result.recentParcels.length
+    });
+
+    return result;
   }
 
   async uploadProfilePicture(

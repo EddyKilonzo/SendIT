@@ -68,6 +68,13 @@ export class ReviewsController {
     return this.reviewsService.getReviewStats();
   }
 
+  @Post('recalculate-driver-ratings')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async recalculateAllDriverRatings() {
+    return this.reviewsService.recalculateAllDriverRatings();
+  }
+
   @Get('parcel/:parcelId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')

@@ -35,7 +35,8 @@ import { CommonModule } from '../common/common.module';
         dir: join(__dirname, 'templates'),
         adapter: new EjsAdapter(),
         options: {
-          strict: true,
+          strict: false, // Changed from true to false to be more permissive
+          debug: true, // Add debug mode
         },
       },
     }),

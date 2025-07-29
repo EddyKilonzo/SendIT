@@ -24,11 +24,11 @@ export const registerSchema = Joi.object({
     'string.max': 'Address cannot exceed 200 characters',
   }),
   role: Joi.string()
-    .valid('USER', 'DRIVER', 'ADMIN')
+    .valid('CUSTOMER', 'DRIVER', 'ADMIN')
     .optional()
-    .default('USER')
+    .default('CUSTOMER')
     .messages({
-      'any.only': 'Role must be either USER, DRIVER, or ADMIN',
+      'any.only': 'Role must be either CUSTOMER, DRIVER, or ADMIN',
     }),
 
   // Driver-specific fields (only required for DRIVER role)
@@ -41,13 +41,22 @@ export const registerSchema = Joi.object({
     }),
     otherwise: Joi.string().optional(),
   }),
-  vehicleNumber: Joi.string().max(20).optional().messages({
-    'string.max': 'Vehicle number cannot exceed 20 characters',
-  }),
-  vehicleType: Joi.string()
-    .valid('MOTORCYCLE', 'CAR', 'VAN', 'TRUCK')
-    .optional()
-    .messages({
-      'any.only': 'Vehicle type must be MOTORCYCLE, CAR, VAN, or TRUCK',
+  vehicleNumber: Joi.when('role', {
+    is: 'DRIVER',
+    then: Joi.string().min(3).max(20).optional().messages({
+      'string.min': 'Vehicle number must be at least 3 characters long',
+      'string.max': 'Vehicle number cannot exceed 20 characters',
     }),
+    otherwise: Joi.string().optional(),
+  }),
+  vehicleType: Joi.when('role', {
+    is: 'DRIVER',
+    then: Joi.string()
+      .valid('MOTORCYCLE', 'CAR', 'VAN', 'TRUCK')
+      .optional()
+      .messages({
+        'any.only': 'Vehicle type must be MOTORCYCLE, CAR, VAN, or TRUCK',
+      }),
+    otherwise: Joi.string().optional(),
+  }),
 });

@@ -152,8 +152,23 @@ export class ReviewsService {
       throw new NotFoundException('Parcel not found or not delivered');
     }
 
+    // Get the current user to check their email
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: reviewerId },
+    });
+
+    if (!currentUser) {
+      throw new NotFoundException('User not found');
+    }
+
     // Verify reviewer is the sender or recipient of the parcel
-    if (parcel.senderId !== reviewerId && parcel.recipientId !== reviewerId) {
+    // Check by ID first, then by email for cases where recipientId is null
+    const isSender = parcel.senderId === reviewerId;
+    const isRecipient = parcel.recipientId === reviewerId;
+    const isSenderByEmail = parcel.senderEmail === currentUser.email;
+    const isRecipientByEmail = parcel.recipientEmail === currentUser.email;
+
+    if (!isSender && !isRecipient && !isSenderByEmail && !isRecipientByEmail) {
       throw new ForbiddenException(
         'You can only review parcels you sent or received',
       );
@@ -192,6 +207,11 @@ export class ReviewsService {
         reviewer: true,
       },
     });
+
+    // Update driver rating if the parcel has a driver
+    if (parcel.driverId) {
+      await this.updateDriverRating(parcel.driverId);
+    }
 
     return this.mapToReviewResponse(review as ReviewWithRelations);
   }
@@ -335,31 +355,36 @@ export class ReviewsService {
   ): Promise<ReviewResponseDto> {
     const { rating, comment } = updateReviewDto;
 
+    // Validate rating if provided
+    if (rating !== undefined && (rating < 1 || rating > 5)) {
+      throw new BadRequestException('Rating must be between 1 and 5');
+    }
+
     // Check if review exists and belongs to user
-    const review = await this.prisma.review.findFirst({
+    const existingReview = await this.prisma.review.findFirst({
       where: {
         id,
         reviewerId: userId,
       },
+      include: {
+        parcel: {
+          include: {
+            driver: true,
+          },
+        },
+      },
     });
 
-    if (!review) {
-      throw new NotFoundException(
-        'Review not found or you do not have permission to edit it',
-      );
-    }
-
-    // Validate rating if provided
-    if (rating !== undefined && (rating < 1 || rating > 5)) {
-      throw new BadRequestException('Rating must be between 1 and 5');
+    if (!existingReview) {
+      throw new NotFoundException('Review not found or you are not authorized to update it');
     }
 
     // Update review
     const updatedReview = await this.prisma.review.update({
       where: { id },
       data: {
-        rating,
-        comment,
+        ...(rating !== undefined && { rating }),
+        ...(comment !== undefined && { comment }),
       },
       include: {
         parcel: {
@@ -373,20 +398,32 @@ export class ReviewsService {
       },
     });
 
+    // Update driver rating if the parcel has a driver
+    if (existingReview.parcel?.driverId) {
+      await this.updateDriverRating(existingReview.parcel.driverId);
+    }
+
     return this.mapToReviewResponse(updatedReview as ReviewWithRelations);
   }
 
   // Delete review - only by the reviewer
   async remove(id: string, userId: string): Promise<{ message: string }> {
     // Check if review exists and belongs to user
-    const review = await this.prisma.review.findFirst({
+    const existingReview = await this.prisma.review.findFirst({
       where: {
         id,
         reviewerId: userId,
       },
+      include: {
+        parcel: {
+          include: {
+            driver: true,
+          },
+        },
+      },
     });
 
-    if (!review) {
+    if (!existingReview) {
       throw new NotFoundException(
         'Review not found or you do not have permission to delete it',
       );
@@ -396,6 +433,11 @@ export class ReviewsService {
     await this.prisma.review.delete({
       where: { id },
     });
+
+    // Update driver rating if the parcel has a driver
+    if (existingReview.parcel?.driverId) {
+      await this.updateDriverRating(existingReview.parcel.driverId);
+    }
 
     return { message: 'Review deleted successfully' };
   }
@@ -630,6 +672,7 @@ export class ReviewsService {
         | 'in_transit'
         | 'delivered_to_recipient'
         | 'delivered'
+        | 'completed'
         | 'cancelled',
       weight: parcel.weight,
       description: parcel.description || undefined,
@@ -657,15 +700,89 @@ export class ReviewsService {
       customerNotes: parcel.customerNotes || undefined,
       createdAt: parcel.createdAt,
       updatedAt: parcel.updatedAt,
-      sender: parcel.sender ? this.mapToUserResponse(parcel.sender) : undefined,
-      recipient: parcel.recipient
-        ? this.mapToUserResponse(parcel.recipient)
-        : undefined,
-      driver: parcel.driver ? this.mapToUserResponse(parcel.driver) : undefined,
-      statusHistory: parcel.statusHistory || [],
-      reviews: parcel.reviews || [],
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      deliveryProof: parcel.deliveryProof || null,
     };
+  }
+
+  /**
+   * Update driver rating based on all reviews received
+   */
+  private async updateDriverRating(driverId: string): Promise<void> {
+    try {
+      // Get all reviews for parcels delivered by this driver
+      const reviews = await this.prisma.review.findMany({
+        where: {
+          parcel: {
+            driverId: driverId,
+            status: { in: ['delivered', 'completed'] },
+            deletedAt: null,
+          },
+        },
+        select: {
+          rating: true,
+        },
+      });
+
+      if (reviews.length === 0) {
+        // No reviews yet, set default values
+        await this.prisma.user.update({
+          where: { id: driverId },
+          data: {
+            averageRating: 0,
+            totalRatings: 0,
+          },
+        });
+        return;
+      }
+
+      // Calculate average rating
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      const averageRating = totalRating / reviews.length;
+
+      // Update driver's rating
+      await this.prisma.user.update({
+        where: { id: driverId },
+        data: {
+          averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+          totalRatings: reviews.length,
+        },
+      });
+    } catch (error) {
+      console.error('Error updating driver rating:', error);
+      // Don't throw error to avoid breaking review creation
+    }
+  }
+
+  /**
+   * Recalculate all driver ratings (useful for fixing existing data)
+   */
+  async recalculateAllDriverRatings(): Promise<{ message: string; updatedDrivers: number }> {
+    try {
+      // Get all drivers
+      const drivers = await this.prisma.user.findMany({
+        where: {
+          role: 'DRIVER',
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      let updatedCount = 0;
+
+      // Update each driver's rating
+      for (const driver of drivers) {
+        await this.updateDriverRating(driver.id);
+        updatedCount++;
+      }
+
+      return {
+        message: `Successfully recalculated ratings for ${updatedCount} drivers`,
+        updatedDrivers: updatedCount,
+      };
+    } catch (error) {
+      console.error('Error recalculating driver ratings:', error);
+      throw new Error('Failed to recalculate driver ratings');
+    }
   }
 }

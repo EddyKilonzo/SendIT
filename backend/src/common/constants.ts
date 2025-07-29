@@ -33,3 +33,22 @@ export const VEHICLE_TYPE = {
   VAN: 'VAN',
   TRUCK: 'TRUCK',
 } as const;
+
+// JWT Configuration
+export const JWT_CONFIG = {
+  secret: process.env.JWT_SECRET || 'sendit-super-secret-jwt-key-2024-secure-and-unique',
+  refreshSecret: process.env.JWT_REFRESH_SECRET || 'sendit-refresh-secret-key-2024-secure-and-unique',
+  accessTokenExpiresIn: '1h' as const,
+  refreshTokenExpiresIn: '7d' as const,
+  signOptions: {
+    issuer: 'sendit-api' as const,
+    audience: 'sendit-client' as const,
+  },
+  verifyOptions: {
+    issuer: 'sendit-api' as const,
+    audience: 'sendit-client' as const,
+  },
+} as const;
+
+// Type-safe JWT configuration
+export type JwtConfigType = typeof JWT_CONFIG;

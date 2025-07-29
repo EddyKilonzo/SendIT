@@ -9,8 +9,17 @@ import { ParcelsModule } from '../parcels/parcels.module';
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '24h' },
+      secret:
+        process.env.JWT_SECRET ||
+        'sendit-super-secret-jwt-key-2024-secure-and-unique',
+      signOptions: {
+        issuer: 'sendit-api',
+        audience: 'sendit-client',
+      },
+      verifyOptions: {
+        issuer: 'sendit-api',
+        audience: 'sendit-client',
+      },
     }),
     forwardRef(() => SendITMailerModule),
     forwardRef(() => ParcelsModule),

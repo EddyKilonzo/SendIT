@@ -6,12 +6,13 @@ import { CommonModule } from '../common/common.module';
 import { SendITMailerModule } from '../mailer/mailer.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JWT_CONFIG } from '../common/constants';
 
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '24h' },
+      secret: JWT_CONFIG.secret,
+      signOptions: { ...JWT_CONFIG.signOptions, expiresIn: '24h' },
     }),
     CommonModule,
     SendITMailerModule,

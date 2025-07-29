@@ -279,53 +279,50 @@
                 <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
             </div>
             <div class="user-avatar">
-                <% if (typeof profilePicture !== 'undefined' && profilePicture) { %>
-                    <img src="<%= profilePicture %>" alt="<%= typeof name !== 'undefined' ? name : 'User' %>'s profile">
+                <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>", profilePicture="<%= typeof profilePicture !== 'undefined' ? profilePicture : 'UNDEFINED' %>" -->
+                <% if (profilePicture) { %>
+                    <img src="<%= profilePicture %>" alt="<%= name %>'s profile">
                 <% } else { %>
-                    <span class="initial"><%= typeof name !== 'undefined' && name ? name.charAt(0).toUpperCase() : 'U' %></span>
+                    <span class="initial"><%= name ? name.charAt(0).toUpperCase() : 'U' %></span>
                 <% } %>
             </div>
             
-            <h2 class="card-heading">Application Approved</h2>
+            <h2 class="card-heading">Parcel Created Successfully</h2>
             <div class="separator"></div>
             
             <div class="greeting">
-                Greetings, <strong style="color: #DBBB02;"> <%= typeof name !== 'undefined' ? name : 'User' %></strong>
+                <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>" -->
+                Greetings, <strong style="color: #DBBB02;"> <%= name %></strong>
             </div>
             
             <div class="content-text">
-                We are pleased to inform you that your application has been approved. You can now start delivering parcels with ease.
+                Your parcel has been created successfully and is ready for pickup. Here are the details:
             </div>
-            <div class="content-text">
-                <p>What you can do as a driver</p>
-            </div>
-            <div class="delivery-details">
-                
+            
+            <div class="parcel-details">
                 <div class="detail-row">
-                    <span class="detail-label">1. Pick up the parcel from the sender</span>
-                    
+                    <span class="detail-label">Tracking Number:</span>
+                    <span class="detail-value"><%= typeof trackingNumber !== 'undefined' ? trackingNumber : 'N/A' %></span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">2. Deliver the parcel to the recipient</span>
-                    
+                    <span class="detail-label">Parcel ID:</span>
+                    <span class="detail-value"><%= typeof parcelId !== 'undefined' ? parcelId : 'N/A' %></span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">3. User inspects the parcel and rates you</span>
-                    
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value">
+                        <span class="status-badge">Created</span>
+                    </span>
                 </div>
-                    
-                
             </div>
             
             <div class="highlight-text">
-                <p>You can now start delivering parcels with ease.</p>
+                <p>Your parcel is now in our system and ready for pickup by a driver.</p>
             </div>
             
-            
-            
             <div style="text-align: center;">
-                <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/driver/parcels/<%= typeof parcelId !== 'undefined' ? parcelId : 'N/A' %>" class="cta-button">
-                    Check your dashboard
+                <a href="<%= typeof baseUrl !== 'undefined' ? baseUrl : 'http://localhost:4200' %>/track/<%= typeof trackingNumber !== 'undefined' ? trackingNumber : 'N/A' %>" class="cta-button">
+                    Track Parcel
                 </a>
             </div>
             

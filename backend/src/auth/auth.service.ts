@@ -37,8 +37,6 @@ interface JwtPayload {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly SALT_ROUNDS = 12;
-  private readonly ACCESS_TOKEN_EXPIRES_IN = '1h';
-  private readonly REFRESH_TOKEN_EXPIRES_IN = '7d';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -116,9 +114,13 @@ export class AuthService {
 
       // Send welcome email
       try {
+        this.logger.log(
+          `Debug - User data for email: name="${user.name}", profilePicture="${user.profilePicture}"`,
+        );
         await this.mailerService.sendWelcomeEmail({
           to: user.email,
           name: user.name,
+          profilePicture: user.profilePicture || undefined,
         });
         this.logger.log(`Welcome email sent to: ${user.email}`);
       } catch (emailError) {
@@ -387,6 +389,10 @@ export class AuthService {
         );
       }
 
+      this.logger.log(
+        `Debug - User data for password reset: name="${user.name}", profilePicture="${user.profilePicture}"`,
+      );
+
       // Clean up expired tokens for this email
       await this.prisma.passwordResetToken.deleteMany({
         where: {
@@ -412,6 +418,7 @@ export class AuthService {
         await this.mailerService.sendPasswordResetEmail({
           to: email,
           name: user.name,
+          profilePicture: user.profilePicture || undefined,
           resetToken: existingToken.token,
         });
 
@@ -448,6 +455,7 @@ export class AuthService {
       await this.mailerService.sendPasswordResetEmail({
         to: email,
         name: user.name,
+        profilePicture: user.profilePicture || undefined,
         resetToken: resetToken,
       });
 
@@ -693,10 +701,10 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        expiresIn: this.ACCESS_TOKEN_EXPIRES_IN,
+        expiresIn: '1h',
       }),
       this.jwtService.signAsync(payload, {
-        expiresIn: this.REFRESH_TOKEN_EXPIRES_IN,
+        expiresIn: '7d',
       }),
     ]);
 

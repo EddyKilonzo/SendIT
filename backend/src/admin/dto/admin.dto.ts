@@ -90,12 +90,52 @@ export class ParcelManagementDto {
 }
 
 export class DriverFilterDto {
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
   page?: number = 1;
+
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
   limit?: number = 10;
+
+  @IsOptional()
+  @IsString()
   search?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return value === 'true' || value === true;
+  })
+  @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return value === 'true' || value === true;
+  })
+  @IsBoolean()
   isAvailable?: boolean;
+
+  @IsOptional()
+  @IsEnum(['MOTORCYCLE', 'CAR', 'VAN', 'TRUCK'])
   vehicleType?: 'MOTORCYCLE' | 'CAR' | 'VAN' | 'TRUCK';
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return value === 'true' || value === true;
+  })
+  @IsBoolean()
   hasAssignedParcels?: boolean;
 }
 

@@ -11,6 +11,7 @@ import {
   UsePipes,
   UseGuards,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import { DriversService } from './drivers.service';
 import {
@@ -100,13 +101,18 @@ export class DriversController {
   }
 
   @Patch(':id/location')
-  @HttpCode(HttpStatus.OK)
-  @UsePipes(createJoiValidationPipe(updateLocationSchema))
   @Roles('DRIVER')
+  @UsePipes(createJoiValidationPipe(updateLocationSchema))
   updateLocation(
     @Param() params: IdParamDto,
     @Body() updateLocationDto: UpdateLocationDto,
+    @Request() req: { user: { sub: string } },
   ) {
+    // Ensure driver can only update their own location
+    if (req.user.sub !== params.id) {
+      throw new BadRequestException('You can only update your own location');
+    }
+    
     return this.driversService.updateLocation(params.id, updateLocationDto);
   }
 

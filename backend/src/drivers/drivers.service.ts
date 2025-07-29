@@ -14,6 +14,8 @@ import {
   AssignParcelDto,
   UpdateParcelStatusDto,
 } from '../users/dto';
+import { DriversGateway } from './drivers.gateway';
+import { MailerService } from '../mailer/mailer.service';
 
 interface DriverPerformanceResponse {
   driverId: string;
@@ -44,7 +46,11 @@ interface UpdateParcelStatusResponse {
 export class DriversService {
   private readonly logger = new Logger(DriversService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly driversGateway: DriversGateway,
+    private readonly mailerService: MailerService,
+  ) {}
 
   async findAll(query: {
     page?: number;
@@ -106,43 +112,25 @@ export class DriversService {
     }
 
     if (minimumRating) {
-      const minRating =
-        typeof minimumRating === 'string'
-          ? parseFloat(minimumRating)
-          : minimumRating;
       where.averageRating = {
-        gte: minRating,
+        gte: minimumRating,
       };
     }
 
-    // Create proper orderBy object
-    let orderBy: Prisma.UserOrderByWithRelationInput;
-    switch (sortBy) {
-      case 'averageRating':
-        orderBy = { averageRating: sortOrder };
-        break;
-      case 'totalDeliveries':
-        orderBy = { totalDeliveries: sortOrder };
-        break;
-      case 'completedDeliveries':
-        orderBy = { completedDeliveries: sortOrder };
-        break;
-      case 'totalEarnings':
-        orderBy = { totalEarnings: sortOrder };
-        break;
-      case 'onTimeDeliveryRate':
-        orderBy = { onTimeDeliveryRate: sortOrder };
-        break;
-      case 'lastActiveAt':
-        orderBy = { lastActiveAt: sortOrder };
-        break;
-      case 'createdAt':
-      default:
-        orderBy = { createdAt: sortOrder };
-        break;
+    // Build order by clause
+    const orderBy: Prisma.UserOrderByWithRelationInput = {};
+    if (sortBy === 'averageRating') {
+      orderBy.averageRating = sortOrder;
+    } else if (sortBy === 'totalDeliveries') {
+      orderBy.totalDeliveries = sortOrder;
+    } else if (sortBy === 'name') {
+      orderBy.name = sortOrder;
+    } else if (sortBy === 'email') {
+      orderBy.email = sortOrder;
+    } else {
+      orderBy.createdAt = sortOrder;
     }
 
-    // Get drivers with pagination
     const [drivers, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
@@ -204,6 +192,19 @@ export class DriversService {
         lastActiveAt: new Date(),
       },
     });
+
+    // Broadcast location update via WebSocket
+    this.driversGateway.broadcastDriverLocation({
+      driverId: updatedDriver.id,
+      driverName: updatedDriver.name,
+      currentLat: updatedDriver.currentLat!,
+      currentLng: updatedDriver.currentLng!,
+      lastActiveAt: updatedDriver.lastActiveAt!,
+      vehicleType: updatedDriver.vehicleType || undefined,
+      vehicleNumber: updatedDriver.vehicleNumber || undefined,
+    });
+
+    this.logger.log(`Driver ${id} location updated: ${currentLat}, ${currentLng}`);
 
     return this.mapToDriverResponse(updatedDriver);
   }
@@ -400,12 +401,13 @@ export class DriversService {
     const { driverId, parcelId, estimatedPickupTime, estimatedDeliveryTime } =
       assignParcelDto;
 
-    // Check if driver exists and is available
+    // Check if driver exists and is approved
     const driver = await this.prisma.user.findFirst({
       where: {
         id: driverId,
         role: 'DRIVER',
-        isAvailable: true,
+        driverApplicationStatus: 'APPROVED',
+        isActive: true,
         deletedAt: null,
       },
     });
@@ -450,6 +452,40 @@ export class DriversService {
         notes: `Parcel assigned to driver ${driver.name}. Status: Pending driver to start journey.`,
       },
     });
+
+    // Send driver assignment email to driver
+    try {
+      await this.mailerService.sendDriverAssignment({
+        to: driver.email,
+        name: driver.name,
+        profilePicture: driver.profilePicture || undefined,
+        parcelId: updatedParcel.id,
+        trackingNumber: updatedParcel.trackingNumber,
+        pickupAddress: updatedParcel.pickupAddress,
+        deliveryAddress: updatedParcel.deliveryAddress,
+        estimatedDelivery:
+          updatedParcel.estimatedDeliveryTime?.toISOString() ||
+          'To be determined',
+      });
+      this.logger.log(
+        `Driver assignment email sent to driver: ${driver.email}`,
+      );
+    } catch (emailError) {
+      this.logger.warn(
+        `Failed to send driver assignment email to driver ${driver.email}:`,
+        emailError,
+      );
+    }
+
+    // Broadcast driver assignment update via WebSocket
+    this.driversGateway.broadcastDriverAssignment({
+      driverId: driver.id,
+      parcelId: parcelId,
+      driverName: driver.name,
+      vehicleType: driver.vehicleType || undefined,
+    });
+
+    this.logger.log(`Parcel ${parcelId} assigned to driver ${driver.name}`);
 
     return {
       message:
@@ -496,16 +532,25 @@ export class DriversService {
       data: {
         parcelId,
         status,
-        location: currentLocation,
-        latitude,
-        longitude,
+        location: currentLocation || 'Location not specified',
         updatedBy: driverId,
-        notes,
+        notes: notes || `Status updated to ${status}`,
       },
     });
 
+    // Broadcast parcel status update via WebSocket
+    this.driversGateway.broadcastParcelStatusUpdate({
+      parcelId,
+      driverId,
+      status,
+      location: currentLocation,
+      timestamp: new Date(),
+    });
+
+    this.logger.log(`Parcel ${parcelId} status updated to ${status} by driver ${driverId}`);
+
     return {
-      message: 'Parcel status updated successfully',
+      message: `Parcel status updated to ${status}`,
       parcel: updatedParcel,
     };
   }

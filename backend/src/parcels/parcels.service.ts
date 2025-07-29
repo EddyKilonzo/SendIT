@@ -56,11 +56,29 @@ export class ParcelsService {
     // Calculate delivery fee based on weight and distance
     const deliveryFee = this.calculateDeliveryFee(weight, pickupAddress, deliveryAddress);
 
+    // Check if recipient is a registered user
+    let recipientId: string | undefined = undefined;
+    try {
+      const recipientUser = await this.prisma.user.findUnique({
+        where: { email: recipientEmail },
+        select: { id: true }
+      });
+      if (recipientUser) {
+        recipientId = recipientUser.id;
+        this.logger.log(`Recipient ${recipientEmail} is a registered user with ID: ${recipientId}`);
+      } else {
+        this.logger.log(`Recipient ${recipientEmail} is not a registered user`);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to check if recipient is registered: ${error}`);
+    }
+
     // Create parcel
     const parcel = await this.prisma.parcel.create({
       data: {
         trackingNumber,
         senderId: userId,
+        recipientId: recipientId, // Set recipientId if recipient is registered
         senderName,
         senderEmail,
         senderPhone,
@@ -85,21 +103,16 @@ export class ParcelsService {
 
     // Send parcel creation email to sender
     try {
-      await this.mailerService.sendGenericEmail({
+      this.logger.log(`Debug - Sender data for parcel creation: name="${senderName}", profilePicture="${parcel.sender?.profilePicture}"`);
+      await this.mailerService.sendParcelCreatedEmail({
         to: senderEmail,
-        subject: 'Parcel Created Successfully - SendIT',
-        template: 'parcel-created',
-        context: {
-          name: senderName,
-          trackingNumber,
-          recipientName,
-          recipientEmail,
-          pickupAddress,
-          deliveryAddress,
-          weight,
-          description,
-          value,
-        },
+        name: senderName,
+        profilePicture: parcel.sender?.profilePicture || undefined,
+        parcelId: parcel.id,
+        trackingNumber,
+        pickupAddress,
+        deliveryAddress,
+        estimatedDelivery: parcel.estimatedDeliveryTime?.toISOString() || 'To be determined',
       });
       this.logger.log(`Parcel creation email sent to sender: ${senderEmail}`);
     } catch (emailError) {
@@ -112,22 +125,16 @@ export class ParcelsService {
 
     // Send parcel creation email to recipient
     try {
-      await this.mailerService.sendGenericEmail({
+      this.logger.log(`Debug - Recipient data for parcel creation: name="${recipientName}", profilePicture="${parcel.recipient?.profilePicture}"`);
+      await this.mailerService.sendParcelCreatedEmail({
         to: recipientEmail,
-        subject: 'Parcel Incoming - SendIT',
-        template: 'parcel-created',
-        context: {
-          name: recipientName,
-          trackingNumber,
-          senderName,
-          senderEmail,
-          pickupAddress,
-          deliveryAddress,
-          weight,
-          description,
-          value,
-          isRecipient: true,
-        },
+        name: recipientName,
+        profilePicture: parcel.recipient?.profilePicture || undefined,
+        parcelId: parcel.id,
+        trackingNumber,
+        pickupAddress,
+        deliveryAddress,
+        estimatedDelivery: parcel.estimatedDeliveryTime?.toISOString() || 'To be determined',
       });
       this.logger.log(
         `Parcel creation email sent to recipient: ${recipientEmail}`,
@@ -138,6 +145,70 @@ export class ParcelsService {
         emailError,
       );
       // Don't fail parcel creation if email fails
+    }
+
+    // Create notifications for both sender and recipient
+    try {
+      // Notification for sender (if registered)
+      if (userId) {
+        await this.notificationsService.create({
+          userId: userId,
+          title: 'Parcel Created',
+          message: `Your parcel with tracking number ${trackingNumber} has been created successfully.`,
+          type: 'PARCEL_CREATED',
+          actionUrl: `/parcel/${parcel.id}`,
+          parcelId: parcel.id,
+        });
+      }
+
+      // Notification for recipient (if registered)
+      if (parcel.recipientId) {
+        await this.notificationsService.create({
+          userId: parcel.recipientId,
+          title: 'Parcel Created',
+          message: `A parcel with tracking number ${trackingNumber} has been created for you.`,
+          type: 'PARCEL_CREATED',
+          actionUrl: `/parcel/${parcel.id}`,
+          parcelId: parcel.id,
+        });
+      }
+    } catch (notificationError) {
+      this.logger.warn(
+        'Failed to create parcel creation notifications:',
+        notificationError,
+      );
+    }
+
+    // Update user statistics for sender and recipient
+    try {
+      // Update sender statistics
+      if (userId) {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            totalParcelsEverSent: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      // Update recipient statistics
+      if (parcel.recipientId) {
+        await this.prisma.user.update({
+          where: { id: parcel.recipientId },
+          data: {
+            totalParcelsReceived: {
+              increment: 1,
+            },
+          },
+        });
+      }
+    } catch (statsError) {
+      this.logger.warn(
+        'Failed to update user statistics:',
+        statsError,
+      );
     }
 
     return this.mapToParcelResponse(parcel);
@@ -176,7 +247,25 @@ export class ParcelsService {
 
     // Filter based on user role and permissions
     if (userRole === 'CUSTOMER' && userId) {
-      where.OR = [{ senderId: userId }, { recipientId: userId }];
+      // Get user details to check name and email
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true }
+      });
+
+      if (user) {
+        where.OR = [
+          { senderId: userId },
+          { recipientId: userId },
+          { senderName: user.name },
+          { recipientName: user.name },
+          { senderEmail: user.email },
+          { recipientEmail: user.email }
+        ];
+      } else {
+        // Fallback to just ID if user not found
+        where.OR = [{ senderId: userId }, { recipientId: userId }];
+      }
     } else if (userRole === 'DRIVER' && userId) {
       if (assignedToMe) {
         where.driverId = userId;
@@ -261,7 +350,25 @@ export class ParcelsService {
 
     // Add role-based filtering
     if (userRole === 'CUSTOMER' && userId) {
-      where.OR = [{ senderId: userId }, { recipientId: userId }];
+      // Get user details to check name and email
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true }
+      });
+
+      if (user) {
+        where.OR = [
+          { senderId: userId },
+          { recipientId: userId },
+          { senderName: user.name },
+          { recipientName: user.name },
+          { senderEmail: user.email },
+          { recipientEmail: user.email }
+        ];
+      } else {
+        // Fallback to just ID if user not found
+        where.OR = [{ senderId: userId }, { recipientId: userId }];
+      }
     } else if (userRole === 'DRIVER' && userId) {
       where.OR = [{ driverId: userId }, { status: 'pending' }];
     }
@@ -445,9 +552,11 @@ export class ParcelsService {
 
     // Send status update email to sender
     try {
+      this.logger.log(`Debug - Sender data for status update: name="${updatedParcel.senderName}", profilePicture="${updatedParcel.sender?.profilePicture}"`);
       await this.mailerService.sendParcelStatusUpdate({
         to: updatedParcel.senderEmail,
         name: updatedParcel.senderName,
+        profilePicture: updatedParcel.sender?.profilePicture || undefined,
         parcelId: updatedParcel.id,
         status,
         trackingNumber: updatedParcel.trackingNumber,
@@ -465,9 +574,11 @@ export class ParcelsService {
 
     // Send status update email to recipient
     try {
+      this.logger.log(`Debug - Recipient data for status update: name="${updatedParcel.recipientName}", profilePicture="${updatedParcel.recipient?.profilePicture}"`);
       await this.mailerService.sendParcelStatusUpdate({
         to: updatedParcel.recipientEmail,
         name: updatedParcel.recipientName,
+        profilePicture: updatedParcel.recipient?.profilePicture || undefined,
         parcelId: updatedParcel.id,
         status,
         trackingNumber: updatedParcel.trackingNumber,
@@ -483,6 +594,38 @@ export class ParcelsService {
       );
     }
 
+    // Create notifications for both sender and recipient
+    try {
+      // Notification for sender (if registered)
+      if (updatedParcel.senderId) {
+        await this.notificationsService.create({
+          userId: updatedParcel.senderId,
+          title: `Parcel ${status.replace('_', ' ').toUpperCase()}`,
+          message: `Your parcel with tracking number ${updatedParcel.trackingNumber} is now ${status.replace('_', ' ')}.`,
+          type: this.mapStatusToNotificationType(status),
+          actionUrl: `/parcel/${updatedParcel.id}`,
+          parcelId: updatedParcel.id,
+        });
+      }
+
+      // Notification for recipient (if registered)
+      if (updatedParcel.recipientId) {
+        await this.notificationsService.create({
+          userId: updatedParcel.recipientId,
+          title: `Parcel ${status.replace('_', ' ').toUpperCase()}`,
+          message: `Your parcel with tracking number ${updatedParcel.trackingNumber} is now ${status.replace('_', ' ')}.`,
+          type: this.mapStatusToNotificationType(status),
+          actionUrl: `/parcel/${updatedParcel.id}`,
+          parcelId: updatedParcel.id,
+        });
+      }
+    } catch (notificationError) {
+      this.logger.warn(
+        'Failed to create status update notifications:',
+        notificationError,
+      );
+    }
+
     return this.mapToParcelResponse(updatedParcel);
   }
 
@@ -494,11 +637,25 @@ export class ParcelsService {
   ): Promise<ParcelResponseDto> {
     const { customerSignature, customerNotes } = confirmationDto;
 
+    // Get the user's email to check if they are the recipient
+    const user = await this.prisma.user.findUnique({
+      where: { id: recipientId },
+      select: { email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     // Verify parcel is assigned to this recipient
+    // Check both by recipientId and by recipientEmail
     const parcel = await this.prisma.parcel.findFirst({
       where: {
         id,
-        recipientId,
+        OR: [
+          { recipientId },
+          { recipientEmail: user.email }
+        ],
         status: 'delivered_to_recipient',
         deletedAt: null,
       },
@@ -557,6 +714,38 @@ export class ParcelsService {
       },
     });
 
+    // Create notifications for both sender and recipient
+    try {
+      // Notification for sender (if registered)
+      if (updatedParcel.senderId) {
+        await this.notificationsService.create({
+          userId: updatedParcel.senderId,
+          title: 'Parcel Delivered',
+          message: `Your parcel with tracking number ${updatedParcel.trackingNumber} has been delivered to the recipient.`,
+          type: 'PARCEL_DELIVERED',
+          actionUrl: `/parcel/${updatedParcel.id}`,
+          parcelId: updatedParcel.id,
+        });
+      }
+
+      // Notification for recipient (if registered)
+      if (updatedParcel.recipientId) {
+        await this.notificationsService.create({
+          userId: updatedParcel.recipientId,
+          title: 'Parcel Delivered',
+          message: `Your parcel with tracking number ${updatedParcel.trackingNumber} has been delivered successfully.`,
+          type: 'PARCEL_DELIVERED',
+          actionUrl: `/parcel/${updatedParcel.id}`,
+          parcelId: updatedParcel.id,
+        });
+      }
+    } catch (notificationError) {
+      this.logger.warn(
+        'Failed to create delivery confirmation notifications:',
+        notificationError,
+      );
+    }
+
     return this.mapToParcelResponse(updatedParcel);
   }
 
@@ -614,21 +803,58 @@ export class ParcelsService {
   ): Promise<ParcelResponseDto> {
     const { customerNotes } = markAsCompletedDto;
 
-    // Verify parcel is assigned to this user (customer)
+    this.logger.log(`Attempting to mark parcel ${id} as completed by user ${userId}`);
+
+    // Get the user's email to check if they are the recipient
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify parcel is assigned to this user (customer) and is in a state ready for completion
+    // Check both by recipientId and by recipientEmail
     const parcel = await this.prisma.parcel.findFirst({
       where: {
         id,
-        recipientId: userId,
-        status: 'delivered_to_recipient',
+        OR: [
+          { recipientId: userId },
+          { recipientEmail: user.email }
+        ],
+        status: {
+          in: ['delivered_to_recipient', 'delivered']
+        },
         deletedAt: null,
       },
     });
 
     if (!parcel) {
+      // Let's check what the parcel status actually is
+      const parcelCheck = await this.prisma.parcel.findFirst({
+        where: {
+          id,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          status: true,
+          recipientId: true,
+          recipientEmail: true,
+          senderId: true,
+        },
+      });
+
+      this.logger.error(`Parcel not found or not ready for completion. Parcel check:`, parcelCheck);
+      this.logger.error(`User email: ${user.email}`);
       throw new NotFoundException(
         'Parcel not found or not ready for completion',
       );
     }
+
+    this.logger.log(`Found parcel ${id} with status ${parcel.status}, proceeding with completion`);
 
     // Update parcel status
     const updatedParcel = await this.prisma.parcel.update({
@@ -662,19 +888,34 @@ export class ParcelsService {
       },
     });
 
-    // Create notification for the recipient
+    // Create notifications for both sender and recipient
     try {
-      await this.notificationsService.create({
-        userId: userId,
-        title: 'Parcel Completed',
-        message: `Your parcel with tracking number ${updatedParcel.trackingNumber} has been marked as completed. You can now leave a review.`,
-        type: 'PARCEL_COMPLETED',
-        actionUrl: `/parcel/${updatedParcel.id}`,
-        parcelId: updatedParcel.id,
-      });
+      // Notification for sender (if registered)
+      if (updatedParcel.senderId) {
+        await this.notificationsService.create({
+          userId: updatedParcel.senderId,
+          title: 'Parcel Completed',
+          message: `Your parcel with tracking number ${updatedParcel.trackingNumber} has been marked as completed by the recipient.`,
+          type: 'PARCEL_COMPLETED',
+          actionUrl: `/parcel/${updatedParcel.id}`,
+          parcelId: updatedParcel.id,
+        });
+      }
+
+      // Notification for recipient (if registered)
+      if (updatedParcel.recipientId) {
+        await this.notificationsService.create({
+          userId: updatedParcel.recipientId,
+          title: 'Parcel Completed',
+          message: `Your parcel with tracking number ${updatedParcel.trackingNumber} has been marked as completed. You can now leave a review.`,
+          type: 'PARCEL_COMPLETED',
+          actionUrl: `/parcel/${updatedParcel.id}`,
+          parcelId: updatedParcel.id,
+        });
+      }
     } catch (notificationError) {
       this.logger.warn(
-        'Failed to create completion notification:',
+        'Failed to create completion notifications:',
         notificationError,
       );
     }
@@ -719,16 +960,37 @@ export class ParcelsService {
       `🔍 Service - getUserParcels(userId: ${userId}, type: ${type})`,
     );
 
+    // First, get the user details to check name and email
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true }
+    });
+
+    if (!user) {
+      console.log(`❌ User not found: ${userId}`);
+      return [];
+    }
+
+    console.log(`👤 User details:`, { name: user.name, email: user.email });
+
     const where: Prisma.ParcelWhereInput = {
       deletedAt: null,
     };
 
     if (type === 'sent') {
-      where.senderId = userId;
-      console.log(`📋 Sent query - where.senderId = ${userId}`);
+      where.OR = [
+        { senderId: userId },
+        { senderName: user.name },
+        { senderEmail: user.email }
+      ];
+      console.log(`📋 Sent query - checking senderId: ${userId}, senderName: ${user.name}, senderEmail: ${user.email}`);
     } else {
-      where.recipientId = userId;
-      console.log(`📋 Received query - where.recipientId = ${userId}`);
+      where.OR = [
+        { recipientId: userId },
+        { recipientName: user.name },
+        { recipientEmail: user.email }
+      ];
+      console.log(`📋 Received query - checking recipientId: ${userId}, recipientName: ${user.name}, recipientEmail: ${user.email}`);
     }
 
     console.log(`📋 Final where clause:`, JSON.stringify(where, null, 2));
@@ -748,6 +1010,23 @@ export class ParcelsService {
     });
 
     console.log(`📦 Database query result: ${parcels.length} parcels`);
+    
+    if (parcels.length > 0) {
+      console.log(`📦 First parcel details:`, {
+        id: parcels[0].id,
+        trackingNumber: parcels[0].trackingNumber,
+        senderId: parcels[0].senderId,
+        recipientId: parcels[0].recipientId,
+        senderName: parcels[0].senderName,
+        recipientName: parcels[0].recipientName,
+        status: parcels[0].status,
+        createdAt: parcels[0].createdAt,
+        updatedAt: parcels[0].updatedAt
+      });
+    } else {
+      console.log(`📦 No parcels found for user ${userId} (type: ${type})`);
+    }
+
     parcels.forEach((p, i) => {
       console.log(
         `  Parcel ${i + 1}: ${p.trackingNumber} (${p.senderName} → ${p.recipientName})`,
@@ -785,6 +1064,9 @@ export class ParcelsService {
         statusHistory: {
           orderBy: { timestamp: 'desc' },
           take: 1,
+        },
+        reviews: {
+          orderBy: { createdAt: 'desc' },
         },
       },
     });
@@ -1334,6 +1616,28 @@ export class ParcelsService {
     };
 
     return validTransitions[currentStatus]?.includes(newStatus) || false;
+  }
+
+  // Helper method to map parcel status to notification type
+  private mapStatusToNotificationType(status: string): 
+    | 'PARCEL_CREATED'
+    | 'PARCEL_ASSIGNED'
+    | 'PARCEL_PICKED_UP'
+    | 'PARCEL_IN_TRANSIT'
+    | 'PARCEL_DELIVERED_TO_RECIPIENT'
+    | 'PARCEL_DELIVERED'
+    | 'PARCEL_COMPLETED' {
+    const statusMap: Record<string, any> = {
+      'pending': 'PARCEL_CREATED',
+      'assigned': 'PARCEL_ASSIGNED',
+      'picked_up': 'PARCEL_PICKED_UP',
+      'in_transit': 'PARCEL_IN_TRANSIT',
+      'delivered_to_recipient': 'PARCEL_DELIVERED_TO_RECIPIENT',
+      'delivered': 'PARCEL_DELIVERED',
+      'completed': 'PARCEL_COMPLETED',
+    };
+    
+    return statusMap[status] || 'PARCEL_CREATED';
   }
 
   private mapToParcelResponse(

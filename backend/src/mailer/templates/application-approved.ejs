@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application Approved - SendIT</title>
+    <title>Driver Application Approved - SendIT</title>
+    <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>", profilePicture="<%= typeof profilePicture !== 'undefined' ? profilePicture : 'UNDEFINED' %>" -->
     <style>
         * {
             margin: 0;
@@ -279,10 +280,11 @@
                 <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
             </div>
             <div class="user-avatar">
-                <% if (typeof profilePicture !== 'undefined' && profilePicture) { %>
-                    <img src="<%= profilePicture %>" alt="<%= typeof name !== 'undefined' ? name : 'User' %>'s profile">
+                <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>", profilePicture="<%= typeof profilePicture !== 'undefined' ? profilePicture : 'UNDEFINED' %>" -->
+                <% if (profilePicture) { %>
+                    <img src="<%= profilePicture %>" alt="<%= name %>'s profile">
                 <% } else { %>
-                    <span class="initial"><%= typeof name !== 'undefined' && name ? name.charAt(0).toUpperCase() : 'U' %></span>
+                    <span class="initial"><%= name ? name.charAt(0).toUpperCase() : 'U' %></span>
                 <% } %>
             </div>
             
@@ -290,7 +292,8 @@
             <div class="separator"></div>
             
             <div class="greeting">
-                Greetings, <strong style="color: #DBBB02;"> <%= typeof name !== 'undefined' ? name : 'User' %></strong>
+                <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>" -->
+                Greetings, <strong style="color: #DBBB02;"> <%= name %></strong>
             </div>
             
             <div class="content-text">

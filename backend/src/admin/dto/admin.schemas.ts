@@ -163,8 +163,8 @@ export const userFilterSchema = Joi.object({
   search: Joi.string().max(100).optional().messages({
     'string.max': 'Search term cannot exceed 100 characters',
   }),
-  role: Joi.string().valid('USER', 'DRIVER', 'ADMIN').optional().messages({
-    'any.only': 'Role must be USER, DRIVER, or ADMIN',
+  role: Joi.string().valid('CUSTOMER', 'DRIVER', 'ADMIN').optional().messages({
+    'any.only': 'Role must be CUSTOMER, DRIVER, or ADMIN',
   }),
   isActive: Joi.boolean().optional(),
   hasParcels: Joi.boolean().optional(),

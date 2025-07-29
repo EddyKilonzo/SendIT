@@ -38,7 +38,6 @@ export class NotificationsController {
   }
 
   @Post('test')
-  @Roles('ADMIN')
   async createTestNotifications(@Request() req: AuthenticatedRequest) {
     const testNotifications = [
       {

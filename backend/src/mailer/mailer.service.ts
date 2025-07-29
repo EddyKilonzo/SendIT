@@ -156,15 +156,20 @@ export class MailerService {
 
       const testToken = this.generateSixDigitToken();
 
+      const context = {
+        name: 'Test User',
+        profilePicture: 'https://res.cloudinary.com/duymwzfhj/image/upload/v1753634991/sendit-profiles/jskvz0lcjltrnagnwzrr.jpg',
+        resetToken: testToken,
+        baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
+      };
+
+      this.logger.log(`Debug - Test context:`, JSON.stringify(context, null, 2));
+
       await this.mailerService.sendMail({
         to: to,
-        subject: '🧪 SendIT Test Email - Password Reset',
-        template: 'password-reset',
-        context: {
-          name: 'Test User',
-          resetToken: testToken,
-          baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
-        },
+        subject: '🧪 SendIT Test Email - Debug Template',
+        template: 'test-debug',
+        context: context,
       });
 
       this.logger.log(`✅ Test email sent successfully to: ${to}`);
@@ -194,17 +199,22 @@ export class MailerService {
   async sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
     try {
       this.logger.log(`Attempting to send welcome email to: ${data.to}`);
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
+
+      const context = {
+        name: data.name,
+        profilePicture: data.profilePicture,
+        verificationToken: data.verificationToken,
+        baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
+      };
+
+      this.logger.log(`Debug - Context being passed to template:`, JSON.stringify(context, null, 2));
 
       await this.mailerService.sendMail({
         to: data.to,
         subject: 'Welcome to SendIT - Your Account is Ready!',
         template: 'welcome',
-        context: {
-          name: data.name,
-          profilePicture: data.profilePicture,
-          verificationToken: data.verificationToken,
-          baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
-        },
+        context: context,
       });
 
       this.logger.log(`✅ Welcome email sent successfully to: ${data.to}`);
@@ -223,17 +233,22 @@ export class MailerService {
   async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<void> {
     try {
       this.logger.log(`Attempting to send password reset email to: ${data.to}`);
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
+
+      const context = {
+        name: data.name,
+        profilePicture: data.profilePicture,
+        resetToken: data.resetToken,
+        baseUrl: process.env.FRONTEND_URL || 'http://localhost:4200',
+      };
+
+      this.logger.log(`Debug - Context being passed to template:`, JSON.stringify(context, null, 2));
 
       await this.mailerService.sendMail({
         to: data.to,
         subject: 'Password Reset Request - SendIT',
         template: 'password-reset',
-        context: {
-          name: data.name,
-          profilePicture: data.profilePicture,
-          resetToken: data.resetToken,
-          baseUrl: process.env.FRONTEND_URL || 'http://localhost:4200',
-        },
+        context: context,
       });
 
       this.logger.log(
@@ -256,6 +271,7 @@ export class MailerService {
       this.logger.log(
         `Attempting to send parcel status update email to: ${data.to} for parcel ${data.parcelId} (${data.trackingNumber})`,
       );
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
 
       await this.mailerService.sendMail({
         to: data.to,
@@ -292,6 +308,7 @@ export class MailerService {
       this.logger.log(
         `Attempting to send driver assignment email to: ${data.to} for parcel ${data.parcelId} (${data.trackingNumber})`,
       );
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
 
       await this.mailerService.sendMail({
         to: data.to,
@@ -362,6 +379,7 @@ export class MailerService {
       this.logger.log(
         `Attempting to send application approved email to: ${data.to} for application ${data.applicationId}`,
       );
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
 
       await this.mailerService.sendMail({
         to: data.to,
@@ -397,6 +415,7 @@ export class MailerService {
       this.logger.log(
         `Attempting to send application rejected email to: ${data.to} for application ${data.applicationId}`,
       );
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
 
       await this.mailerService.sendMail({
         to: data.to,
@@ -429,6 +448,7 @@ export class MailerService {
   async sendSuspendedEmail(data: SuspendedEmailData): Promise<void> {
     try {
       this.logger.log(`Attempting to send suspended email to: ${data.to}`);
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
 
       await this.mailerService.sendMail({
         to: data.to,
@@ -460,6 +480,7 @@ export class MailerService {
       this.logger.log(
         `Attempting to send parcel created email to: ${data.to} for parcel ${data.parcelId} (${data.trackingNumber})`,
       );
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
 
       await this.mailerService.sendMail({
         to: data.to,
