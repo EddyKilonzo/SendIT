@@ -76,6 +76,15 @@ export interface ParcelCreatedEmailData {
   estimatedDelivery: string;
 }
 
+export interface ParcelCompletedEmailData {
+  to: string;
+  name: string;
+  profilePicture?: string;
+  parcelId: string;
+  trackingNumber: string;
+  completedAt: Date;
+}
+
 @Injectable()
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
@@ -481,21 +490,26 @@ export class MailerService {
         `Attempting to send parcel created email to: ${data.to} for parcel ${data.parcelId} (${data.trackingNumber})`,
       );
       this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
+      this.logger.log(`Debug - ProfilePicture type: ${typeof data.profilePicture}, length: ${data.profilePicture?.length || 0}`);
+
+      const context = {
+        name: data.name,
+        profilePicture: data.profilePicture,
+        parcelId: data.parcelId,
+        trackingNumber: data.trackingNumber,
+        pickupAddress: data.pickupAddress,
+        deliveryAddress: data.deliveryAddress,
+        estimatedDelivery: data.estimatedDelivery,
+        baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
+      };
+
+      this.logger.log(`Debug - Context being passed to template:`, JSON.stringify(context, null, 2));
 
       await this.mailerService.sendMail({
         to: data.to,
         subject: 'Parcel Created Successfully - SendIT',
         template: 'parcel-created',
-        context: {
-          name: data.name,
-          profilePicture: data.profilePicture,
-          parcelId: data.parcelId,
-          trackingNumber: data.trackingNumber,
-          pickupAddress: data.pickupAddress,
-          deliveryAddress: data.deliveryAddress,
-          estimatedDelivery: data.estimatedDelivery,
-          baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
-        },
+        context: context,
       });
 
       this.logger.log(
@@ -509,6 +523,181 @@ export class MailerService {
       );
       this.logEmailStats(false);
       throw error;
+    }
+  }
+
+  //send parcel completed email
+  async sendParcelCompletedEmail(data: ParcelCompletedEmailData): Promise<void> {
+    try {
+      this.logger.log(
+        `Attempting to send parcel completed email to: ${data.to} for parcel ${data.parcelId} (${data.trackingNumber})`,
+      );
+      this.logger.log(`Debug - Name: "${data.name}", ProfilePicture: "${data.profilePicture}"`);
+      this.logger.log(`Debug - ProfilePicture type: ${typeof data.profilePicture}, length: ${data.profilePicture?.length || 0}`);
+
+      const context = {
+        name: data.name,
+        profilePicture: data.profilePicture,
+        parcelId: data.parcelId,
+        trackingNumber: data.trackingNumber,
+        completedAt: data.completedAt,
+        baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
+      };
+
+      this.logger.log(`Debug - Context being passed to template:`, JSON.stringify(context, null, 2));
+
+      await this.mailerService.sendMail({
+        to: data.to,
+        subject: 'Parcel Delivery Completed - SendIT',
+        template: 'parcel-completed',
+        context: context,
+      });
+
+      this.logger.log(
+        `✅ Parcel completed email sent successfully to: ${data.to} for parcel ${data.parcelId}`,
+      );
+      this.logEmailStats(true);
+    } catch (error) {
+      this.logger.error(
+        `❌ Failed to send parcel completed email to ${data.to} for parcel ${data.parcelId}:`,
+        error,
+      );
+      this.logEmailStats(false);
+      throw error;
+    }
+  }
+
+  // Debug method to test profile picture display
+  async debugProfilePictureEmail(to: string, userId: string): Promise<void> {
+    try {
+      this.logger.log(`🧪 Debug: Testing profile picture email for user ${userId} to ${to}`);
+
+      // Get user data from database
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profilePicture: true,
+        },
+      });
+
+      if (!user) {
+        this.logger.error(`❌ User not found: ${userId}`);
+        return;
+      }
+
+      this.logger.log(`🔍 User data:`, JSON.stringify(user, null, 2));
+
+      // Test with different profile picture scenarios
+      const testScenarios = [
+        {
+          name: 'Actual Profile Picture',
+          profilePicture: user.profilePicture,
+        },
+        {
+          name: 'Null Profile Picture',
+          profilePicture: null,
+        },
+        {
+          name: 'Empty String Profile Picture',
+          profilePicture: '',
+        },
+        {
+          name: 'Undefined Profile Picture',
+          profilePicture: undefined,
+        },
+        {
+          name: 'Invalid URL Profile Picture',
+          profilePicture: 'https://invalid-url.com/image.jpg',
+        },
+      ];
+
+      for (const scenario of testScenarios) {
+        this.logger.log(`🧪 Testing scenario: ${scenario.name}`);
+        
+        const context = {
+          name: user.name,
+          profilePicture: scenario.profilePicture,
+          baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
+        };
+
+        this.logger.log(`📧 Context for ${scenario.name}:`, JSON.stringify(context, null, 2));
+
+        await this.mailerService.sendMail({
+          to: to,
+          subject: `🧪 Profile Picture Test - ${scenario.name}`,
+          template: 'welcome',
+          context: context,
+        });
+
+        this.logger.log(`✅ Test email sent for scenario: ${scenario.name}`);
+      }
+
+      await prisma.$disconnect();
+    } catch (error) {
+      this.logger.error(`❌ Debug test failed:`, error);
+      throw error;
+    }
+  }
+
+  // Simple debug method to test a single profile picture
+  async testProfilePictureEmail(to: string, name: string, profilePicture?: string): Promise<void> {
+    try {
+      this.logger.log(`🧪 Simple test: name="${name}", profilePicture="${profilePicture}"`);
+      
+      const context = {
+        name: name,
+        profilePicture: profilePicture,
+        baseUrl: process.env.FRONTEND_URL || 'https://sendit.com',
+      };
+
+      this.logger.log(`📧 Context:`, JSON.stringify(context, null, 2));
+
+      await this.mailerService.sendMail({
+        to: to,
+        subject: '🧪 Profile Picture Test',
+        template: 'welcome',
+        context: context,
+      });
+
+      this.logger.log(`✅ Test email sent to: ${to}`);
+    } catch (error) {
+      this.logger.error(`❌ Test failed:`, error);
+      throw error;
+    }
+  }
+
+  // Check if profile picture URL is valid and accessible
+  async validateProfilePictureUrl(url: string): Promise<{ isValid: boolean; error?: string }> {
+    try {
+      if (!url || url.trim() === '') {
+        return { isValid: false, error: 'URL is empty or null' };
+      }
+
+      // Basic URL validation
+      try {
+        new URL(url);
+      } catch {
+        return { isValid: false, error: 'Invalid URL format' };
+      }
+
+      // Check if URL is accessible (optional - can be slow)
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        if (!response.ok) {
+          return { isValid: false, error: `HTTP ${response.status}: ${response.statusText}` };
+        }
+        return { isValid: true };
+      } catch (error) {
+        return { isValid: false, error: `Network error: ${error.message}` };
+      }
+    } catch (error) {
+      return { isValid: false, error: `Validation error: ${error.message}` };
     }
   }
 }

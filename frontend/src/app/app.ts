@@ -25,7 +25,14 @@ export class App implements OnInit {
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: any) => {
-        window.scrollTo(0, 0);
+        // Smooth scroll to top with a slight delay to ensure DOM is ready
+        setTimeout(() => {
+          window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'smooth'
+          });
+        }, 100);
         
         // Hide navbar on home page since we have a separate home navbar
         this.showNavbar = !['', '/', '/home'].includes(event.url);

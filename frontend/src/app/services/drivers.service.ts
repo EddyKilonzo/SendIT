@@ -14,6 +14,7 @@ export interface Driver {
   vehicleType?: string;
   vehicleNumber?: string;
   licenseNumber?: string;
+  profilePicture?: string;
   currentLat?: number;
   currentLng?: number;
   averageRating?: number;
@@ -33,6 +34,9 @@ export interface DriversResponse {
 export interface AssignParcelDto {
   parcelId: string;
   driverId: string;
+  assignmentNotes?: string;
+  estimatedPickupTime?: Date;
+  estimatedDeliveryTime?: Date;
 }
 
 export interface AssignParcelResponse {
@@ -58,6 +62,7 @@ export class DriversService {
     console.log('🔐 Token available:', !!token);
     if (!token) {
       console.warn('⚠️ No authentication token found!');
+      throw new Error('No authentication token available');
     }
     return {
       'Content-Type': 'application/json',
@@ -72,14 +77,21 @@ export class DriversService {
   private handleError(error: any): Observable<never> {
     let errorMessage = 'An unexpected error occurred';
     
+    console.error('❌ Drivers service error:', error);
+    
     if (error.error?.message) {
       errorMessage = error.error.message;
     } else if (error.error?.error) {
       errorMessage = error.error.error;
     } else if (error.status === 401) {
       errorMessage = 'Authentication failed. Please login again.';
+      console.error('🔐 Authentication error - token may be expired');
+      // Clear auth and redirect to login for 401 errors
+      this.authService.logout();
+      window.location.href = '/login';
     } else if (error.status === 403) {
       errorMessage = 'Access denied. You do not have permission to perform this action.';
+      console.error('🚫 Access denied - insufficient permissions');
     } else if (error.status === 404) {
       errorMessage = 'Resource not found.';
     } else if (error.status === 422) {
@@ -96,6 +108,18 @@ export class DriversService {
     return throwError(() => new Error(errorMessage));
   }
 
+  private checkAuthentication(): void {
+    if (!this.authService.isAuthenticated()) {
+      console.error('❌ User not authenticated');
+      throw new Error('User not authenticated');
+    }
+    
+    if (!this.authService.getToken()) {
+      console.error('❌ No valid token found');
+      throw new Error('No valid authentication token');
+    }
+  }
+
   getDrivers(query: {
     page?: number;
     limit?: number;
@@ -105,6 +129,8 @@ export class DriversService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   } = {}): Observable<DriversResponse> {
+    this.checkAuthentication();
+    
     let params = new HttpParams();
     
     Object.keys(query).forEach(key => {
@@ -133,7 +159,13 @@ export class DriversService {
     );
   }
 
+  getAllDrivers(): Observable<DriversResponse> {
+    this.checkAuthentication();
+    return this.getDrivers({ limit: 100 });
+  }
+
   getDriver(id: string): Observable<Driver> {
+    this.checkAuthentication();
     return this.http.get<Driver>(
       this.getApiUrl(`/drivers/${id}`),
       { headers: this.getHeaders() }
@@ -143,6 +175,7 @@ export class DriversService {
   }
 
   getDriverPerformance(id: string): Observable<any> {
+    this.checkAuthentication();
     return this.http.get<any>(
       this.getApiUrl(`/drivers/${id}/performance`),
       { headers: this.getHeaders() }
@@ -152,6 +185,7 @@ export class DriversService {
   }
 
   assignParcel(assignParcelDto: AssignParcelDto): Observable<AssignParcelResponse> {
+    this.checkAuthentication();
     return this.http.post<AssignParcelResponse>(
       this.getApiUrl('/drivers/assign-parcel'),
       assignParcelDto,
@@ -162,6 +196,7 @@ export class DriversService {
   }
 
   reassignParcel(parcelId: string, reassignData: { action: string; newDriverId: string }): Observable<any> {
+    this.checkAuthentication();
     return this.http.patch<any>(
       this.getApiUrl(`/admin/parcels/${parcelId}/manage`),
       reassignData,
@@ -172,6 +207,7 @@ export class DriversService {
   }
 
   getAvailableDrivers(): Observable<DriversResponse> {
+    this.checkAuthentication();
     console.log('🚗 Getting available drivers...');
     const query = {
       limit: 50,
@@ -180,5 +216,21 @@ export class DriversService {
     };
     console.log('🔍 Query parameters:', query);
     return this.getDrivers(query);
+  }
+
+  updateDriverLocation(driverId: string, locationData: { currentLat: number; currentLng: number }): Observable<any> {
+    this.checkAuthentication();
+    console.log('📍 Updating driver location:', driverId, locationData);
+    
+    return this.http.patch<any>(
+      this.getApiUrl(`/drivers/${driverId}/location`),
+      locationData,
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(error => {
+        console.error('❌ Failed to update driver location:', error);
+        return this.handleError(error);
+      })
+    );
   }
 } 

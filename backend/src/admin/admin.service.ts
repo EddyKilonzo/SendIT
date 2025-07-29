@@ -107,7 +107,12 @@ export class AdminService {
         where: { status: 'pending', deletedAt: null },
       }),
       this.prisma.parcel.count({
-        where: { status: 'in_transit', deletedAt: null },
+        where: { 
+          status: { 
+            in: ['assigned', 'picked_up', 'in_transit', 'delivered_to_recipient'] 
+          }, 
+          deletedAt: null 
+        },
       }),
       this.prisma.parcel.count({
         where: { status: 'delivered', deletedAt: null },
@@ -335,6 +340,7 @@ export class AdminService {
               id: true,
               name: true,
               email: true,
+              profilePicture: true,
             },
           },
           parcel: {
@@ -342,6 +348,13 @@ export class AdminService {
               id: true,
               trackingNumber: true,
               status: true,
+              driver: {
+                select: {
+                  id: true,
+                  name: true,
+                  profilePicture: true,
+                },
+              },
             },
           },
         },
@@ -366,7 +379,9 @@ export class AdminService {
       // Calculate delivery counts
       const totalDeliveries = deliveryStats.reduce((sum, stat) => sum + stat._count.id, 0);
       const deliveredCount = deliveryStats.find(stat => stat.status === 'delivered')?._count.id || 0;
-      const inTransitCount = deliveryStats.find(stat => stat.status === 'in_transit')?._count.id || 0;
+      const inTransitCount = deliveryStats
+        .filter(stat => ['assigned', 'picked_up', 'in_transit', 'delivered_to_recipient'].includes(stat.status))
+        .reduce((sum, stat) => sum + stat._count.id, 0);
       const pendingCount = deliveryStats.find(stat => stat.status === 'pending')?._count.id || 0;
 
       // Get current month revenue for daily breakdown
@@ -436,15 +451,21 @@ export class AdminService {
         rating: review.rating,
         comment: review.comment,
         createdAt: review.createdAt,
+        customerName: review.reviewer?.name || 'Unknown Customer',
+        customerId: review.reviewer?.id || '',
+        customerProfilePicture: review.reviewer?.profilePicture || undefined,
+        driverName: review.parcel?.driver?.name || 'Unknown Driver',
+        driverId: review.parcel?.driver?.id || '',
+        parcelId: review.parcel?.id || '',
         reviewer: {
-          id: review.reviewer.id,
-          name: review.reviewer.name,
-          email: review.reviewer.email,
+          id: review.reviewer?.id || '',
+          name: review.reviewer?.name || '',
+          email: review.reviewer?.email || '',
         },
         parcel: {
-          id: review.parcel.id,
-          trackingNumber: review.parcel.trackingNumber,
-          status: review.parcel.status,
+          id: review.parcel?.id || '',
+          trackingNumber: review.parcel?.trackingNumber || '',
+          status: review.parcel?.status || '',
         },
       }));
 
@@ -524,7 +545,8 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {
-      deletedAt: null,
+      // Remove the deletedAt filter to include suspended users
+      // Suspended users have deletedAt set to a date, not null
     };
 
     if (search) {
@@ -539,6 +561,7 @@ export class AdminService {
       where.role = role;
     }
 
+    // Only apply isActive filter if explicitly provided, otherwise show all users (including suspended)
     if (isActive !== undefined) {
       where.isActive = isActive;
     }
@@ -568,6 +591,111 @@ export class AdminService {
       total,
       page,
       limit,
+    };
+  }
+
+  async getAllUsersForDropdown(): Promise<{
+    users: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      isActive: boolean;
+      status: string;
+    }>;
+  }> {
+    const users = await this.prisma.user.findMany({
+      where: {
+        // Remove the deletedAt filter to include suspended users
+        // Suspended users have deletedAt set to a date, not null
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
+      orderBy: [
+        { isActive: 'desc' }, // Active users first
+        { name: 'asc' }, // Then alphabetically by name
+      ],
+    });
+
+    return {
+      users: users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        status: user.isActive ? 'Active' : 'Suspended',
+      })),
+    };
+  }
+
+  async debugAllUsers() {
+    const allUsers = await this.prisma.user.findMany({
+      where: {
+        // Remove the deletedAt filter to include suspended users
+        // Suspended users have deletedAt set to a date, not null
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        deletedAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      totalUsers: allUsers.length,
+      users: allUsers.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        deletedAt: user.deletedAt,
+        createdAt: user.createdAt,
+        status: user.deletedAt ? 'Suspended' : (user.isActive ? 'Active' : 'Inactive'),
+      })),
+      summary: {
+        active: allUsers.filter(u => u.isActive && !u.deletedAt).length,
+        inactive: allUsers.filter(u => !u.isActive && !u.deletedAt).length,
+        suspended: allUsers.filter(u => u.deletedAt).length,
+      }
+    };
+  }
+
+  async createTestSuspendedUser() {
+    // Create a test suspended user
+    const testUser = await this.prisma.user.create({
+      data: {
+        email: `test-suspended-${Date.now()}@example.com`,
+        password: 'hashedpassword123',
+        name: 'Test Suspended User',
+        role: 'CUSTOMER',
+        isActive: false,
+        deletedAt: new Date(), // This makes it suspended
+      },
+    });
+
+    return {
+      message: 'Test suspended user created successfully',
+      user: {
+        id: testUser.id,
+        name: testUser.name,
+        email: testUser.email,
+        role: testUser.role,
+        isActive: testUser.isActive,
+        deletedAt: testUser.deletedAt,
+        status: 'Suspended',
+      },
     };
   }
 
@@ -798,7 +926,9 @@ export class AdminService {
       p.status === 'completed' || 
       p.status === 'delivered_to_recipient'
     );
-    const inTransitParcels = assignedParcels.filter(p => p.status === 'in_transit');
+    const inTransitParcels = assignedParcels.filter(p => 
+      ['assigned', 'picked_up', 'in_transit', 'delivered_to_recipient'].includes(p.status)
+    );
     const pendingParcels = assignedParcels.filter(p => p.status === 'pending' || p.status === 'assigned');
     
     // Calculate monthly earnings (last 30 days)
@@ -1049,7 +1179,7 @@ export class AdminService {
     if (hasAssignedParcels) {
       where.assignedParcels = {
         some: {
-          status: { in: ['assigned', 'picked_up', 'in_transit'] },
+          status: { in: ['assigned', 'picked_up', 'in_transit', 'delivered_to_recipient'] },
           deletedAt: null,
         },
       };
@@ -1195,120 +1325,74 @@ export class AdminService {
     managementDto: DriverApplicationManagementDto,
     adminId: string,
   ): Promise<UserResponseDto> {
+    this.logger.log(
+      `Managing driver application for user ${userId} with action: ${managementDto.action}`,
+    );
+
+    // Use userId from URL parameter if not provided in body
+    const targetUserId = managementDto.userId || userId;
+    
     const { action, reason } = managementDto;
 
-    this.logger.log(
-      `Managing driver application for user: ${userId}, action: ${action}, reason: ${reason}`,
-    );
-
-    // Check if user exists and has a driver application
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-        // Allow both PENDING and REJECTED applications to be managed
-        driverApplicationStatus: {
-          in: ['PENDING', 'REJECTED'],
-        },
-        deletedAt: null,
-      },
-    });
-
-    this.logger.log(
-      `Found user: ${user ? 'Yes' : 'No'}, status: ${user?.driverApplicationStatus}`,
-    );
-
-    if (!user) {
-      this.logger.error(`Driver application not found for user: ${userId}`);
-
-      // Check if user exists at all
-      const userExists = await this.prisma.user.findFirst({
-        where: { id: userId, deletedAt: null },
-        select: { id: true, driverApplicationStatus: true, role: true },
-      });
-
-      if (!userExists) {
-        throw new NotFoundException('User not found');
-      }
-
-      if (
-        !userExists.driverApplicationStatus ||
-        userExists.driverApplicationStatus === 'NOT_APPLIED'
-      ) {
-        throw new BadRequestException(
-          'User has not submitted a driver application yet',
-        );
-      }
-
-      if (userExists.driverApplicationStatus === 'APPROVED') {
-        throw new BadRequestException('User is already an approved driver');
-      }
-
-      throw new NotFoundException(
-        'Driver application not found or already processed',
-      );
+    // Validate action
+    if (!['approve', 'reject'].includes(action)) {
+      throw new BadRequestException('Invalid action. Must be approve or reject.');
     }
 
-    let updateData: Prisma.UserUpdateInput = {
+    // Check if user exists and has a driver application
+    const user = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    // Check if user has applied to be a driver
+    if (!user.driverApplicationStatus || user.driverApplicationStatus === 'NOT_APPLIED') {
+      throw new BadRequestException('User has not submitted a driver application.');
+    }
+
+    // Check current application status
+    if (user.driverApplicationStatus === 'APPROVED') {
+      throw new BadRequestException('Driver application is already approved.');
+    }
+
+    if (user.driverApplicationStatus === 'REJECTED') {
+      throw new BadRequestException('Driver application is already rejected.');
+    }
+
+    // Prepare update data based on action
+    let updateData: any = {
       driverApprovalDate: new Date(),
       driverApprovedBy: adminId,
     };
 
-    switch (action) {
-      case 'approve':
-        // Only allow approval of PENDING applications
-        if (user.driverApplicationStatus !== 'PENDING') {
-          this.logger.error(
-            `Cannot approve application with status: ${user.driverApplicationStatus}`,
-          );
-          throw new BadRequestException(
-            'Only pending applications can be approved',
-          );
-        }
-
-        updateData = {
-          ...updateData,
-          role: 'DRIVER',
-          driverApplicationStatus: 'APPROVED',
-          isAvailable: true,
-          isActive: true,
-          // Clear rejection reason when approved
-          driverRejectionReason: null,
-        };
-        break;
-      case 'reject':
-        // Allow rejection of both PENDING and REJECTED applications (for updating rejection reason)
-        if (
-          user.driverApplicationStatus !== 'PENDING' &&
-          user.driverApplicationStatus !== 'REJECTED'
-        ) {
-          this.logger.error(
-            `Cannot reject application with status: ${user.driverApplicationStatus}`,
-          );
-          throw new BadRequestException(
-            'Only pending or rejected applications can be rejected',
-          );
-        }
-
-        updateData = {
-          ...updateData,
-          driverApplicationStatus: 'REJECTED',
-          driverRejectionReason: reason,
-        };
-        break;
-      default:
-        this.logger.error(`Invalid action: ${action}`);
-        throw new BadRequestException('Invalid action');
+    if (action === 'approve') {
+      updateData = {
+        ...updateData,
+        role: 'DRIVER',
+        driverApplicationStatus: 'APPROVED',
+        isActive: true,
+        driverRejectionReason: null,
+      };
+    } else if (action === 'reject') {
+      updateData = {
+        ...updateData,
+        driverApplicationStatus: 'REJECTED',
+        driverRejectionReason: reason?.trim() || 'Application did not meet our current requirements',
+      };
     }
 
     this.logger.log(`Updating user with data:`, updateData);
 
     const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: targetUserId },
       data: updateData,
     });
 
     this.logger.log(
-      `User updated successfully. New status: ${updatedUser.driverApplicationStatus}`,
+      `User updated successfully. New status: ${updatedUser.driverApplicationStatus}, Role: ${updatedUser.role}, ID: ${updatedUser.id}`,
     );
 
     // Send application approval/rejection email
@@ -1344,7 +1428,15 @@ export class AdminService {
       // Don't fail the operation if email fails
     }
 
-    return this.mapToUserResponse(updatedUser);
+    const mappedResponse = this.mapToUserResponse(updatedUser);
+    this.logger.log(`Mapped response for ${action}:`, {
+      id: mappedResponse.id,
+      name: mappedResponse.name,
+      role: mappedResponse.role,
+      driverApplicationStatus: mappedResponse.driverApplicationStatus,
+    });
+
+    return mappedResponse;
   }
 
   // Parcel Management

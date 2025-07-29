@@ -1,0 +1,341 @@
+.track-my-parcel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin: 20px;
+}
+
+.tracking-header {
+  background: linear-gradient(135deg, #DBBB02, #c4a902);
+  color: #000;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tracking-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.connection-status.connected {
+  color: #28a745;
+}
+
+.connection-status:not(.connected) {
+  color: #dc3545;
+}
+
+.connection-status i {
+  font-size: 12px;
+  animation: pulse 2s infinite;
+}
+
+.tracking-content {
+  padding: 20px;
+}
+
+.parcels-section {
+  margin-bottom: 30px;
+}
+
+.parcels-section h3 {
+  margin: 0 0 20px 0;
+  color: #DBBB02;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #DBBB02;
+}
+
+.loading-state i {
+  font-size: 32px;
+  margin-bottom: 10px;
+  animation: spin 1s linear infinite;
+}
+
+.loading-state p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.parcels-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 15px;
+}
+
+.parcel-card {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.parcel-card:hover {
+  border-color: #DBBB02;
+  box-shadow: 0 4px 8px rgba(219, 187, 2, 0.2);
+  transform: translateY(-2px);
+}
+
+.parcel-card.selected {
+  border-color: #DBBB02;
+  background: #fef9e7;
+}
+
+.parcel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.parcel-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.parcel-status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  text-transform: uppercase;
+}
+
+.parcel-details {
+  margin-bottom: 10px;
+}
+
+.parcel-details p {
+  margin: 5px 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.parcel-details strong {
+  color: #333;
+}
+
+.driver-info {
+  border-top: 1px solid #e9ecef;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.driver-info p {
+  margin: 5px 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.driver-info strong {
+  color: #DBBB02;
+}
+
+.no-parcels {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+}
+
+.no-parcels i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #DBBB02;
+}
+
+.no-parcels h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.no-parcels p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.driver-tracking-section {
+  margin-top: 30px;
+}
+
+.driver-tracking-section h3 {
+  margin: 0 0 20px 0;
+  color: #DBBB02;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.driver-info-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.driver-avatar {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #DBBB02, #c4a902);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  font-size: 20px;
+}
+
+.driver-details {
+  flex: 1;
+}
+
+.driver-details h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.driver-details p {
+  margin: 3px 0;
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.driver-details i {
+  color: #DBBB02;
+  width: 14px;
+  text-align: center;
+}
+
+.map-container {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.no-driver-section,
+.select-parcel-section {
+  margin-top: 30px;
+}
+
+.no-driver-card,
+.select-parcel-card {
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.no-driver-card i,
+.select-parcel-card i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #DBBB02;
+}
+
+.no-driver-card h3,
+.select-parcel-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.no-driver-card p,
+.select-parcel-card p {
+  margin: 0;
+  font-size: 14px;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .track-my-parcel {
+    margin: 10px;
+  }
+
+  .tracking-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .tracking-header h2 {
+    font-size: 20px;
+  }
+
+  .parcels-list {
+    grid-template-columns: 1fr;
+  }
+
+  .driver-info-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .driver-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tracking-content {
+    padding: 15px;
+  }
+
+  .parcel-card {
+    padding: 12px;
+  }
+
+  .driver-info-card {
+    padding: 12px;
+  }
+}

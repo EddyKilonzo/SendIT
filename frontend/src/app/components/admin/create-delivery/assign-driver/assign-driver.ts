@@ -297,6 +297,8 @@ export class AssignDriver implements OnInit, OnDestroy {
       return;
     }
 
+    this.isLoading = true; // Set loading state
+
     const assignParcelDto: AssignParcelDto = {
       parcelId: this.parcelDetails.id,
       driverId: this.selectedDriver.id
@@ -304,6 +306,7 @@ export class AssignDriver implements OnInit, OnDestroy {
 
     this.driversService.assignParcel(assignParcelDto).subscribe({
       next: (response: any) => {
+        this.isLoading = false; // Reset loading state
         this.toastService.showSuccess(`Driver ${this.selectedDriver?.name} assigned to parcel #${this.parcelDetails?.id}. Status: Pending driver to start journey.`);
         
         // Clear temporary parcel details
@@ -321,6 +324,7 @@ export class AssignDriver implements OnInit, OnDestroy {
         }, 1000);
       },
       error: (error: any) => {
+        this.isLoading = false; // Reset loading state
         console.error('Error assigning driver:', error);
         this.toastService.showError('Failed to assign driver to parcel');
       }
@@ -338,6 +342,8 @@ export class AssignDriver implements OnInit, OnDestroy {
       return;
     }
 
+    this.isLoading = true; // Set loading state
+
     // Use the manage parcel endpoint for reassignment
     const reassignData = {
       action: 'reassign',
@@ -347,6 +353,7 @@ export class AssignDriver implements OnInit, OnDestroy {
     // We'll need to add this method to the admin service
     this.driversService.reassignParcel(this.parcelDetails.id, reassignData).subscribe({
       next: (response: any) => {
+        this.isLoading = false; // Reset loading state
         this.toastService.showSuccess(`Parcel reassigned to driver ${this.selectedDriver?.name}. Status: Pending driver to start journey.`);
         
         // Clear temporary parcel details
@@ -365,6 +372,7 @@ export class AssignDriver implements OnInit, OnDestroy {
         }, 1000);
       },
       error: (error: any) => {
+        this.isLoading = false; // Reset loading state
         console.error('Error reassigning driver:', error);
         this.toastService.showError('Failed to reassign driver to parcel');
       }

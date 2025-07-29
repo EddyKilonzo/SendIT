@@ -8,6 +8,7 @@ import {
   IsNotEmpty,
   IsIn,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class DashboardStatsDto {
@@ -42,8 +43,17 @@ export class SystemStatsDto {
 }
 
 export class AssignParcelToDriverDto {
+  @IsString()
+  @IsNotEmpty()
   parcelId: string;
+
+  @IsString()
+  @IsNotEmpty()
   driverId: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   assignmentNotes?: string;
 }
 
@@ -77,9 +87,20 @@ export class UserManagementDto {
 }
 
 export class DriverApplicationManagementDto {
-  userId: string;
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @IsString()
+  @IsIn(['approve', 'reject'])
   action: 'approve' | 'reject';
-  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @ValidateIf((o) => o.action === 'reject')
+  @IsNotEmpty({ message: 'Rejection reason is required when action is reject' })
+  reason?: string; // Required when action is 'reject'
 }
 
 export class ParcelManagementDto {

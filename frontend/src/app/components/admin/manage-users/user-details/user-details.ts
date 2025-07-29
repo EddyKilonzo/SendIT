@@ -530,45 +530,9 @@ export class UserDetails implements OnInit {
 
 
 
-  updateUserStatus(userId: string, newStatus: string) {
-    // Make API call to update user status
-    this.adminService.updateUserStatus(userId, newStatus)
-      .pipe(
-        catchError(error => {
-          console.error('Error updating user status:', error);
-          this.toastService.showError('Failed to update user status');
-          return of(null);
-        })
-      )
-      .subscribe({
-        next: (response) => {
-          if (response && this.user) {
-            // Update user object based on new status
-            if (newStatus === 'active') {
-              this.user.isActive = true;
-              this.user.deletedAt = undefined;
-            } else if (newStatus === 'inactive') {
-              this.user.isActive = false;
-              this.user.deletedAt = undefined;
-            } else if (newStatus === 'suspended') {
-              this.user.isActive = false;
-              this.user.deletedAt = new Date().toISOString();
-            }
-            
-            const statusText = newStatus === 'active' ? 'activated' : 
-                             newStatus === 'inactive' ? 'deactivated' : 'suspended';
-            const userName = this.user.name;
-            this.toastService.showSuccess(
-              `${userName}'s account has been ${statusText} successfully.`,
-              4000
-            );
-          }
-        }
-      });
-  }
-
   showStatusModal = false;
   selectedStatus: string = 'active';
+  isUpdatingStatus = false; // Loading state for status updates
 
   openStatusModal() {
     if (this.user) {
@@ -592,6 +556,72 @@ export class UserDetails implements OnInit {
       this.updateUserStatus(this.user.id, this.selectedStatus);
       this.closeStatusModal();
     }
+  }
+
+  updateUserStatus(userId: string, newStatus: string) {
+    // Set loading state
+    this.isUpdatingStatus = true;
+    
+    // Determine the correct action based on user's current status and desired status
+    let action: string;
+    
+    if (newStatus === 'active') {
+      // If user is currently suspended (has deletedAt), use 'unsuspend'
+      // If user is currently inactive (no deletedAt but isActive=false), use 'activate'
+      if (this.user?.deletedAt) {
+        action = 'unsuspend';
+      } else {
+        action = 'activate';
+      }
+    } else if (newStatus === 'inactive') {
+      action = 'deactivate';
+    } else if (newStatus === 'suspended') {
+      action = 'suspend';
+    } else {
+      action = 'activate';
+    }
+    
+    console.log(`🔄 Updating user status: ${newStatus}, sending action: ${action}`);
+    console.log(`🔄 User current status - isActive: ${this.user?.isActive}, deletedAt: ${this.user?.deletedAt}`);
+    
+    // Make API call to update user status
+    this.adminService.updateUserStatusWithAction(userId, action)
+      .pipe(
+        catchError(error => {
+          console.error('Error updating user status:', error);
+          this.toastService.showError('Failed to update user status');
+          this.isUpdatingStatus = false; // Reset loading state on error
+          return of(null);
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          if (response && this.user) {
+            // Update user object based on new status
+            if (newStatus === 'active') {
+              this.user.isActive = true;
+              this.user.deletedAt = undefined;
+            } else if (newStatus === 'inactive') {
+              this.user.isActive = false;
+              this.user.deletedAt = undefined;
+            } else if (newStatus === 'suspended') {
+              this.user.isActive = false;
+              this.user.deletedAt = new Date().toISOString();
+            }
+            
+            const statusText = newStatus === 'active' ? 'activated' : 
+                             newStatus === 'inactive' ? 'deactivated' : 'suspended';
+            const userName = this.user.name;
+            
+            // Show success toast and reset loading state
+            this.toastService.showSuccess(
+              `${userName}'s account has been ${statusText} successfully.`,
+              4000
+            );
+            this.isUpdatingStatus = false; // Reset loading state after success
+          }
+        }
+      });
   }
 
   // Handle image loading errors

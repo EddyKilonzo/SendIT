@@ -181,25 +181,7 @@
       </div>
     </div>
 
-    <!-- Notifications Section -->
-    <div class="notifications-section" *ngIf="!loading">
-      <h2 class="section-title">Notifications</h2>
-      <div class="notifications-list">
-        <div 
-          class="notification-item" 
-          *ngFor="let notification of notifications"
-          [ngClass]="getNotificationClass(notification)"
-        >
-          <div class="notification-icon">
-            <i [class]="getNotificationIcon(notification)"></i>
-          </div>
-          <div class="notification-content">
-            <p class="notification-message">{{ notification.message }}</p>
-            <span class="notification-date">{{ notification.date }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+
     </div>
   </main>
 </div> 

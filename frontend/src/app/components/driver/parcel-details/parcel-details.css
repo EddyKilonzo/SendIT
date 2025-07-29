@@ -134,6 +134,23 @@
   font-weight: 500;
 }
 
+.calculating {
+  color: #DBBB02;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calculating i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .contact-link {
   color: #DBBB02;
   text-decoration: none;
@@ -150,99 +167,167 @@
 /* Status Timeline */
 .timeline-container {
   position: relative;
-  padding-left: 30px;
+  padding: 30px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 2px solid #e9ecef;
+  margin-bottom: 25px;
 }
 
 .timeline-container::before {
   content: '';
   position: absolute;
-  left: 15px;
   top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #e9ecef;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #DBBB02, #f4d03f, #DBBB02);
+  border-radius: 16px 16px 0 0;
+}
+
+.timeline-container::after {
+  content: '';
+  position: absolute;
+  left: 35px;
+  top: 60px;
+  bottom: 30px;
+  width: 3px;
+  background: linear-gradient(to bottom, #DBBB02, #e9ecef, #DBBB02);
+  border-radius: 2px;
 }
 
 .timeline-item {
   position: relative;
   margin-bottom: 25px;
-  padding-left: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  margin-left: 20px;
+}
+
+.timeline-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: #DBBB02;
 }
 
 .timeline-item::before {
   content: '';
   position: absolute;
-  left: -7px;
-  top: 0;
-  width: 16px;
-  height: 16px;
+  left: -10px;
+  top: 20px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #e9ecef;
   border: 3px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 2;
 }
 
 .timeline-item.completed::before {
-  background: #DBBB02;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.timeline-item.assigned::before {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+.timeline-item.picked::before {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.timeline-item.transit::before {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.timeline-item.delivered::before {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
 }
 
 .timeline-icon {
   position: absolute;
-  left: -10px;
-  top: -2px;
-  width: 20px;
-  height: 20px;
+  left: -13px;
+  top: 17px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 10px;
+  font-size: 8px;
+  z-index: 3;
 }
 
 .timeline-content {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  border-left: 3px solid #e9ecef;
+  background: white;
+  padding: 0;
+  border-radius: 0;
+  border-left: none;
 }
 
 .timeline-item.completed .timeline-content {
-  border-left-color: #DBBB02;
-  background: #fff8e1;
+  border-left-color: transparent;
+  background: white;
 }
 
 .timeline-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 15px;
 }
 
 .timeline-header h4 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .timeline-time {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: #6c757d;
+  font-weight: 600;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
 .timeline-description {
   margin: 0 0 8px 0;
   color: #495057;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #DBBB02;
 }
 
 .timeline-location {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: #6c757d;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.timeline-location::before {
+  content: '\f3c5';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  color: #DBBB02;
+  font-size: 0.8rem;
 }
 
 .timeline-location i {
@@ -373,9 +458,39 @@
 }
 
 .instruction-checkbox:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: scale(0.95);
+}
+
+.instruction-item.completed .instruction-checkbox:disabled {
+  opacity: 0.8;
+}
+
+/* Add a subtle loading animation to the instruction item when updating */
+.instruction-item.updating {
+  position: relative;
+}
+
+.instruction-item.updating::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(219, 187, 2, 0.1);
+  border-radius: 8px;
+  pointer-events: none;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .instruction-label {
@@ -464,7 +579,7 @@
 }
 
 .contact-item i {
-  color: #DBBB02;
+  color: #2c3e50;
   font-size: 16px;
 }
 
@@ -855,15 +970,126 @@
   }
 
   .timeline-container {
-    padding-left: 20px;
+    padding: 15px;
+    margin: 0 20px 15px 20px;
   }
 
   .timeline-item {
-    padding-left: 25px;
+    padding: 12px;
+    margin-left: 10px;
+  }
+
+  .timeline-container::after {
+    left: 25px;
+    top: 45px;
+    bottom: 15px;
+  }
+
+  .timeline-item::before {
+    left: -8px;
+    top: 12px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .timeline-icon {
+    left: -10px;
+    top: 9px;
+    width: 12px;
+    height: 12px;
+    font-size: 6px;
+  }
+
+  .timeline-header h4 {
+    font-size: 0.95rem;
+  }
+
+  .timeline-time {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+
+  .timeline-description {
+    font-size: 0.8rem;
+    padding: 8px;
+  }
+
+  .timeline-location {
+    font-size: 0.8rem;
   }
 
   .instruction-details {
     flex-direction: column;
     gap: 10px;
   }
+} 
+
+.map-loading-indicator {
+  font-size: 14px;
+  color: #DBBB02;
+  font-weight: normal;
+  margin-left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.map-loading-indicator i {
+  font-size: 12px;
+} 
+
+/* Add loading styles for status updates */
+.status-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  font-size: 12px;
+  color: #DBBB02;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.status-loading i {
+  font-size: 14px;
+}
+
+.status-loading span {
+  font-weight: 500;
+} 
+
+/* Instructions loading overlay */
+.instructions-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 12px;
+}
+
+.loading-content {
+  text-align: center;
+  color: #DBBB02;
+}
+
+.loading-content i {
+  font-size: 24px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.loading-content p {
+  margin: 0;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Make instructions section relative for overlay positioning */
+.instructions-section {
+  position: relative;
 } 

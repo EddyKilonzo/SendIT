@@ -11,7 +11,7 @@ interface DeliveryHistoryItem {
   trackingNumber: string;
   pickupAddress: string;
   deliveryAddress: string;
-  status: 'delivered' | 'cancelled';
+  status: 'delivered' | 'completed' | 'delivered_to_recipient' | 'cancelled';
   customerRating?: number;
   customerName?: string;
   completedTime?: string;
@@ -94,19 +94,78 @@ export class DeliveryHistory implements OnInit {
   }
 
   mapParcelsToHistory(parcels: any[]): DeliveryHistoryItem[] {
-    return parcels.map(parcel => ({
-      id: parcel.id,
-      trackingNumber: parcel.trackingNumber,
-      pickupAddress: parcel.pickupAddress,
-      deliveryAddress: parcel.deliveryAddress,
-      status: parcel.status,
-      customerRating: parcel.reviews?.[0]?.rating,
-      customerName: parcel.recipientName,
-      completedTime: this.formatDateTime(parcel.updatedAt),
-      notes: parcel.statusHistory?.[0]?.notes || 'Delivery completed',
-      createdAt: parcel.createdAt,
-      updatedAt: parcel.updatedAt
-    }));
+    return parcels.map(parcel => {
+      // Get the best rating from reviews (if any)
+      let customerRating: number | undefined;
+      
+      if (parcel.reviews && Array.isArray(parcel.reviews) && parcel.reviews.length > 0) {
+        // Get all valid ratings
+        const ratings = parcel.reviews
+          .map((review: any) => review.rating)
+          .filter((rating: any) => typeof rating === 'number' && rating > 0 && rating <= 5);
+        
+        if (ratings.length > 0) {
+          // Use the average rating instead of max for more accurate representation
+          const averageRating = ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length;
+          customerRating = Math.round(averageRating * 10) / 10; // Round to 1 decimal place
+        }
+      }
+      
+      // Get completion time from status history or updated time
+      let completedTime = this.formatDateTime(parcel.updatedAt);
+      if (parcel.statusHistory && Array.isArray(parcel.statusHistory)) {
+        const completedStatus = parcel.statusHistory.find((status: any) => 
+          status.status === 'delivered' || 
+          status.status === 'completed' || 
+          status.status === 'delivered_to_recipient'
+        );
+        if (completedStatus?.timestamp) {
+          completedTime = this.formatDateTime(completedStatus.timestamp);
+        }
+      }
+      
+      // Get customer name (recipient name)
+      const customerName = parcel.recipientName || parcel.recipient?.name || 'Unknown Customer';
+      
+      return {
+        id: parcel.id,
+        trackingNumber: parcel.trackingNumber,
+        pickupAddress: parcel.pickupAddress,
+        deliveryAddress: parcel.deliveryAddress,
+        status: parcel.status,
+        customerRating,
+        customerName,
+        completedTime,
+        notes: this.getCompletionNotes(parcel),
+        createdAt: parcel.createdAt,
+        updatedAt: parcel.updatedAt
+      };
+    });
+  }
+
+  getCompletionNotes(parcel: any): string {
+    if (parcel.statusHistory && Array.isArray(parcel.statusHistory)) {
+      const completedStatus = parcel.statusHistory.find((status: any) => 
+        status.status === 'delivered' || 
+        status.status === 'completed' || 
+        status.status === 'delivered_to_recipient'
+      );
+      if (completedStatus?.notes) {
+        return completedStatus.notes;
+      }
+    }
+    
+    // Default notes based on status
+    switch (parcel.status) {
+      case 'delivered':
+        return 'Delivery completed successfully';
+      case 'completed':
+        return 'Delivery marked as complete';
+      case 'delivered_to_recipient':
+        return 'Delivered to recipient';
+      default:
+        return 'Delivery completed';
+    }
   }
 
   formatDateTime(dateTime: string | Date | null | undefined): string {
@@ -183,6 +242,10 @@ export class DeliveryHistory implements OnInit {
     switch (status) {
       case 'delivered':
         return 'status-delivered';
+      case 'completed':
+        return 'status-completed';
+      case 'delivered_to_recipient':
+        return 'status-delivered';
       case 'cancelled':
         return 'status-cancelled';
       default:
@@ -194,6 +257,10 @@ export class DeliveryHistory implements OnInit {
     switch (status) {
       case 'delivered':
         return 'Delivered';
+      case 'completed':
+        return 'Completed';
+      case 'delivered_to_recipient':
+        return 'Delivered to Recipient';
       case 'cancelled':
         return 'Cancelled';
       default:
@@ -203,7 +270,19 @@ export class DeliveryHistory implements OnInit {
 
   getRatingStars(rating?: number): string {
     if (!rating) return '☆☆☆☆☆';
-    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    
+    return '★'.repeat(fullStars) + 
+           (hasHalfStar ? '★' : '') + 
+           '☆'.repeat(emptyStars);
+  }
+
+  getRatingDisplay(rating?: number): string {
+    if (!rating) return 'No rating';
+    return `${rating}/5`;
   }
 
   toggleStatusDropdown() {

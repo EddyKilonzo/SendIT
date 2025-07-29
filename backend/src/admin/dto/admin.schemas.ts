@@ -68,8 +68,8 @@ export const userManagementSchema = Joi.object({
 });
 
 export const driverApplicationManagementSchema = Joi.object({
-  userId: Joi.string().required().messages({
-    'any.required': 'User ID is required',
+  userId: Joi.string().optional().messages({
+    'string.base': 'User ID must be a string',
   }),
   action: Joi.string().valid('approve', 'reject').required().messages({
     'any.only': 'Action must be approve or reject',

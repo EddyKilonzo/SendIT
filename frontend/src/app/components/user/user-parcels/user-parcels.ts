@@ -6,13 +6,6 @@ import { SidebarComponent } from '../../shared/sidebar/sidebar';
 import { BaseApiService, Parcel } from '../../../services/base-api.service';
 import { ToastService } from '../../shared/toast/toast.service';
 
-interface Notification {
-  id: string;
-  type: 'update' | 'delivered' | 'pending';
-  message: string;
-  date: string;
-  icon: string;
-}
 
 @Component({
   selector: 'app-user-parcels',
@@ -39,30 +32,14 @@ export class UserParcels implements OnInit {
   receivedParcels: Parcel[] = [];
   loading = false;
 
-  notifications: Notification[] = [
-    {
-      id: '1',
-      type: 'update',
-      message: 'Your parcel #SENDIT835611720L7DD6 is now in transit.',
-      date: '2024-12-20',
-      icon: 'fas fa-box'
-    },
-    {
-      id: '2',
-      type: 'delivered',
-      message: 'Your parcel #SENDIT123456789ABCD has been successfully delivered.',
-      date: '2024-12-18',
-      icon: 'fas fa-check'
-    }
-  ];
-
-  // Filter options
+  // Filter options - based on actual ParcelStatus enum values
   statusOptions = [
     { value: '', label: 'All Status' },
     { value: 'pending', label: 'Pending' },
     { value: 'assigned', label: 'Assigned' },
     { value: 'picked_up', label: 'Picked Up' },
     { value: 'in_transit', label: 'In Transit' },
+    { value: 'delivered_to_recipient', label: 'Delivered to Recipient' },
     { value: 'delivered', label: 'Delivered' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' }
@@ -135,10 +112,23 @@ export class UserParcels implements OnInit {
 
   switchTab(tab: 'sent' | 'received') {
     this.activeTab = tab;
+    
+    // Scroll to top when switching tabs for better UX
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
+    
+    this.loadParcels();
   }
 
   refreshParcels() {
+    console.log('Manual refresh triggered for parcels');
     this.loadParcels();
+    this.toastService.showInfo('Parcels refreshed');
   }
 
   clearFilters() {
@@ -218,6 +208,7 @@ export class UserParcels implements OnInit {
       case 'assigned': return 'status-assigned';
       case 'picked_up': return 'status-transit';
       case 'in_transit': return 'status-transit';
+      case 'delivered_to_recipient': return 'status-delivered';
       case 'delivered': return 'status-delivered';
       case 'completed': return 'status-completed';
       case 'cancelled': return 'status-cancelled';
@@ -231,6 +222,7 @@ export class UserParcels implements OnInit {
       case 'assigned': return 'Assigned';
       case 'picked_up': return 'Picked Up';
       case 'in_transit': return 'In Transit';
+      case 'delivered_to_recipient': return 'Delivered to Recipient';
       case 'delivered': return 'Delivered';
       case 'completed': return 'Completed';
       case 'cancelled': return 'Cancelled';
@@ -238,18 +230,7 @@ export class UserParcels implements OnInit {
     }
   }
 
-  getNotificationIcon(notification: Notification): string {
-    return notification.icon;
-  }
 
-  getNotificationClass(notification: Notification): string {
-    switch (notification.type) {
-      case 'update': return 'notification-update';
-      case 'delivered': return 'notification-delivered';
-      case 'pending': return 'notification-pending';
-      default: return '';
-    }
-  }
 
   getCurrentTotalParcels(): number {
     return this.activeTab === 'sent' ? this.totalParcelsSent : this.totalParcelsReceived;

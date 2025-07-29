@@ -16,6 +16,12 @@
           Welcome to your dashboard! Start by creating your first delivery or check your parcel status below.
         </p>
       </div>
+      <div class="header-actions">
+        <button class="refresh-button" (click)="refreshDashboard()" [disabled]="isLoading">
+          <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+          Refresh
+        </button>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -43,36 +49,7 @@
         </div>
       </div>
 
-      <!-- Recent Activity Section -->
-      <div class="dashboard-section" *ngIf="recentActivities.length > 0">
-        <h2 class="section-title">Recent Activity</h2>
-        <div class="activity-list">
-          <div class="activity-item" *ngFor="let activity of recentActivities">
-            <div class="activity-icon">
-              <i [class]="getActivityIcon(activity)"></i>
-            </div>
-            <div class="activity-content">
-              <div class="activity-header">
-                <span class="parcel-id">{{ activity.parcelId }}</span>
-                <span class="activity-status" [ngClass]="getStatusClass(activity.status)">
-                  {{ activity.status }}
-                </span>
-              </div>
-              <p class="activity-text">{{ getActivityText(activity) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Empty State for Recent Activity -->
-      <div class="dashboard-section" *ngIf="recentActivities.length === 0">
-        <h2 class="section-title">Recent Activity</h2>
-        <div class="empty-state">
-          <i class="fas fa-inbox empty-icon"></i>
-          <p>No recent activity to show</p>
-          <p class="empty-subtitle">Your parcel activities will appear here once you send or receive parcels</p>
-        </div>
-      </div>
 
       <!-- Spending Summary Section -->
       <div class="dashboard-section" *ngIf="getTotalSpent() > 0">

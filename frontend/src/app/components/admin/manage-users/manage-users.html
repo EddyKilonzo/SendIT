@@ -230,13 +230,13 @@
                 </div>
               </div>
               <div class="application-actions" *ngIf="application.driverApplicationStatus === 'PENDING'">
-              <button class="btn-approve" (click)="approveApplication(application.id, $event)">
-                <i class="fas fa-check"></i>
-                Approve
+              <button class="btn-approve" (click)="approveApplication(application.id, $event)" [disabled]="approvingApplicationId === application.id || rejectingApplicationId === application.id">
+                <i class="fas" [ngClass]="approvingApplicationId === application.id ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                {{ approvingApplicationId === application.id ? 'Approving...' : 'Approve' }}
               </button>
-              <button class="btn-reject" (click)="rejectApplication(application.id, $event)">
-                <i class="fas fa-times"></i>
-                Reject
+              <button class="btn-reject" (click)="rejectApplication(application.id, $event)" [disabled]="approvingApplicationId === application.id || rejectingApplicationId === application.id">
+                <i class="fas" [ngClass]="rejectingApplicationId === application.id ? 'fa-spinner fa-spin' : 'fa-times'"></i>
+                {{ rejectingApplicationId === application.id ? 'Rejecting...' : 'Reject' }}
               </button>
             </div>
           </div>
@@ -339,14 +339,14 @@
       </div>
     </div>
     <div class="modal-actions" *ngIf="selectedApplicationForReview?.driverApplicationStatus === 'PENDING'">
-      <button class="btn-cancel" (click)="closeApplicationDetailsModal()">Close</button>
-      <button class="btn-approve" (click)="approveApplicationFromModal()">
-        <i class="fas fa-check"></i>
-        Approve Application
+      <button class="btn-cancel" (click)="closeApplicationDetailsModal()" [disabled]="approvingApplicationId === selectedApplicationForReview?.id || rejectingApplicationId === selectedApplicationForReview?.id">Close</button>
+      <button class="btn-approve" (click)="approveApplicationFromModal()" [disabled]="approvingApplicationId === selectedApplicationForReview?.id || rejectingApplicationId === selectedApplicationForReview?.id">
+        <i class="fas" [ngClass]="approvingApplicationId === selectedApplicationForReview?.id ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+        {{ approvingApplicationId === selectedApplicationForReview?.id ? 'Approving...' : 'Approve Application' }}
       </button>
-      <button class="btn-reject" (click)="rejectApplicationFromModal()">
-        <i class="fas fa-times"></i>
-        Reject Application
+      <button class="btn-reject" (click)="rejectApplicationFromModal()" [disabled]="approvingApplicationId === selectedApplicationForReview?.id || rejectingApplicationId === selectedApplicationForReview?.id">
+        <i class="fas" [ngClass]="rejectingApplicationId === selectedApplicationForReview?.id ? 'fa-spinner fa-spin' : 'fa-times'"></i>
+        {{ rejectingApplicationId === selectedApplicationForReview?.id ? 'Rejecting...' : 'Reject Application' }}
       </button>
     </div>
     <div class="modal-actions" *ngIf="selectedApplicationForReview?.driverApplicationStatus !== 'PENDING'">
@@ -383,10 +383,10 @@
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" (click)="closeRejectionModal()">Cancel</button>
-      <button class="btn-confirm-reject" (click)="confirmRejection()">
-        <i class="fas fa-times"></i>
-        Reject Application
+      <button class="btn-cancel" (click)="closeRejectionModal()" [disabled]="isConfirmingRejection">Cancel</button>
+      <button class="btn-confirm-reject" (click)="confirmRejection()" [disabled]="isConfirmingRejection">
+        <i class="fas" [ngClass]="isConfirmingRejection ? 'fa-spinner fa-spin' : 'fa-times'"></i>
+        {{ isConfirmingRejection ? 'Rejecting...' : 'Reject Application' }}
       </button>
     </div>
   </div>

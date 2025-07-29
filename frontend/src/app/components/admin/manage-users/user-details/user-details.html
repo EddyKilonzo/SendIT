@@ -50,9 +50,9 @@
                 </div>
               </div>
               <div class="profile-actions">
-                <button class="status-action-btn" (click)="openStatusModal()">
-                  <i class="fas fa-cog"></i>
-                  Manage Status
+                <button class="status-action-btn" (click)="openStatusModal()" [disabled]="isUpdatingStatus">
+                  <i class="fas" [ngClass]="isUpdatingStatus ? 'fa-spinner fa-spin' : 'fa-cog'"></i>
+                  {{ isUpdatingStatus ? 'Updating...' : 'Manage Status' }}
                 </button>
               </div>
             </div>
@@ -153,12 +153,6 @@
                   <h2 class="section-title">Driver Status</h2>
                   <div class="info-grid">
                     <div class="info-item">
-                      <label class="info-label">Current Status</label>
-                      <span class="info-value status-badge" [ngClass]="user.isAvailable ? 'active' : 'inactive'">
-                        {{ user.isAvailable ? 'Available' : 'Unavailable' }}
-                      </span>
-                    </div>
-                    <div class="info-item">
                       <label class="info-label">Current Assignments</label>
                       <span class="info-value">{{ assignedParcels.length }}</span>
                     </div>
@@ -238,10 +232,7 @@
                   <div class="metric-value">{{ driverPerformance.averageRating !== undefined && driverPerformance.averageRating !== null ? driverPerformance.averageRating.toFixed(1) : 'N/A' }}</div>
                   <div class="metric-label">Average Rating</div>
                 </div>
-                <div class="metric-card">
-                  <div class="metric-value">{{ driverPerformance.onTimeDeliveries }}</div>
-                  <div class="metric-label">On-Time Deliveries</div>
-                </div>
+
                 <div class="metric-card">
                   <div class="metric-value">{{ driverPerformance.currentAssignments }}</div>
                   <div class="metric-label">Current Assignments</div>
@@ -268,14 +259,6 @@
                     <div class="stat-item">
                       <label>Time Accuracy</label>
                       <span>{{ driverPerformance.timeAccuracy }}%</span>
-                    </div>
-                    <div class="stat-item">
-                      <label>On-Time Rate</label>
-                      <span>{{ driverPerformance.onTimeDeliveries && driverPerformance.totalDeliveries ? ((driverPerformance.onTimeDeliveries / driverPerformance.totalDeliveries) * 100).toFixed(1) : 0 }}%</span>
-                    </div>
-                    <div class="stat-item">
-                      <label>Current Status</label>
-                      <span>{{ user.isAvailable ? 'Available' : 'Unavailable' }}</span>
                     </div>
                   </div>
                 </div>
@@ -507,11 +490,12 @@
 
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeStatusModal()">
+        <button class="btn-secondary" (click)="closeStatusModal()" [disabled]="isUpdatingStatus">
           <i class="fas fa-times"></i> Cancel
         </button>
-        <button class="btn-primary" (click)="confirmStatusUpdate()">
-          <i class="fas fa-check"></i> Update Status
+        <button class="btn-primary" (click)="confirmStatusUpdate()" [disabled]="isUpdatingStatus">
+          <i class="fas" [ngClass]="isUpdatingStatus ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ isUpdatingStatus ? 'Updating...' : 'Update Status' }}
         </button>
       </div>
     </div>

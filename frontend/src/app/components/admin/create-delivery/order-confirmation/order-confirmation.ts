@@ -90,13 +90,64 @@ export class OrderConfirmation implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Get order details and parcel details from route state or query params
+    console.log('🔄 OrderConfirmation ngOnInit started');
+    
+    // Get order details and parcel details from router state
     const navigation = this.router.getCurrentNavigation();
+    let state = null;
+    
     if (navigation?.extras.state) {
-      this.orderDetails = navigation.extras.state['orderDetails'];
-      this.parcelDetails = navigation.extras.state['parcelDetails'];
-      console.log('Order details from navigation state:', this.orderDetails);
-      console.log('Parcel details from navigation state:', this.parcelDetails);
+      state = navigation.extras.state;
+      console.log('📦 Router state received:', state);
+    } else {
+      // Try to get from history state as fallback
+      const historyState = history.state;
+      if (historyState && Object.keys(historyState).length > 0) {
+        state = historyState;
+        console.log('📦 History state received:', state);
+      } else {
+        console.warn('⚠️ No router or history state found');
+      }
+    }
+    
+    if (state) {
+      // Handle the data structure passed from create delivery
+      if (state['orderDetails']) {
+        console.log('📋 Raw order details from state:', state['orderDetails']);
+        this.orderDetails = {
+          senderName: state['orderDetails'].senderName || '',
+          senderContact: state['orderDetails'].senderContact || '',
+          recipientName: state['orderDetails'].recipientName || '',
+          recipientContact: state['orderDetails'].recipientContact || '',
+          pickupLocation: state['orderDetails'].pickupLocation || '',
+          destination: state['orderDetails'].destination || '',
+          totalPrice: state['orderDetails'].totalPrice || this.calculateTotalPrice(state['orderDetails'].parcelWeight, state['orderDetails'].pricePerKg),
+          parcelWeight: state['orderDetails'].parcelWeight || 0,
+          pricePerKg: state['orderDetails'].pricePerKg || 100,
+          senderAddress: state['orderDetails'].senderAddress || '',
+          senderEmail: state['orderDetails'].senderEmail || '',
+          recipientAddress: state['orderDetails'].recipientAddress || '',
+          recipientEmail: state['orderDetails'].recipientEmail || ''
+        };
+        console.log('✅ Order details processed:', this.orderDetails);
+      } else {
+        console.warn('⚠️ No orderDetails found in state');
+      }
+      
+      if (state['parcelDetails']) {
+        this.parcelDetails = state['parcelDetails'];
+        console.log('📦 Parcel details received:', this.parcelDetails);
+      } else {
+        console.warn('⚠️ No parcelDetails found in state');
+      }
+      
+      if (state['createdParcel']) {
+        // Update order details with the created parcel info
+        this.orderDetails.parcelId = state['createdParcel'].id;
+        console.log('🎯 Created parcel info:', state['createdParcel']);
+      } else {
+        console.warn('⚠️ No createdParcel found in state');
+      }
     }
 
     // Set expected delivery date (3 days from now)
@@ -108,39 +159,75 @@ export class OrderConfirmation implements OnInit, OnDestroy {
       day: 'numeric'
     });
 
-    // If no order details in state, try to get from query params
+    // If no order details in state, try to get from parcels service
     if (!this.orderDetails.senderName) {
+      console.log('🔍 Trying to get data from parcels service...');
+      const tempParcelDetails = this.parcelsService.getTempParcelDetails();
+      if (tempParcelDetails) {
+        console.log('📦 Temp parcel details from service:', tempParcelDetails);
+        // Create order details from parcel details
+        this.orderDetails = {
+          senderName: tempParcelDetails.senderName || '',
+          senderContact: '', // Not available in parcel details
+          recipientName: tempParcelDetails.recipientName || '',
+          recipientContact: '', // Not available in parcel details
+          pickupLocation: tempParcelDetails.pickupAddress || '',
+          destination: tempParcelDetails.deliveryAddress || '',
+          totalPrice: tempParcelDetails.price || 0,
+          parcelWeight: tempParcelDetails.weight || 0,
+          pricePerKg: 100, // Default value
+          parcelId: tempParcelDetails.id || tempParcelDetails.trackingNumber || ''
+        };
+        this.parcelDetails = tempParcelDetails;
+        console.log('✅ Order details created from service:', this.orderDetails);
+      } else {
+        console.warn('⚠️ No temp parcel details found in service');
+      }
+    }
+
+    // If still no data, try to get from query params
+    if (!this.orderDetails.senderName) {
+      console.log('🔍 Trying to get data from query params...');
       this.route.queryParams.subscribe(params => {
         if (params['orderData']) {
           try {
-            this.orderDetails = JSON.parse(params['orderData']);
-            console.log('Order details from query params:', this.orderDetails);
+            const orderData = JSON.parse(params['orderData']);
+            console.log('📋 Order data from query params:', orderData);
+            this.orderDetails = {
+              senderName: orderData.senderName || '',
+              senderContact: orderData.senderContact || '',
+              recipientName: orderData.recipientName || '',
+              recipientContact: orderData.recipientContact || '',
+              pickupLocation: orderData.pickupLocation || '',
+              destination: orderData.destination || '',
+              totalPrice: orderData.totalPrice || 0,
+              parcelWeight: orderData.parcelWeight || 0,
+              pricePerKg: orderData.pricePerKg || 100,
+              senderAddress: orderData.senderAddress || '',
+              senderEmail: orderData.senderEmail || '',
+              recipientAddress: orderData.recipientAddress || '',
+              recipientEmail: orderData.recipientEmail || ''
+            };
+            console.log('✅ Order details from query params processed:', this.orderDetails);
           } catch (e) {
-            console.error('Error parsing order data:', e);
+            console.error('❌ Error parsing order data:', e);
           }
+        } else {
+          console.warn('⚠️ No orderData found in query params');
         }
       });
     }
 
-    // If still no data, use sample data for testing
+    // If still no data, redirect back to create delivery page
     if (!this.orderDetails.senderName) {
-      this.orderDetails = {
-        senderName: 'John Doe',
-        senderContact: '+254712345678',
-        recipientName: 'Jane Smith',
-        recipientContact: '+254798765432',
-        pickupLocation: 'Nairobi CBD, Kenya',
-        destination: 'Mombasa, Kenya',
-        totalPrice: 2500,
-        parcelWeight: 2.5,
-        pricePerKg: 100,
-        senderAddress: '123 Main Street, Nairobi',
-        senderEmail: 'john.doe@email.com',
-        recipientAddress: '456 Beach Road, Mombasa',
-        recipientEmail: 'jane.smith@email.com'
-      };
-      console.log('Using sample order details:', this.orderDetails);
+      console.warn('❌ No order details found, redirecting to create delivery page');
+      this.toastService.showError('No order details found. Please create a new order.');
+      this.router.navigate(['/admin-create-delivery']);
+      return;
     }
+
+    console.log('✅ Order details are available, proceeding with initialization');
+    console.log('📋 Final order details:', this.orderDetails);
 
     // Initialize the edit form with current order details
     this.populateEditForm();
@@ -231,7 +318,9 @@ export class OrderConfirmation implements OnInit, OnDestroy {
   calculateTotalPrice(weight: number, pricePerKg?: number): number {
     const currentPricePerKg = pricePerKg || this.editForm.get('pricePerKg')?.value || 100;
     if (weight && weight > 0 && currentPricePerKg && currentPricePerKg > 0) {
-      return weight * currentPricePerKg;
+      const weightPrice = weight * currentPricePerKg;
+      const deliveryFee = 200; // Fixed delivery fee
+      return weightPrice + deliveryFee;
     }
     return 0;
   }
@@ -246,6 +335,21 @@ export class OrderConfirmation implements OnInit, OnDestroy {
   getFormattedPricePerKg(): string {
     const price = this.editForm.get('pricePerKg')?.value || 100;
     return `KSH ${price.toFixed(2)}`;
+  }
+
+  calculateWeightPrice(): number {
+    const weight = this.editForm.get('parcelWeight')?.value || 0;
+    const pricePerKg = this.editForm.get('pricePerKg')?.value || 100;
+    return weight * pricePerKg;
+  }
+
+  getFormattedWeightPrice(): string {
+    const weightPrice = this.calculateWeightPrice();
+    return weightPrice > 0 ? `KSH ${weightPrice.toFixed(2)}` : 'KSH 0.00';
+  }
+
+  getFormattedDeliveryFee(): string {
+    return 'KSH 200.00';
   }
 
   private markFormGroupTouched() {

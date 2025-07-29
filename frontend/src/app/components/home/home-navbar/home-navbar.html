@@ -26,17 +26,42 @@
       <!-- User avatar with dropdown menu -->
       <div class="user-menu-container">
         <div class="user-avatar" (click)="toggleUserMenu($event)">
-          <span class="user-initials">{{ getUserInitials() }}</span>
+          <img 
+            *ngIf="currentUser?.profilePicture" 
+            [src]="currentUser.profilePicture" 
+            [alt]="currentUser?.name + ' profile picture'"
+            class="user-profile-picture"
+            (error)="onProfilePictureError($event)"
+          >
+          <span class="user-initials" *ngIf="!currentUser?.profilePicture || profilePictureError">{{ getUserInitials() }}</span>
         </div>
         
         <!-- User dropdown menu -->
         <div class="user-dropdown" *ngIf="showUserMenu">
           <div class="user-info">
-            <div class="welcome-message">Welcome back,</div>
-            <div class="user-name">{{ currentUser?.name || 'User' }}</div>
-            <div class="user-role">{{ getUserRole() }}</div>
+            <div class="user-profile-section">
+              <div class="user-profile-picture-container">
+                <img 
+                  *ngIf="currentUser?.profilePicture && !profilePictureError" 
+                  [src]="currentUser.profilePicture" 
+                  [alt]="currentUser?.name + ' profile picture'"
+                  class="dropdown-profile-picture"
+                  (error)="onProfilePictureError($event)"
+                >
+                <span class="dropdown-user-initials" *ngIf="!currentUser?.profilePicture || profilePictureError">{{ getUserInitials() }}</span>
+              </div>
+              <div class="user-details">
+                <div class="welcome-message">Welcome back,</div>
+                <div class="user-name">{{ currentUser?.name || 'User' }}</div>
+                <div class="user-role">{{ getUserRole() }}</div>
+              </div>
+            </div>
           </div>
           <div class="dropdown-divider"></div>
+          <button class="dropdown-item" routerLink="/profile" (click)="showUserMenu = false">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </button>
           <button class="dropdown-item" (click)="logout()">
             <i class="fas fa-sign-out-alt"></i>
             <span>Logout</span>
@@ -81,13 +106,24 @@
     <div class="mobile-menu-actions" *ngIf="isAuthenticated">
       <div class="mobile-user-info">
         <div class="mobile-user-avatar">
-          <span class="mobile-user-initials">{{ getUserInitials() }}</span>
+          <img 
+            *ngIf="currentUser?.profilePicture && !profilePictureError" 
+            [src]="currentUser.profilePicture" 
+            [alt]="currentUser?.name + ' profile picture'"
+            class="mobile-user-profile-picture"
+            (error)="onProfilePictureError($event)"
+          >
+          <span class="mobile-user-initials" *ngIf="!currentUser?.profilePicture || profilePictureError">{{ getUserInitials() }}</span>
         </div>
         <div class="mobile-user-details">
           <div class="mobile-user-name">{{ currentUser?.name || 'User' }}</div>
           <div class="mobile-user-role">{{ getUserRole() }}</div>
         </div>
       </div>
+      <button class="mobile-profile-btn" routerLink="/profile" (click)="closeMobileMenu()">
+        <i class="fas fa-user"></i>
+        Profile
+      </button>
       <button class="mobile-logout-btn" (click)="logout(); closeMobileMenu()">
         <i class="fas fa-sign-out-alt"></i>
         Logout

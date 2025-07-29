@@ -42,8 +42,6 @@ function senderRecipientValidator(group: AbstractControl): ValidationErrors | nu
   const recipientEmail = group.get('recipientEmail')?.value;
   const senderContact = group.get('senderContact')?.value;
   const recipientContact = group.get('recipientContact')?.value;
-  const senderAddress = group.get('senderAddress')?.value;
-  const recipientAddress = group.get('recipientAddress')?.value;
   const pickupLocation = group.get('pickupLocation')?.value;
   const destination = group.get('destination')?.value;
   
@@ -61,16 +59,6 @@ function senderRecipientValidator(group: AbstractControl): ValidationErrors | nu
     
     if (senderDigits === recipientDigits) {
       errors.senderRecipientContactMatch = { message: 'Sender and recipient contact numbers cannot be the same' };
-    }
-  }
-  
-  // Check if sender and recipient addresses match
-  if (senderAddress && recipientAddress) {
-    const normalizedSenderAddress = senderAddress.toLowerCase().trim().replace(/\s+/g, ' ');
-    const normalizedRecipientAddress = recipientAddress.toLowerCase().trim().replace(/\s+/g, ' ');
-    
-    if (normalizedSenderAddress === normalizedRecipientAddress) {
-      errors.senderRecipientAddressMatch = { message: 'Sender and recipient addresses cannot be the same' };
     }
   }
   
@@ -167,13 +155,11 @@ export class CreateDelivery implements OnInit {
     this.deliveryForm = this.fb.group({
       // Sender Details
       senderName: ['', [Validators.required, Validators.minLength(2)]],
-      senderAddress: ['', [Validators.required, Validators.minLength(5)]],
       senderContact: ['', [Validators.required, phoneNumberValidator]],
       senderEmail: ['', [Validators.required, emailValidator]],
       
       // Recipient Details
       recipientName: ['', [Validators.required, Validators.minLength(2)]],
-      recipientAddress: ['', [Validators.required, Validators.minLength(5)]],
       recipientContact: ['', [Validators.required, phoneNumberValidator]],
       recipientEmail: ['', [Validators.required, emailValidator]],
       
@@ -615,11 +601,9 @@ export class CreateDelivery implements OnInit {
   populateFormWithOrderDetails(orderDetails: OrderDetails) {
     this.deliveryForm.patchValue({
       senderName: orderDetails.senderName || '',
-      senderAddress: orderDetails.senderAddress || '',
       senderContact: orderDetails.senderContact || '',
       senderEmail: orderDetails.senderEmail || '',
       recipientName: orderDetails.recipientName || '',
-      recipientAddress: orderDetails.recipientAddress || '',
       recipientContact: orderDetails.recipientContact || '',
       recipientEmail: orderDetails.recipientEmail || '',
       pickupLocation: orderDetails.pickupLocation || '',
@@ -635,7 +619,9 @@ export class CreateDelivery implements OnInit {
   calculateTotalPrice(weight: number, pricePerKg?: number) {
     const currentPricePerKg = pricePerKg || this.deliveryForm.get('pricePerKg')?.value || this.pricePerKg;
     if (weight && weight > 0 && currentPricePerKg && currentPricePerKg > 0) {
-      this.totalPrice = weight * currentPricePerKg;
+      const weightPrice = weight * currentPricePerKg;
+      const deliveryFee = 200; // Fixed delivery fee
+      this.totalPrice = weightPrice + deliveryFee;
     } else {
       this.totalPrice = 0;
     }
@@ -650,14 +636,29 @@ export class CreateDelivery implements OnInit {
     return `KSH ${price.toFixed(2)}`;
   }
 
+  calculateWeightPrice(): number {
+    const weight = this.deliveryForm.get('parcelWeight')?.value || 0;
+    const pricePerKg = this.deliveryForm.get('pricePerKg')?.value || this.pricePerKg;
+    return weight * pricePerKg;
+  }
+
+  getFormattedWeightPrice(): string {
+    const weightPrice = this.calculateWeightPrice();
+    return weightPrice > 0 ? `KSH ${weightPrice.toFixed(2)}` : 'KSH 0.00';
+  }
+
+  getFormattedDeliveryFee(): string {
+    return 'KSH 200.00';
+  }
+
   getSubmitButtonText(): string {
     return this.isEditMode ? 'Update Delivery' : 'Create Order & Assign Driver';
   }
 
   isDeliveryTabValid(): boolean {
     const deliveryFields = [
-      'senderName', 'senderContact', 'senderAddress', 'senderEmail',
-      'recipientName', 'recipientContact', 'recipientAddress', 'recipientEmail',
+      'senderName', 'senderContact', 'senderEmail',
+      'recipientName', 'recipientContact', 'recipientEmail',
       'parcelWeight', 'pricePerKg'
     ];
     
@@ -737,14 +738,33 @@ export class CreateDelivery implements OnInit {
             // Store parcel details in service as backup
             this.parcelsService.setTempParcelDetails(parcelDetails, false);
             
-            // Navigate to order confirmation first, then user can click assign button
-            this.router.navigate(['/order-confirmation'], {
-              state: { 
-                orderDetails: formData,
-                parcelDetails: parcelDetails,
-                createdParcel: response
-              }
-            });
+            // Prepare navigation state
+            const navigationState = { 
+              orderDetails: {
+                senderName: formData.senderName,
+                senderContact: formData.senderContact,
+                recipientName: formData.recipientName,
+                recipientContact: formData.recipientContact,
+                pickupLocation: formData.pickupLocation,
+                destination: formData.destination,
+                totalPrice: this.totalPrice,
+                parcelWeight: formData.parcelWeight,
+                pricePerKg: this.pricePerKg,
+                senderAddress: '', // No longer stored in orderDetails
+                senderEmail: formData.senderEmail,
+                recipientAddress: '', // No longer stored in orderDetails
+                recipientEmail: formData.recipientEmail
+              },
+              parcelDetails: parcelDetails,
+              createdParcel: response
+            };
+            
+            // Navigate with state after a small delay to ensure state is set
+            setTimeout(() => {
+              this.router.navigate(['/order-confirmation'], {
+                state: navigationState
+              });
+            }, 100);
           } else {
             this.toastService.showError('Failed to create delivery - invalid response');
           }
@@ -788,16 +808,6 @@ export class CreateDelivery implements OnInit {
         }
       }
       
-      if (formErrors['senderRecipientAddressMatch']) {
-        const senderAddressField = this.deliveryForm.get('senderAddress');
-        const recipientAddressField = this.deliveryForm.get('recipientAddress');
-        
-        if (senderAddressField && recipientAddressField) {
-          senderAddressField.setErrors({ ...senderAddressField.errors, crossField: formErrors['senderRecipientAddressMatch'].message });
-          recipientAddressField.setErrors({ ...recipientAddressField.errors, crossField: formErrors['senderRecipientAddressMatch'].message });
-        }
-      }
-      
       if (formErrors['pickupDestinationMatch']) {
         const pickupLocationField = this.deliveryForm.get('pickupLocation');
         const destinationField = this.deliveryForm.get('destination');
@@ -809,7 +819,7 @@ export class CreateDelivery implements OnInit {
       }
     } else {
       // Clear cross-field errors if no form-level errors
-      const fields = ['senderEmail', 'recipientEmail', 'senderContact', 'recipientContact', 'senderAddress', 'recipientAddress', 'pickupLocation', 'destination'];
+      const fields = ['senderEmail', 'recipientEmail', 'senderContact', 'recipientContact', 'pickupLocation', 'destination'];
       fields.forEach(fieldName => {
         const field = this.deliveryForm.get(fieldName);
         if (field && field.errors) {
@@ -870,10 +880,6 @@ export class CreateDelivery implements OnInit {
           (fieldName === 'senderContact' || fieldName === 'recipientContact')) {
         return formErrors['senderRecipientContactMatch'].message;
       }
-      if (formErrors['senderRecipientAddressMatch'] && 
-          (fieldName === 'senderAddress' || fieldName === 'recipientAddress')) {
-        return formErrors['senderRecipientAddressMatch'].message;
-      }
       if (formErrors['pickupDestinationMatch'] && 
           (fieldName === 'pickupLocation' || fieldName === 'destination')) {
         return formErrors['pickupDestinationMatch'].message;
@@ -886,11 +892,9 @@ export class CreateDelivery implements OnInit {
   private getFieldLabel(fieldName: string): string {
     const labels: { [key: string]: string } = {
       senderName: 'Sender name',
-      senderAddress: 'Sender address',
       senderContact: 'Sender contact',
       senderEmail: 'Sender email',
       recipientName: 'Recipient name',
-      recipientAddress: 'Recipient address',
       recipientContact: 'Recipient contact',
       recipientEmail: 'Recipient email',
       pickupLocation: 'Pickup location',
@@ -1009,6 +1013,15 @@ export class CreateDelivery implements OnInit {
 
   switchTab(tab: string) {
     this.activeTab = tab;
+    
+    // Scroll to top when switching tabs for better UX
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
     
     if (tab === 'tracking') {
       setTimeout(() => {

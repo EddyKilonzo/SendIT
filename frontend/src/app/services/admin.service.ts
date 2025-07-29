@@ -228,8 +228,9 @@ export class AdminService {
     let action: string;
     switch (status) {
       case 'active':
-        // If user was suspended, use unsuspend, otherwise use activate
-        action = 'activate';
+        // For suspended users, we need to use 'unsuspend' instead of 'activate'
+        // We'll determine this based on the user's current status
+        action = 'activate'; // Default, will be overridden if user is suspended
         break;
       case 'inactive':
         action = 'deactivate';
@@ -241,6 +242,15 @@ export class AdminService {
         action = 'activate';
     }
     
+    const headers = this.getAuthHeaders();
+    // Send request body with action and userId (to satisfy validation)
+    return this.http.patch(`${this.apiUrl}/admin/users/${userId}/manage`, { 
+      action,
+      userId 
+    }, { headers });
+  }
+
+  updateUserStatusWithAction(userId: string, action: string): Observable<any> {
     const headers = this.getAuthHeaders();
     // Send request body with action and userId (to satisfy validation)
     return this.http.patch(`${this.apiUrl}/admin/users/${userId}/manage`, { 
@@ -262,7 +272,6 @@ export class AdminService {
   approveDriverApplication(userId: string): Observable<any> {
     const headers = this.getAuthHeaders();
     return this.http.patch(`${this.apiUrl}/admin/driver-applications/${userId}/manage`, {
-      userId: userId,
       action: 'approve'
     }, { headers });
   }
@@ -270,7 +279,6 @@ export class AdminService {
   rejectDriverApplication(userId: string, reason: string): Observable<any> {
     const headers = this.getAuthHeaders();
     return this.http.patch(`${this.apiUrl}/admin/driver-applications/${userId}/manage`, {
-      userId: userId,
       action: 'reject',
       reason
     }, { headers });
@@ -293,8 +301,6 @@ export class AdminService {
       headers: this.getAuthHeaders(),
     });
   }
-
-
 
   // Analytics Data
   getAnalyticsData(): Observable<AnalyticsData> {
@@ -350,7 +356,7 @@ export class AdminService {
 
   // Helper method to get authentication headers
   private getAuthHeaders(): { [key: string]: string } {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     return token ? { 'Authorization': `Bearer ${token}` } : {};
   }
 } 

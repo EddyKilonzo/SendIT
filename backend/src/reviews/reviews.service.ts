@@ -612,6 +612,7 @@ export class ReviewsService {
       name: user.name,
       phone: user.phone || undefined,
       address: user.address || undefined,
+      profilePicture: user.profilePicture || undefined,
       role: user.role as 'CUSTOMER' | 'DRIVER' | 'ADMIN',
       isActive: user.isActive,
       licenseNumber: user.licenseNumber || undefined,

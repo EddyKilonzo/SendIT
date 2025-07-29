@@ -139,18 +139,27 @@ export class AuthService {
   }
 
   login(loginDto: LoginDto): Observable<AuthResponse> {
+    console.log('🔐 AuthService.login called with:', { email: loginDto.email });
+    console.log('🌐 API URL:', this.apiUrl);
+    
     return this.http.post<ApiResponseDto<AuthResponse>>(`${this.apiUrl}/auth/login`, loginDto)
       .pipe(
         map(response => {
+          console.log('✅ Login response received:', response);
           if (response.success && response.data) {
+            console.log('✅ Login successful, setting auth data');
             this.setAuth(response.data);
             this.toastService.showSuccess('Login successful!');
             return response.data;
           } else {
+            console.error('❌ Login failed - invalid response:', response);
             throw new Error(response.message || 'Login failed');
           }
         }),
-        catchError(this.handleError.bind(this))
+        catchError(error => {
+          console.error('❌ Login error:', error);
+          return this.handleError.bind(this)(error);
+        })
       );
   }
 
@@ -220,20 +229,28 @@ export class AuthService {
   refreshToken(): Observable<AuthResponse> {
     const refreshToken = localStorage.getItem('refreshToken');
     if (!refreshToken) {
+      console.error('❌ No refresh token available');
       return throwError(() => new Error('No refresh token available'));
     }
 
+    console.log('🔄 Attempting to refresh token...');
+    
     return this.http.post<ApiResponseDto<AuthResponse>>(`${this.apiUrl}/auth/refresh`, { refreshToken })
       .pipe(
         map(response => {
           if (response.success && response.data) {
+            console.log('✅ Token refresh successful');
             this.setAuth(response.data);
             return response.data;
           } else {
+            console.error('❌ Token refresh failed:', response.message);
             throw new Error(response.message || 'Token refresh failed');
           }
         }),
-        catchError(this.handleError.bind(this))
+        catchError(error => {
+          console.error('❌ Token refresh error:', error);
+          return this.handleError(error);
+        })
       );
   }
 
@@ -360,7 +377,9 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return this.currentUserSubject.value !== null;
+    const user = this.currentUserSubject.value;
+    const tokenValid = this.isTokenValid();
+    return user !== null && tokenValid;
   }
 
   // Role-based access control methods
@@ -437,7 +456,33 @@ export class AuthService {
 
   // Get token for HTTP requests
   getToken(): string | null {
-    return localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      return null;
+    }
+    
+    // Check if token is expired
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      if (payload.exp && payload.exp < currentTime) {
+        console.warn('Token has expired, clearing auth');
+        this.clearAuth();
+        return null;
+      }
+    } catch (error) {
+      console.warn('Invalid token format, clearing auth');
+      this.clearAuth();
+      return null;
+    }
+    
+    return token;
+  }
+
+  // Check if user is authenticated and token is valid
+  isTokenValid(): boolean {
+    const token = this.getToken();
+    return token !== null;
   }
 
   getAuthHeaders(): { [key: string]: string } {
@@ -449,5 +494,10 @@ export class AuthService {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     };
+  }
+
+  getUserId(): string | null {
+    const user = this.getCurrentUser();
+    return user?.id || null;
   }
 } 

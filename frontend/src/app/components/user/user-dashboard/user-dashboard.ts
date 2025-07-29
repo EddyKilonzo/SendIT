@@ -1,17 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { BaseApiService, Parcel, UserDashboardData } from '../../../services/base-api.service';
 import { SidebarComponent } from '../../shared/sidebar/sidebar';
 import { ToastService } from '../../shared/toast/toast.service';
 
-interface Activity {
-  parcelId: string;
-  status: 'In Transit' | 'Delivered' | 'Pending' | 'Cancelled';
-  date: string;
-  icon: string;
-}
 
 interface SummaryCard {
   title: string;
@@ -32,9 +26,9 @@ export class UserDashboard implements OnInit {
   currentUser: any = null;
   parcelsInTransit = 0;
   scheduledForTomorrow = 0;
+  totalSpent = 0;
   isLoading = false;
-  
-  recentActivities: Activity[] = [];
+
   summaryCards: SummaryCard[] = [];
   sentParcels: Parcel[] = [];
   receivedParcels: Parcel[] = [];
@@ -45,7 +39,8 @@ export class UserDashboard implements OnInit {
   constructor(
     private authService: AuthService,
     private apiService: BaseApiService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -65,6 +60,13 @@ export class UserDashboard implements OnInit {
     this.loadDashboardData();
   }
 
+  // Manual refresh method
+  refreshDashboard() {
+    console.log('Manual refresh triggered');
+    this.loadDashboardData();
+    this.toastService.showInfo('Dashboard refreshed');
+  }
+
   private loadDashboardData() {
     this.isLoading = true;
     console.log('Loading dashboard data...');
@@ -79,6 +81,7 @@ export class UserDashboard implements OnInit {
         // Update dashboard metrics
         this.parcelsInTransit = response.parcelsInTransit || 0;
         this.scheduledForTomorrow = response.scheduledForTomorrow || 0;
+        this.totalSpent = response.totalSpent || 0;
         
         // Update summary cards
         this.summaryCards = response.summaryCards || [];
@@ -109,13 +112,8 @@ export class UserDashboard implements OnInit {
         console.log('Sent parcels:', this.sentParcels);
         console.log('Received parcels:', this.receivedParcels);
         
-        // Generate recent activities from recent parcels
-        this.generateRecentActivities();
-        
-        // If no summary cards from backend, generate default ones
-        if (!this.summaryCards || this.summaryCards.length === 0) {
-          this.generateSummaryCards();
-        }
+        // Regenerate summary cards to ensure consistency with spending calculations
+        this.generateSummaryCards();
         
         this.isLoading = false;
       },
@@ -158,8 +156,10 @@ export class UserDashboard implements OnInit {
         // Calculate dashboard metrics
         this.calculateDashboardMetrics();
         
-        // Generate recent activities
-        this.generateRecentActivities();
+        // Calculate total spent from sent parcels for fallback
+        this.totalSpent = this.sentParcels
+          .filter(parcel => parcel.deliveryFee)
+          .reduce((sum, parcel) => sum + (parcel.deliveryFee || 0), 0);
         
         // Generate summary cards
         this.generateSummaryCards();
@@ -206,25 +206,9 @@ export class UserDashboard implements OnInit {
     }).length;
   }
 
-  private generateRecentActivities() {
-    // Get recent parcels and create activities
-    const recentParcels = this.allParcels
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 5);
-    
-    this.recentActivities = recentParcels.map(parcel => ({
-      parcelId: parcel.trackingNumber,
-      status: this.mapStatusToActivityStatus(parcel.status),
-      date: this.formatDate(parcel.updatedAt),
-      icon: this.getStatusIcon(parcel.status)
-    }));
-  }
+
 
   private generateSummaryCards() {
-    const totalSpent = this.allParcels
-      .filter(parcel => parcel.deliveryFee)
-      .reduce((sum, parcel) => sum + (parcel.deliveryFee || 0), 0);
-    
     const deliveredParcels = this.allParcels.filter(p => p.status === 'delivered').length;
     const inTransitParcels = this.allParcels.filter(p => ['assigned', 'picked_up', 'in_transit'].includes(p.status)).length;
     
@@ -240,20 +224,9 @@ export class UserDashboard implements OnInit {
         icon: 'fas fa-inbox'
       },
       {
-        title: 'Delivered',
-        value: deliveredParcels,
-        icon: 'fas fa-check-circle'
-      },
-      {
         title: 'In Transit',
         value: inTransitParcels,
         icon: 'fas fa-truck'
-      },
-      {
-        title: 'Total Spent',
-        value: `ksh${totalSpent.toFixed(0)}`,
-        icon: 'fas fa-dollar-sign',
-        isTotalSpent: true
       }
     ];
   }
@@ -271,41 +244,14 @@ export class UserDashboard implements OnInit {
         icon: 'fas fa-inbox'
       },
       {
-        title: 'Delivered',
-        value: 0,
-        icon: 'fas fa-check-circle'
-      },
-      {
         title: 'In Transit',
         value: 0,
         icon: 'fas fa-truck'
-      },
-      {
-        title: 'Total Spent',
-        value: 'ksh0',
-        icon: 'fas fa-dollar-sign',
-        isTotalSpent: true
       }
     ];
   }
 
-  private mapStatusToActivityStatus(status: string): 'In Transit' | 'Delivered' | 'Pending' | 'Cancelled' {
-    switch (status) {
-      case 'pending':
-      case 'assigned':
-        return 'Pending';
-      case 'picked_up':
-      case 'in_transit':
-      case 'delivered_to_recipient':
-        return 'In Transit';
-      case 'delivered':
-        return 'Delivered';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return 'Pending';
-    }
-  }
+
 
   private getStatusIcon(status: string): string {
     switch (status) {
@@ -344,6 +290,17 @@ export class UserDashboard implements OnInit {
 
   switchTab(tab: 'sent' | 'received') {
     this.activeTab = tab;
+    
+    // Scroll to top when switching tabs for better UX
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
+    
+    this.loadDashboardData();
   }
 
   getRecentParcels(): Parcel[] {
@@ -368,24 +325,7 @@ export class UserDashboard implements OnInit {
     }
   }
 
-  getActivityIcon(activity: Activity): string {
-    return activity.icon;
-  }
 
-  getActivityText(activity: Activity): string {
-    switch (activity.status) {
-      case 'In Transit':
-        return `Estimated delivery: ${activity.date}`;
-      case 'Delivered':
-        return `Delivered on: ${activity.date}`;
-      case 'Pending':
-        return `Scheduled for pickup: ${activity.date}`;
-      case 'Cancelled':
-        return `Cancelled on: ${activity.date}`;
-      default:
-        return activity.date;
-    }
-  }
 
   getStatusDisplayName(status: string): string {
     switch (status) {
@@ -410,13 +350,11 @@ export class UserDashboard implements OnInit {
 
   // Spending calculation methods
   getTotalSpent(): number {
-    return this.allParcels
-      .filter(parcel => parcel.deliveryFee)
-      .reduce((sum, parcel) => sum + (parcel.deliveryFee || 0), 0);
+    return this.totalSpent;
   }
 
   getParcelsWithFees(): Parcel[] {
-    return this.allParcels.filter(parcel => parcel.deliveryFee && parcel.deliveryFee > 0);
+    return this.sentParcels.filter(parcel => parcel.deliveryFee && parcel.deliveryFee > 0);
   }
 
   getAverageSpent(): number {
@@ -429,7 +367,7 @@ export class UserDashboard implements OnInit {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     
-    return this.allParcels
+    return this.sentParcels
       .filter(parcel => {
         if (!parcel.deliveryFee || !parcel.createdAt) return false;
         const parcelDate = new Date(parcel.createdAt);

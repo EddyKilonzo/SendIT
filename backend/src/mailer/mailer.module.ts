@@ -36,7 +36,7 @@ import { CommonModule } from '../common/common.module';
         adapter: new EjsAdapter(),
         options: {
           strict: false, // Changed from true to false to be more permissive
-          debug: true, // Add debug mode
+          debug: false, // Disable debug mode to prevent HTML logging
         },
       },
     }),

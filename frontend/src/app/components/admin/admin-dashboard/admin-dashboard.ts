@@ -27,7 +27,7 @@ export class AdminDashboard implements OnInit, OnDestroy {
     private toastService: ToastService
   ) {}
 
-  userRole: string = 'ADMIN';
+  userRole: string = '';
   currentUser: any = null;
 
   isMobileView: boolean = false;
@@ -91,7 +91,8 @@ export class AdminDashboard implements OnInit, OnDestroy {
   selectedRatingFilter: number = 0; // 0 = all, 1-5 = specific rating
   filteredReviews: Review[] = [];
   currentReviewPage: number = 1;
-  reviewsPerPage: number = 3;
+  reviewsPerPage: number = 4;
+  showAllReviews: boolean = false;
 
   // Real reviews data
   allReviews: Review[] = [];
@@ -112,10 +113,26 @@ export class AdminDashboard implements OnInit, OnDestroy {
 
   createDelivery() {
     this.router.navigate(['/admin', 'create-delivery']);
+    // Scroll to top after navigation
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
   }
 
   manageParcels() {
     this.router.navigate(['/admin', 'manage-parcels']);
+    // Scroll to top after navigation
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
   }
 
   logout() {
@@ -125,8 +142,21 @@ export class AdminDashboard implements OnInit, OnDestroy {
 
   switchTab(tab: string) {
     this.activeTab = tab;
-    if (tab === 'analytics') {
+    
+    // Scroll to top when switching tabs for better UX
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
+    
+    if (tab === 'overview') {
+      this.loadDashboardData();
+    } else if (tab === 'analytics') {
       this.loadAnalyticsData();
+    } else if (tab === 'reviews') {
       this.loadReviewsData();
     }
   }
@@ -170,6 +200,15 @@ export class AdminDashboard implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
+    this.userRole = this.currentUser?.role || '';
+    
+    // Check if user is authenticated and has ADMIN role
+    if (!this.authService.isAuthenticated() || !this.authService.isAdmin()) {
+      console.warn('Unauthorized access attempt to admin dashboard');
+      this.router.navigate(['/login']);
+      return;
+    }
+    
     this.checkMobileView();
     this.loadDashboardData();
     
@@ -244,6 +283,9 @@ export class AdminDashboard implements OnInit, OnDestroy {
           };
         }
         
+        // Load top drivers for the overview tab
+        this.loadTopDriversFromAPI();
+        
         this.isLoading = false;
       },
       error: (error) => {
@@ -256,24 +298,17 @@ export class AdminDashboard implements OnInit, OnDestroy {
   // Load analytics data from API
   private loadAnalyticsData(): void {
     this.isLoadingAnalytics = true;
-    console.log('🔍 Loading analytics data...');
     
     this.adminService.getAnalyticsData().pipe(
       catchError(error => {
-        console.error('❌ Error loading analytics data:', error);
+        console.error('Error loading analytics data:', error);
         this.isLoadingAnalytics = false;
         this.toastService.showError('Failed to load analytics data');
         return of(null);
       })
     ).subscribe({
       next: (data: AnalyticsData | null) => {
-        console.log('📊 Analytics API response:', data);
-        
         if (data) {
-          console.log('💰 Revenue trends:', data.revenueTrends);
-          console.log('📦 Delivery performance:', data.deliveryPerformance);
-          console.log('⭐ Customer reviews:', data.customerReviews);
-          
           // Ensure the data structure matches what the frontend expects
           const processedData = {
             revenueTrends: {
@@ -306,26 +341,20 @@ export class AdminDashboard implements OnInit, OnDestroy {
           
           // Use processed data
           this.analyticsData = processedData;
-          console.log('✅ Processed analytics data:', processedData);
-          console.log('💰 Revenue data:', processedData.revenueTrends);
-          console.log('📦 Reviews data:', processedData.customerReviews);
           
           // Populate top drivers from real data if available
           if (data.deliveryPerformance && data.deliveryPerformance.performanceByDriver && data.deliveryPerformance.performanceByDriver.length > 0) {
             this.topDrivers = data.deliveryPerformance.performanceByDriver
               .sort((a: Driver, b: Driver) => b.averageRating - a.averageRating)
               .slice(0, 3);
-            console.log('🚚 Top drivers loaded from analytics:', this.topDrivers);
           } else {
             // Load real drivers from API if no analytics driver data
-            console.log('🚚 Loading drivers from separate API...');
             this.loadTopDriversFromAPI();
           }
           
           // Initialize filtered reviews
           this.updateFilteredReviews();
         } else {
-          console.log('⚠️ No analytics data received');
           // Initialize with empty data
           this.analyticsData = {
             revenueTrends: {
@@ -364,39 +393,27 @@ export class AdminDashboard implements OnInit, OnDestroy {
   // Load real reviews data from API
   private loadReviewsData(): void {
     this.isLoadingReviews = true;
-    console.log('🔍 Loading reviews data...');
     
     this.adminService.getReviews({ 
       page: 1, 
-      limit: 50, 
+      limit: 100, // Fetch more reviews to show all available
       sortBy: 'createdAt', 
       sortOrder: 'desc' 
     }).pipe(
       catchError(error => {
-        console.error('❌ Error loading reviews data:', error);
+        console.error('Error loading reviews data:', error);
         this.isLoadingReviews = false;
         this.toastService.showError('Failed to load reviews data');
         return of({ reviews: [], total: 0 });
       })
     ).subscribe({
       next: (response: { reviews: Review[]; total: number }) => {
-        console.log('📝 Reviews API response:', response);
-        console.log('📝 Reviews count:', response.reviews.length);
-        console.log('📝 Total reviews:', response.total);
-        
-        if (response.reviews.length > 0) {
-          console.log('📝 Sample review:', response.reviews[0]);
-        }
-        
         this.allReviews = response.reviews;
         this.reviewsTotal = response.total;
         
         // Update analytics data with real reviews
         if (this.allReviews.length > 0) {
-          console.log('📝 Updating analytics with real reviews...');
           this.updateAnalyticsWithRealReviews();
-        } else {
-          console.log('📝 No reviews found, using analytics data');
         }
         
         // Initialize filtered reviews
@@ -433,22 +450,24 @@ export class AdminDashboard implements OnInit, OnDestroy {
       ratingDistribution,
       recentReviews
     };
-
-    console.log('✅ Updated analytics with real reviews data:', this.analyticsData.customerReviews);
   }
 
   private loadTopDriversFromAPI(): void {
-    this.adminService.getDrivers({ limit: 3, sortBy: 'averageRating', sortOrder: 'desc' }).subscribe({
+    // Use only supported parameters from DriverFilterDto
+    this.adminService.getDrivers({ limit: 3 }).subscribe({
       next: (response: { drivers: Driver[]; total: number }) => {
         if (response.drivers && response.drivers.length > 0) {
-          this.topDrivers = response.drivers;
+          // Sort by average rating on the frontend since backend doesn't support sorting
+          this.topDrivers = response.drivers
+            .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
+            .slice(0, 3);
         } else {
           // If no drivers from API, show empty state
           this.topDrivers = [];
         }
       },
       error: (error: any) => {
-        console.error('❌ Error loading top drivers:', error);
+        console.error('Error loading top drivers:', error);
         this.topDrivers = [];
       }
     });
@@ -531,7 +550,7 @@ export class AdminDashboard implements OnInit, OnDestroy {
   onImageError(event: any): void {
     event.target.style.display = 'none';
     const avatarContainer = event.target.parentElement;
-    const initialsDiv = avatarContainer.querySelector('.driver-initials, .reviewer-initials');
+    const initialsDiv = avatarContainer.querySelector('.reviewer-initials');
     if (initialsDiv) {
       initialsDiv.style.display = 'flex';
     }
@@ -570,14 +589,31 @@ export class AdminDashboard implements OnInit, OnDestroy {
       );
     }
     
+    // Reset pagination and show all state when filters change
+    this.currentReviewPage = 1;
+    this.showAllReviews = false;
+    
     console.log('🔍 Filtered reviews count:', this.filteredReviews.length);
     if (this.filteredReviews.length > 0) {
       console.log('🔍 Sample filtered review:', this.filteredReviews[0]);
+      console.log('🔍 Review customer name:', this.filteredReviews[0].customerName);
+      console.log('🔍 Review customer profile picture:', this.filteredReviews[0].customerProfilePicture);
+      console.log('🔍 Review driver name:', this.filteredReviews[0].driverName);
+      console.log('🔍 Review driver ID:', this.filteredReviews[0].driverId);
     }
   }
 
   get totalReviewPages(): number {
     return Math.ceil(this.filteredReviews.length / this.reviewsPerPage);
+  }
+
+  get currentPageReviews(): Review[] {
+    if (this.showAllReviews) {
+      return this.filteredReviews;
+    }
+    const startIndex = (this.currentReviewPage - 1) * this.reviewsPerPage;
+    const endIndex = startIndex + this.reviewsPerPage;
+    return this.filteredReviews.slice(startIndex, endIndex);
   }
 
   previousReviewPage(): void {
@@ -589,7 +625,13 @@ export class AdminDashboard implements OnInit, OnDestroy {
   nextReviewPage(): void {
     if (this.currentReviewPage < this.totalReviewPages) {
       this.currentReviewPage++;
-      this.updateFilteredReviews();
+    }
+  }
+
+  toggleShowAllReviews(): void {
+    this.showAllReviews = !this.showAllReviews;
+    if (this.showAllReviews) {
+      this.currentReviewPage = 1; // Reset to first page when showing all
     }
   }
 

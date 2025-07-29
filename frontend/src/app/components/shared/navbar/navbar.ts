@@ -40,8 +40,12 @@ export class NavbarComponent implements OnInit {
         this.isAuthenticated = isAuth;
         if (isAuth) {
           this.currentUser = this.authService.getCurrentUser();
+          // Load notifications when user is authenticated
+          this.loadUserNotifications();
         } else {
           this.currentUser = null;
+          // Clear notifications when user logs out
+          this.notificationService.clearNotifications();
         }
       }
     );
@@ -49,6 +53,25 @@ export class NavbarComponent implements OnInit {
     // Listen for notification updates
     this.notificationService.unreadCount$.subscribe(count => {
       this.unreadCount = count;
+      console.log('🔔 Notification count updated:', count);
+    });
+  }
+
+  private loadUserNotifications(): void {
+    // Load notification summary when user logs in
+    this.notificationService.loadNotificationSummary().subscribe({
+      next: (summary) => {
+        console.log('📧 Loaded notification summary:', summary);
+        this.unreadCount = summary.unreadCount;
+        console.log('🔔 Updated unread count to:', this.unreadCount);
+      },
+      error: (error) => {
+        console.error('❌ Error loading notifications:', error);
+        // Don't show error toast for network issues to avoid spam
+        if (error.status !== 0) {
+          console.warn('⚠️ Failed to load notifications, but continuing...');
+        }
+      }
     });
   }
 
@@ -61,9 +84,13 @@ export class NavbarComponent implements OnInit {
 
   openNotificationModal() {
     if (this.notificationModal) {
+      // Refresh notifications before opening modal
+      this.notificationService.refreshNotifications();
       this.notificationModal.openModal();
     }
   }
+
+
 
   toggleUserMenu(event: Event) {
     event.stopPropagation();

@@ -228,10 +228,12 @@
         <button 
           type="button" 
           class="assign-btn"
-          [disabled]="!selectedDriver || !parcelDetails"
+          [disabled]="!selectedDriver || !parcelDetails || isLoading"
           (click)="assignDriver()"
         >
-          {{ isReassignment ? 'Reassign Driver' : 'Assign Driver' }}
+          <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+          <span *ngIf="!isLoading">{{ isReassignment ? 'Reassign Driver' : 'Assign Driver' }}</span>
+          <span *ngIf="isLoading">{{ isReassignment ? 'Reassigning...' : 'Assigning...' }}</span>
         </button>
         
         <!-- Warning message when parcel details are not available -->

@@ -18,10 +18,18 @@
           </span>
         </p>
       </div>
-      
     </header>
 
-    <div class="confirmation-content">
+    <!-- Loading State -->
+    <div *ngIf="!orderDetails.senderName" class="loading-state">
+      <div class="loading-content">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading order details...</p>
+      </div>
+    </div>
+
+    <!-- Order Content -->
+    <div *ngIf="orderDetails.senderName" class="confirmation-content">
       <!-- Order Details Section -->
       <div class="order-details-section">
         <div class="order-details-card">
@@ -47,7 +55,7 @@
           <div *ngIf="!isEditMode" class="details-grid">
             <div class="detail-item">
               <span class="detail-label">Parcel ID:</span>
-              <span class="detail-value">#123456</span>
+              <span class="detail-value">{{ orderDetails.parcelId || 'Generated on save' }}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Sender Name:</span>
@@ -218,6 +226,14 @@
                   <span class="price-label">Parcel Weight:</span>
                   <span class="price-value">{{ editForm.get('parcelWeight')?.value || 0 }} kg</span>
                 </div>
+                <div class="price-row">
+                  <span class="price-label">Weight Price:</span>
+                  <span class="price-value">{{ getFormattedWeightPrice() }}</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Delivery Fee:</span>
+                  <span class="price-value">{{ getFormattedDeliveryFee() }}</span>
+                </div>
                 <div class="price-row total">
                   <span class="price-label">Total Price:</span>
                   <span class="price-value total-price">{{ getFormattedTotalPrice() }}</span>
@@ -233,12 +249,12 @@
         <div class="map-container">
           <div class="tracking-map">
             <!-- Map will be loaded here dynamically -->
-        <div id="order-confirmation-map" class="tracking-map-placeholder">
-          <div class="map-loading">
-            <i class="fas fa-map"></i>
-            <p>Loading map...</p>
-          </div>
-        </div>
+            <div id="order-confirmation-map" class="tracking-map-placeholder">
+              <div class="map-loading">
+                <i class="fas fa-map"></i>
+                <p>Loading map...</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,0 +1,100 @@
+<div class="track-my-parcel">
+  <div class="tracking-header">
+    <h2>Track My Parcels</h2>
+    <div class="connection-status" [class.connected]="isConnected">
+      <i class="fas" [class.fa-circle]="isConnected" [class.fa-times-circle]="!isConnected"></i>
+      {{ isConnected ? 'Live Tracking Connected' : 'Live Tracking Disconnected' }}
+    </div>
+  </div>
+
+  <div class="tracking-content">
+    <!-- Parcels List -->
+    <div class="parcels-section">
+      <h3>My Parcels</h3>
+      
+      <div class="loading-state" *ngIf="isLoading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading your parcels...</p>
+      </div>
+
+      <div class="parcels-list" *ngIf="!isLoading && myParcels.length > 0">
+        <div 
+          *ngFor="let parcel of myParcels" 
+          class="parcel-card"
+          [class.selected]="selectedParcelId === parcel.id"
+          (click)="selectParcel(parcel.id)"
+        >
+          <div class="parcel-info">
+            <div class="parcel-header">
+              <h4>Parcel #{{ parcel.id }}</h4>
+              <span class="parcel-status" [style.background-color]="getStatusColor(parcel.status)">
+                {{ getParcelStatus(parcel) }}
+              </span>
+            </div>
+            
+            <div class="parcel-details">
+              <p><strong>From:</strong> {{ parcel.pickupAddress }}</p>
+              <p><strong>To:</strong> {{ parcel.deliveryAddress }}</p>
+              <p><strong>Weight:</strong> {{ parcel.weight }}kg</p>
+              <p><strong>Value:</strong> {{ parcel.value | currency:'KES' }}</p>
+            </div>
+
+            <div class="driver-info" *ngIf="parcel.driverId">
+              <p><strong>Assigned Driver:</strong> {{ parcel.driverName || 'Driver' }}</p>
+              <p><strong>Vehicle:</strong> {{ parcel.vehicleType || 'N/A' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="no-parcels" *ngIf="!isLoading && myParcels.length === 0">
+        <i class="fas fa-box-open"></i>
+        <h3>No Parcels Found</h3>
+        <p>You don't have any parcels to track yet.</p>
+      </div>
+    </div>
+
+    <!-- Live Driver Tracking -->
+    <div class="driver-tracking-section" *ngIf="assignedDriver">
+      <h3>Live Driver Location</h3>
+      
+      <div class="driver-info-card">
+        <div class="driver-avatar">
+          <i class="fas fa-motorcycle"></i>
+        </div>
+        <div class="driver-details">
+          <h4>{{ assignedDriver.driverName }}</h4>
+          <p><i class="fas fa-map-marker-alt"></i> {{ assignedDriver.currentLat.toFixed(4) }}, {{ assignedDriver.currentLng.toFixed(4) }}</p>
+          <p *ngIf="assignedDriver.vehicleType"><i class="fas fa-car"></i> {{ assignedDriver.vehicleType }}</p>
+          <p><i class="fas fa-clock"></i> Last updated: {{ assignedDriver.timestamp | date:'shortTime' }}</p>
+        </div>
+      </div>
+
+      <div class="map-container">
+        <app-map
+          [height]="'400px'"
+          [showLiveDrivers]="true"
+          [trackedDriverIds]="[assignedDriver.driverId]"
+        ></app-map>
+      </div>
+    </div>
+
+    <!-- No Driver Assigned -->
+    <div class="no-driver-section" *ngIf="!assignedDriver && selectedParcelId">
+      <div class="no-driver-card">
+        <i class="fas fa-user-clock"></i>
+        <h3>Driver Not Yet Assigned</h3>
+        <p>Your parcel is waiting to be assigned to a driver. You'll see live tracking once a driver is assigned.</p>
+      </div>
+    </div>
+
+    <!-- Select Parcel Message -->
+    <div class="select-parcel-section" *ngIf="!selectedParcelId && myParcels.length > 0">
+      <div class="select-parcel-card">
+        <i class="fas fa-mouse-pointer"></i>
+        <h3>Select a Parcel</h3>
+        <p>Click on a parcel above to view live driver tracking.</p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -8,13 +8,11 @@ import { SidebarComponent } from '../../shared/sidebar/sidebar';
 interface PerformanceMetrics {
   averageRating: number;
   deliveriesCompleted: number;
-  onTimeDeliveryRate: number;
   totalDeliveries: number;
   inTransitDeliveries: number;
   pendingDeliveries: number;
   ratingChange: number;
   deliveriesChange: number;
-  onTimeChange: number;
 }
 
 @Component({
@@ -35,13 +33,11 @@ export class DriverDashboard implements OnInit {
   performanceMetrics: PerformanceMetrics = {
     averageRating: 0,
     deliveriesCompleted: 0,
-    onTimeDeliveryRate: 0,
     totalDeliveries: 0,
     inTransitDeliveries: 0,
     pendingDeliveries: 0,
     ratingChange: 0,
-    deliveriesChange: 0,
-    onTimeChange: 0
+    deliveriesChange: 0
   };
 
   constructor(
@@ -62,15 +58,13 @@ export class DriverDashboard implements OnInit {
     this.parcelsService.getDriverPerformanceMetrics().subscribe({
       next: (metrics) => {
         this.performanceMetrics = {
-          averageRating: metrics.averageRating,
-          deliveriesCompleted: metrics.completedDeliveries,
-          onTimeDeliveryRate: metrics.onTimeDeliveryRate,
-          totalDeliveries: metrics.totalDeliveries,
-          inTransitDeliveries: metrics.inTransitDeliveries,
-          pendingDeliveries: metrics.pendingDeliveries,
-          ratingChange: 0,
-          deliveriesChange: 0,
-          onTimeChange: 0
+          averageRating: metrics.averageRating || 0,
+          deliveriesCompleted: metrics.completedDeliveries || 0,
+          totalDeliveries: metrics.totalDeliveries || 0,
+          inTransitDeliveries: metrics.inTransitDeliveries || 0,
+          pendingDeliveries: metrics.pendingDeliveries || 0,
+          ratingChange: metrics.ratingChange || 0,
+          deliveriesChange: metrics.deliveriesChange || 0
         };
         this.isLoadingMetrics = false;
         this.isLoading = false;
@@ -91,9 +85,7 @@ export class DriverDashboard implements OnInit {
     return this.performanceMetrics.deliveriesCompleted.toString();
   }
 
-  getFormattedOnTimeRate(): string {
-    return `${this.performanceMetrics.onTimeDeliveryRate}%`;
-  }
+
 
 
 }

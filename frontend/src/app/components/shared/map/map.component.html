@@ -1,43 +1,64 @@
 <div class="map-container" [class.fullscreen]="isFullscreen">
-  <div #mapContainer 
-       [id]="mapId" 
-       class="map"
-       [style.height]="height"
-       [style.width]="width">
+  <!-- Live Drivers Counter -->
+  <div *ngIf="showLiveDrivers && liveDriversCount > 0" class="live-drivers-counter">
+    <i class="fas fa-motorcycle"></i>
+    {{ liveDriversCount }} Live Driver{{ liveDriversCount > 1 ? 's' : '' }}
   </div>
-  
+
+  <!-- Map Controls -->
   <div *ngIf="showControls" class="map-controls">
-    <button (click)="toggleFullscreen()" 
-            class="control-btn"
-            title="Toggle fullscreen">
-      <i class="fas" [class.fa-expand]="!isFullscreen" [class.fa-compress]="isFullscreen"></i>
+    <button 
+      class="map-control-btn" 
+      (click)="toggleFullscreen()"
+      [title]="isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'"
+    >
+      <i class="fas" [class.fa-compress]="isFullscreen" [class.fa-expand]="!isFullscreen"></i>
+      {{ isFullscreen ? 'Exit' : 'Fullscreen' }}
     </button>
-    <button *ngIf="showRoute && markers.length >= 2" 
-            (click)="toggleRoute()" 
-            class="control-btn"
-            title="Toggle route display">
+    
+    <button 
+      *ngIf="showRoute" 
+      class="map-control-btn" 
+      (click)="toggleRoute()"
+      title="Toggle Route Display"
+    >
       <i class="fas fa-route"></i>
+      Route
+    </button>
+    
+    <button 
+      class="map-control-btn" 
+      (click)="refreshAndFitToMarkers()"
+      title="Refresh Map and Fit to Markers"
+    >
+      <i class="fas fa-sync-alt"></i>
+      Refresh
     </button>
   </div>
 
-  <!-- Loading overlay -->
-  <div *ngIf="isLoading" class="map-loading-overlay">
-    <div class="loading-spinner">
-      <i class="fas fa-spinner fa-spin"></i>
-      <p>Loading map...</p>
-    </div>
+  <!-- Map Container -->
+  <div 
+    #mapContainer 
+    [id]="mapId"
+    class="map"
+    [style.height]="height"
+    [style.width]="width"
+  ></div>
+
+  <!-- Loading Overlay -->
+  <div *ngIf="isLoading" class="map-loading">
+    <i class="fas fa-spinner"></i>
+    <p>Loading map...</p>
   </div>
 
-  <!-- Error overlay -->
-  <div *ngIf="mapError" class="map-error-overlay">
-    <div class="error-message">
-      <i class="fas fa-exclamation-triangle"></i>
-      <h4>Map Error</h4>
-      <p>{{ mapError.message }}</p>
-      <button (click)="retryMapLoad()" class="retry-btn">
-        <i class="fas fa-redo"></i>
-        Retry
-      </button>
-    </div>
+  <!-- Error Overlay -->
+  <div *ngIf="mapError" class="map-error">
+    <i class="fas fa-exclamation-triangle"></i>
+    <h4>Map Error</h4>
+    <p>{{ mapError.message }}</p>
+    <button (click)="retryMapLoad()">
+      <i class="fas fa-redo"></i>
+      Retry
+    </button>
   </div>
 </div> 

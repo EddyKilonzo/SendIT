@@ -34,7 +34,9 @@
           <option value="assigned">Assigned</option>
           <option value="picked_up">Picked Up</option>
           <option value="in_transit">In Transit</option>
+          <option value="delivered_to_recipient">Delivered to Recipient</option>
           <option value="delivered">Delivered</option>
+          <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
         </select>
         
@@ -55,18 +57,17 @@
             <th>Receiver</th>
             <th>Status</th>
             <th>Driver</th>
-            <th>Expected Delivery</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngIf="loading">
-            <td colspan="7" class="loading-cell">
+            <td colspan="6" class="loading-cell">
               <div class="loading-spinner">Loading parcels...</div>
             </td>
           </tr>
           <tr *ngIf="!loading && parcels.length === 0">
-            <td colspan="7" class="no-data-cell">
+            <td colspan="6" class="no-data-cell">
               <div class="no-data">No parcels found</div>
             </td>
           </tr>
@@ -84,7 +85,6 @@
                 {{ parcel.driver?.name || 'Unassigned' }}
               </span>
             </td>
-            <td>{{ parcel.createdAt | date:'shortDate' }}</td>
             <td>
               <button class="btn-view-details" (click)="viewDetails(parcel.id)">
                 View Details

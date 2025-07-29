@@ -71,6 +71,7 @@ export class ManageParcels implements OnInit {
       case 'in_transit': return 'status-transit';
       case 'delivered_to_recipient': return 'status-delivered';
       case 'delivered': return 'status-delivered';
+      case 'completed': return 'status-completed';
       case 'cancelled': return 'status-cancelled';
       default: return '';
     }
@@ -84,6 +85,7 @@ export class ManageParcels implements OnInit {
       case 'in_transit': return 'In Transit';
       case 'delivered_to_recipient': return 'Delivered';
       case 'delivered': return 'Delivered';
+      case 'completed': return 'Completed';
       case 'cancelled': return 'Cancelled';
       default: return status;
     }

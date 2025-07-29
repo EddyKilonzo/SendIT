@@ -59,7 +59,7 @@
             </div>
             <div class="info-item">
               <label class="info-label">Delivery Fee:</label>
-              <span class="info-value">${{ parcel.deliveryFee || 'N/A' }}</span>
+              <span class="info-value">KSH {{ parcel.deliveryFee || 'N/A' }}</span>
             </div>
             <div class="info-item">
               <label class="info-label">Estimated Delivery:</label>
@@ -90,7 +90,7 @@
             </div>
             <div class="info-item">
               <label class="info-label">Value:</label>
-              <span class="info-value">${{ parcel.value || 'N/A' }}</span>
+              <span class="info-value">KSH {{ parcel.value || 'N/A' }}</span>
             </div>
             <div class="info-item">
               <label class="info-label">Created:</label>
@@ -98,7 +98,13 @@
             </div>
             <div class="info-item">
               <label class="info-label">Route Distance:</label>
-              <span class="info-value">{{ routeInfo.distance || 'Calculating...' }} km</span>
+              <span class="info-value">
+                <span *ngIf="routeInfo.distance > 0 && !isCalculatingRoute">{{ routeInfo.distance }} km</span>
+                <span *ngIf="routeInfo.distance === 0 || isCalculatingRoute" class="calculating">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  {{ isCalculatingRoute ? 'Calculating route...' : 'Calculating...' }}
+                </span>
+              </span>
             </div>
           </div>
         </div>
@@ -178,7 +184,13 @@
       <!-- Map View -->
       <div class="map-section animate-fade-in" *ngIf="showMapView">
         <div class="map-header">
-          <h2 class="section-title">Tracking Map</h2>
+          <h2 class="section-title">
+            Tracking Map
+            <span *ngIf="isSettingUpMap" class="map-loading-indicator">
+              <i class="fas fa-spinner fa-spin"></i>
+              Setting up map...
+            </span>
+          </h2>
           <div class="map-controls">
             <button class="btn-secondary" (click)="fitMapToMarkers()">
               <i class="fas fa-expand-arrows-alt"></i>
@@ -243,9 +255,20 @@
       <div class="instructions-section animate-fade-in" *ngIf="!showMapView">
         <h2 class="section-title">Delivery Instructions</h2>
         
+        <!-- Loading overlay for status updates -->
+        <div class="instructions-loading-overlay" *ngIf="isUpdatingStatus">
+          <div class="loading-content">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Updating parcel status...</p>
+          </div>
+        </div>
+        
         <!-- Delivery Instructions List -->
         <div class="instructions-list">
-          <div class="instruction-item" *ngFor="let instruction of deliveryInstructions; let i = index" [class.completed]="instruction.completed">
+          <div class="instruction-item" 
+               *ngFor="let instruction of deliveryInstructions; let i = index" 
+               [class.completed]="instruction.completed"
+               [class.updating]="isUpdatingStatus && instruction.completed">
             <div class="instruction-header">
               <input 
                 type="checkbox" 
@@ -253,11 +276,16 @@
                 [checked]="instruction.completed"
                 (change)="toggleInstruction(i)"
                 class="instruction-checkbox"
-                [disabled]="!canCompleteInstruction(i)"
+                [disabled]="!canCompleteInstruction(i) || isUpdatingStatus"
               >
               <label [for]="'instruction-' + i" class="instruction-label">
                 <span class="instruction-number">{{ i + 1 }}.</span>
                 <span class="instruction-text">{{ instruction.text }}</span>
+                <!-- Loading indicator for status updates -->
+                <div class="status-loading" *ngIf="isUpdatingStatus && instruction.completed">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span>Updating status...</span>
+                </div>
               </label>
             </div>
             

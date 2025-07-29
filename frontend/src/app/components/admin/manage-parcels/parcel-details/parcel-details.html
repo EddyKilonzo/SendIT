@@ -110,7 +110,7 @@
         </div>
 
         <!-- Driver Information -->
-        <div class="section" *ngIf="parcel.driver" style="animation-delay: 0.4s;">
+        <div class="section" *ngIf="parcel.driver && parcel.status !== 'Delivered' && parcel.status !== 'Completed'" style="animation-delay: 0.4s;">
           <div class="section-header">
             <h2 class="section-title">Assigned Driver</h2>
             <button class="btn-reassign-driver" (click)="reassignDriver()">
@@ -119,9 +119,16 @@
             </button>
           </div>
           <div class="driver-info">
-                            <div class="driver-header">
+            <div class="driver-header">
               <div class="driver-avatar">
-                <i class="fas fa-user"></i>
+                <img 
+                  *ngIf="parcel.driver?.profilePicture && parcel.driver.profilePicture !== ''" 
+                  [src]="parcel.driver.profilePicture" 
+                  [alt]="parcel.driver.name"
+                  class="driver-profile-image"
+                  (error)="onDriverImageError($event)"
+                />
+                <i *ngIf="!parcel.driver?.profilePicture || parcel.driver.profilePicture === ''" class="fas fa-user"></i>
               </div>
               <div class="driver-name-title">
                 <h3>{{ parcel.driver.name }}</h3>
@@ -173,13 +180,17 @@
         <div class="section" style="animation-delay: 0.5s;">
           <h2 class="section-title">Order History</h2>
           <div class="history-list">
-            <div *ngFor="let item of parcel.orderHistory" class="history-item">
-              <div class="history-icon">
-                <i [class]="item.icon"></i>
+            <div *ngFor="let item of parcel.orderHistory; let i = index" class="history-item">
+              <div class="history-timeline">
+                <div class="timeline-line" [class.active]="i === 0" [class.completed]="item.status === 'Completed'"></div>
+                <div class="history-icon" [class.active]="i === 0" [class.completed]="item.status === 'Completed'">
+                  <i [class]="item.icon"></i>
+                </div>
               </div>
               <div class="history-content">
                 <div class="history-status">{{ item.status }}</div>
                 <div class="history-time">{{ item.date }}, {{ item.time }}</div>
+                <div class="history-location" *ngIf="item.location">{{ item.location }}</div>
               </div>
             </div>
           </div>
@@ -343,22 +354,6 @@
                   <i class="fas fa-sync-alt"></i>
                   Refresh
                 </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Activity Log -->
-        <div class="section" style="animation-delay: 0.7s;">
-          <h2 class="section-title">Activity Log</h2>
-          <div class="activity-list">
-            <div *ngFor="let activity of parcel.activityLog" class="activity-item">
-              <div class="activity-icon">
-                <i [class]="activity.icon"></i>
-              </div>
-              <div class="activity-content">
-                <div class="activity-action">{{ activity.action }}</div>
-                <div class="activity-time">{{ activity.date }}, {{ activity.time }} by {{ activity.user }}</div>
               </div>
             </div>
           </div>

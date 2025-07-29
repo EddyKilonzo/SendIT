@@ -37,6 +37,25 @@
             margin-bottom: 20px;
         }
         
+        .sendit-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo-text {
+            color: #DBBB02;
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        
+        .logo-tagline {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0 0 0;
+        }
+        
         .main-heading {
             font-size: 24px;
             font-weight: 600;
@@ -191,6 +210,14 @@
             .logo {
                 width: 100px;
             }
+            
+            .logo-text {
+                font-size: 28px;
+            }
+            
+            .logo-tagline {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
@@ -200,12 +227,15 @@
 
         <!-- Main Content Card -->
         <div class="content-card">
-            <div style="text-align: center; margin: 0;">
-                <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
+            <div class="sendit-logo">
+                <!-- SendIT Logo -->
+                <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="SendIT Logo" style="width: 150px; height: 150px; object-fit: contain; margin-bottom: 20px;">
+                <h1 class="logo-text">SendIT</h1>
+                <p class="logo-tagline">Fast & Reliable Delivery</p>
             </div>
             <div class="user-avatar">
                 <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>", profilePicture="<%= typeof profilePicture !== 'undefined' ? profilePicture : 'UNDEFINED' %>" -->
-                <% if (profilePicture) { %>
+                <% if (profilePicture && profilePicture.trim() !== '' && profilePicture !== 'undefined' && profilePicture !== 'null') { %>
                     <img src="<%= profilePicture %>" alt="<%= name %>'s profile">
                 <% } else { %>
                     <span class="initial"><%= name ? name.charAt(0).toUpperCase() : 'U' %></span>

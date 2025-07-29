@@ -45,6 +45,12 @@
           <div class="filter-option" (click)="selectStatus('delivered')">
             <span>Delivered</span>
           </div>
+          <div class="filter-option" (click)="selectStatus('completed')">
+            <span>Completed</span>
+          </div>
+          <div class="filter-option" (click)="selectStatus('delivered_to_recipient')">
+            <span>Delivered to Recipient</span>
+          </div>
           <div class="filter-option" (click)="selectStatus('cancelled')">
             <span>Cancelled</span>
           </div>
@@ -162,12 +168,15 @@
                 Rating
               </div>
               <div class="info-value rating">
-                <div class="stars" [title]="delivery.customerRating ? delivery.customerRating + ' stars' : 'No rating'">
+                <div class="stars" [title]="delivery.customerRating ? delivery.customerRating + ' stars' : 'No rating yet'">
                   {{ getRatingStars(delivery.customerRating) }}
                 </div>
-                <div class="rating-text" *ngIf="delivery.customerRating">
-                  {{ delivery.customerRating }}/5
+                <div class="rating-text" *ngIf="delivery.customerRating; else noRating">
+                  {{ getRatingDisplay(delivery.customerRating) }}
                 </div>
+                <ng-template #noRating>
+                  <div class="no-rating">No rating yet</div>
+                </ng-template>
               </div>
             </div>
           </div>

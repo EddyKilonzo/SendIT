@@ -280,8 +280,7 @@
                 <img src="https://res.cloudinary.com/duymwzfhj/image/upload/v1753344984/1logo-removebg-preview_inqcyd.png" alt="" style="width: 150px; height: 150px; object-fit: contain;" >
             </div>
             <div class="user-avatar">
-                <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>", profilePicture="<%= typeof profilePicture !== 'undefined' ? profilePicture : 'UNDEFINED' %>" -->
-                <% if (profilePicture) { %>
+                <% if (profilePicture && profilePicture.trim() !== '' && profilePicture !== 'undefined' && profilePicture !== 'null') { %>
                     <img src="<%= profilePicture %>" alt="<%= name %>'s profile">
                 <% } else { %>
                     <span class="initial"><%= name ? name.charAt(0).toUpperCase() : 'U' %></span>
@@ -292,7 +291,6 @@
             <div class="separator"></div>
             
             <div class="greeting">
-                <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>" -->
                 Greetings, <strong style="color: #DBBB02;"> <%= name %></strong>
             </div>
             

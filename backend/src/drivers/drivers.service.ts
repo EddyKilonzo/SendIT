@@ -564,6 +564,7 @@ export class DriversService {
       name: driver.name,
       phone: driver.phone ?? undefined,
       address: driver.address ?? undefined,
+      profilePicture: driver.profilePicture ?? undefined,
       role: driver.role,
       isActive: driver.isActive,
       licenseNumber: driver.licenseNumber ?? undefined,

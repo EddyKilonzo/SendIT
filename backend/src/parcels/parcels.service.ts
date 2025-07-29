@@ -104,6 +104,7 @@ export class ParcelsService {
     // Send parcel creation email to sender
     try {
       this.logger.log(`Debug - Sender data for parcel creation: name="${senderName}", profilePicture="${parcel.sender?.profilePicture}"`);
+      this.logger.log(`Debug - Sender user object:`, JSON.stringify(parcel.sender, null, 2));
       await this.mailerService.sendParcelCreatedEmail({
         to: senderEmail,
         name: senderName,
@@ -126,6 +127,7 @@ export class ParcelsService {
     // Send parcel creation email to recipient
     try {
       this.logger.log(`Debug - Recipient data for parcel creation: name="${recipientName}", profilePicture="${parcel.recipient?.profilePicture}"`);
+      this.logger.log(`Debug - Recipient user object:`, JSON.stringify(parcel.recipient, null, 2));
       await this.mailerService.sendParcelCreatedEmail({
         to: recipientEmail,
         name: recipientName,
@@ -920,6 +922,44 @@ export class ParcelsService {
       );
     }
 
+    // Send completion emails to both sender and recipient
+    try {
+      const completedAt = new Date();
+      
+      // Email to sender
+      if (updatedParcel.senderEmail) {
+        this.logger.log(`Debug - Sender data for completion: name="${updatedParcel.senderName}", profilePicture="${updatedParcel.sender?.profilePicture}"`);
+        this.logger.log(`Debug - Sender user object:`, JSON.stringify(updatedParcel.sender, null, 2));
+        await this.mailerService.sendParcelCompletedEmail({
+          to: updatedParcel.senderEmail,
+          name: updatedParcel.senderName,
+          profilePicture: updatedParcel.sender?.profilePicture || undefined,
+          parcelId: updatedParcel.id,
+          trackingNumber: updatedParcel.trackingNumber,
+          completedAt: completedAt,
+        });
+      }
+
+      // Email to recipient
+      if (updatedParcel.recipientEmail) {
+        this.logger.log(`Debug - Recipient data for completion: name="${updatedParcel.recipientName}", profilePicture="${updatedParcel.recipient?.profilePicture}"`);
+        this.logger.log(`Debug - Recipient user object:`, JSON.stringify(updatedParcel.recipient, null, 2));
+        await this.mailerService.sendParcelCompletedEmail({
+          to: updatedParcel.recipientEmail,
+          name: updatedParcel.recipientName,
+          profilePicture: updatedParcel.recipient?.profilePicture || undefined,
+          parcelId: updatedParcel.id,
+          trackingNumber: updatedParcel.trackingNumber,
+          completedAt: completedAt,
+        });
+      }
+    } catch (emailError) {
+      this.logger.warn(
+        'Failed to send completion emails:',
+        emailError,
+      );
+    }
+
     return this.mapToParcelResponse(updatedParcel);
   }
 
@@ -1475,6 +1515,7 @@ export class ParcelsService {
     query: string,
     contactType: 'sender' | 'recipient',
     limit: number = 10,
+    excludeRoles: ('CUSTOMER' | 'DRIVER' | 'ADMIN')[] = ['DRIVER', 'ADMIN'],
   ): Promise<
     Array<{
       name: string;
@@ -1497,7 +1538,7 @@ export class ParcelsService {
         }
       >();
 
-      // Get from registered users
+      // Get from registered users (excluding specified roles)
       const users = await this.prisma.user.findMany({
         where: {
           OR: [
@@ -1506,6 +1547,9 @@ export class ParcelsService {
           ],
           isActive: true,
           deletedAt: null,
+          role: {
+            notIn: excludeRoles,
+          },
         },
         select: {
           id: true,
@@ -1707,6 +1751,7 @@ export class ParcelsService {
       name: user.name,
       phone: user.phone || undefined,
       address: user.address || undefined,
+      profilePicture: user.profilePicture || undefined,
       role: user.role,
       isActive: user.isActive,
       licenseNumber: user.licenseNumber || undefined,

@@ -52,6 +52,7 @@ export class NotificationModalComponent implements OnInit, OnDestroy {
   // Open the notification modal
   openModal(): void {
     this.isOpen = true;
+    console.log('🔔 Opening notification modal...');
     this.loadNotifications();
   }
 
@@ -64,16 +65,22 @@ export class NotificationModalComponent implements OnInit, OnDestroy {
   loadNotifications(): void {
     this.currentPage = 1;
     this.isBackendUnavailable = false; // Reset flag
+    console.log('📧 Loading user notifications...');
     
     this.notificationService.getNotifications({ page: 1, limit: 20 }).subscribe({
       next: (response) => {
+        console.log('✅ Loaded notifications:', {
+          count: response.notifications.length,
+          total: response.total,
+          page: response.page
+        });
         this.notifications = response.notifications;
         this.totalNotifications = response.total;
         this.hasMoreNotifications = response.notifications.length < response.total;
         this.isBackendUnavailable = false; // Backend is available
       },
       error: (error) => {
-        console.error('Error loading notifications:', error);
+        console.error('❌ Error loading notifications:', error);
         // Show user-friendly message when backend is not available
         if (error.message === 'Backend not available') {
           this.notifications = [];

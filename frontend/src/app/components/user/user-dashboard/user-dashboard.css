@@ -20,6 +20,55 @@
 /* Header Section */
 .header-section {
   margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.welcome-message {
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #DBBB02 0%, #f0c800 100%);
+  color: #2c3e50;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(219, 187, 2, 0.2);
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f0c800 0%, #DBBB02 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(219, 187, 2, 0.3);
+}
+
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.refresh-button i {
+  font-size: 0.9rem;
+}
+
+.refresh-button i.fa-spin {
+  animation: spin 1s linear infinite;
 }
 
 .welcome-message h1 {
@@ -60,94 +109,9 @@
   border-bottom: 2px solid #DBBB02;
 }
 
-/* Recent Activity */
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow: hidden;
-}
 
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-}
 
-.activity-item:hover {
-  background-color: #fef7e0;
-}
 
-.activity-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: #f8f9fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #333;
-  font-size: 12px;
-  flex-shrink: 0;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-}
-
-.activity-content {
-  flex: 1;
-}
-
-.activity-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.parcel-id {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 0.9rem;
-}
-
-.activity-status {
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 12px;
-}
-
-.activity-status.status-pending {
-  background-color: rgba(219, 187, 2, 0.2);
-  color: #b89400;
-}
-
-.activity-status.status-transit {
-  background-color: rgba(59, 130, 246, 0.2);
-  color: #1d4ed8;
-}
-
-.activity-status.status-delivered {
-  background-color: rgba(34, 197, 94, 0.2);
-  color: #15803d;
-}
-
-.activity-status.status-cancelled {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: #dc2626;
-}
-
-.activity-text {
-  color: #6c757d;
-  font-size: 0.8rem;
-  margin: 0;
-  line-height: 1.4;
-}
 
 /* Summary Cards */
 .summary-cards {
@@ -676,11 +640,7 @@
     height: 150px;
   }
   
-  .activity-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 10px;
-  }
+
   
   .card-icon {
     width: 40px;

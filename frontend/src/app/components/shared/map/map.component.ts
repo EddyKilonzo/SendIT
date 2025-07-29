@@ -14,6 +14,7 @@ import {
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 import { MapService } from '../../../services/map.service';
+import { RealtimeService, DriverLocation } from '../../../services/realtime.service';
 import { 
   MapLocation, 
   MapCoordinates, 
@@ -23,6 +24,7 @@ import {
   MapMarkerType,
   MapMarkerConfig
 } from '../../../types/map.types';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-map',
@@ -44,26 +46,41 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
   @Input() showControls: boolean = true;
   @Input() mapId: string = 'map-' + Math.random().toString(36).substring(7);
   @Input() config?: MapConfig;
+  @Input() showLiveDrivers: boolean = false; // New input for live driver tracking
+  @Input() trackedDriverIds: string[] = []; // Array of driver IDs to track
+  @Input() showDriverTracking: boolean = false; // New input for tracking specific driver
+  @Input() driverId: string = ''; // Driver ID to track
   
   @Output() mapReady = new EventEmitter<L.Map>();
   @Output() markerClick = new EventEmitter<MapLocation>();
   @Output() mapClick = new EventEmitter<MapCoordinates>();
   @Output() mapErrorEvent = new EventEmitter<MapError>();
   @Output() routeUpdated = new EventEmitter<{ distance: number; estimatedTime: number }>();
+  @Output() driverLocationUpdate = new EventEmitter<DriverLocation>(); // New output for driver updates
   
   private map: L.Map | null = null;
   private mapMarkers: L.Marker[] = [];
+  private driverMarkers: Map<string, L.Marker> = new Map(); // Track driver markers separately
   private routePolyline: L.Polyline | null = null;
   private isMapInitialized = false;
+  private realtimeSubscription: Subscription | null = null;
   
   public isFullscreen = false;
   public isLoading = false;
   public mapError: MapError | null = null;
+  public liveDriversCount: number = 0;
 
-  constructor(private mapService: MapService) {}
+  constructor(
+    private mapService: MapService,
+    private realtimeService: RealtimeService
+  ) {}
 
   ngOnInit(): void {
-    // Component initialization
+    // Connect to real-time service if live drivers are enabled
+    if (this.showLiveDrivers) {
+      this.realtimeService.connect();
+      this.setupRealtimeListeners();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -84,11 +101,131 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
       if (changes['showRoute']) {
         this.updateRoute();
       }
+      if (changes['showLiveDrivers']) {
+        this.handleLiveDriversChange();
+      }
+      if (changes['trackedDriverIds']) {
+        this.updateTrackedDrivers();
+      }
     }
   }
 
   ngOnDestroy(): void {
     this.destroyMap();
+    this.cleanupRealtimeListeners();
+  }
+
+  private setupRealtimeListeners(): void {
+    // Subscribe to driver location updates
+    this.realtimeSubscription = this.realtimeService.driverLocationUpdates$.subscribe(
+      (driverLocation: DriverLocation) => {
+        this.updateDriverMarker(driverLocation);
+        this.driverLocationUpdate.emit(driverLocation);
+      }
+    );
+  }
+
+  private cleanupRealtimeListeners(): void {
+    if (this.realtimeSubscription) {
+      this.realtimeSubscription.unsubscribe();
+      this.realtimeSubscription = null;
+    }
+  }
+
+  private handleLiveDriversChange(): void {
+    if (this.showLiveDrivers) {
+      this.realtimeService.connect();
+      this.setupRealtimeListeners();
+    } else {
+      this.cleanupRealtimeListeners();
+      this.clearDriverMarkers();
+    }
+  }
+
+  private updateTrackedDrivers(): void {
+    // Subscribe to specific drivers if provided
+    this.trackedDriverIds.forEach(driverId => {
+      this.realtimeService.subscribeToDriver(driverId);
+    });
+  }
+
+  private updateDriverMarker(driverLocation: DriverLocation): void {
+    if (!this.map) return;
+
+    const driverId = driverLocation.driverId;
+    let marker = this.driverMarkers.get(driverId);
+
+    if (!marker) {
+      // Create new driver marker
+      marker = this.createDriverMarker(driverLocation);
+      this.driverMarkers.set(driverId, marker);
+      marker.addTo(this.map);
+      this.liveDriversCount++;
+    } else {
+      // Update existing marker position
+      marker.setLatLng([driverLocation.currentLat, driverLocation.currentLng]);
+      
+      // Update popup content
+      const popupContent = this.createDriverPopupContent(driverLocation);
+      marker.getPopup()?.setContent(popupContent);
+    }
+  }
+
+  private createDriverMarker(driverLocation: DriverLocation): L.Marker {
+    // Create custom driver icon
+    const driverIcon = L.divIcon({
+      className: 'driver-marker',
+      html: `
+        <div class="driver-marker-container">
+          <div class="driver-marker-icon">
+            <i class="fas fa-motorcycle"></i>
+          </div>
+          <div class="driver-marker-pulse"></div>
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    });
+
+    const marker = L.marker([driverLocation.currentLat, driverLocation.currentLng], {
+      icon: driverIcon,
+      title: driverLocation.driverName
+    });
+
+    // Add popup with driver information
+    const popupContent = this.createDriverPopupContent(driverLocation);
+    marker.bindPopup(popupContent);
+
+    return marker;
+  }
+
+  private createDriverPopupContent(driverLocation: DriverLocation): string {
+    const lastActive = new Date(driverLocation.lastActiveAt).toLocaleTimeString();
+    const vehicleInfo = driverLocation.vehicleType ? 
+      `<br><strong>Vehicle:</strong> ${driverLocation.vehicleType}` : '';
+    const vehicleNumber = driverLocation.vehicleNumber ? 
+      `<br><strong>Vehicle Number:</strong> ${driverLocation.vehicleNumber}` : '';
+
+    return `
+      <div class="driver-popup">
+        <h4>${driverLocation.driverName}</h4>
+        <p><strong>Status:</strong> Active</p>
+        <p><strong>Last Active:</strong> ${lastActive}</p>
+        ${vehicleInfo}
+        ${vehicleNumber}
+        <p><strong>Location:</strong> ${driverLocation.currentLat.toFixed(6)}, ${driverLocation.currentLng.toFixed(6)}</p>
+      </div>
+    `;
+  }
+
+  private clearDriverMarkers(): void {
+    this.driverMarkers.forEach(marker => {
+      if (this.map) {
+        this.map.removeLayer(marker);
+      }
+    });
+    this.driverMarkers.clear();
+    this.liveDriversCount = 0;
   }
   // Initialize the map with provided configuration
   private async initializeMap(): Promise<void> {
@@ -279,18 +416,54 @@ export class MapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy
    * @param location The location where the marker should be added.
    */
   public addMarker(location: MapLocation): void {
-    if (this.map) {
-      try {
-        const marker = this.mapService.createCustomMarker({
-          type: MapMarkerType.CURRENT,
-          location
-        });
-        
-        marker.addTo(this.map);
-        this.mapMarkers.push(marker);
-      } catch (error) {
-        this.handleMapError('MARKER_ADDITION_FAILED', 'Failed to add marker', error);
+    if (!this.map) {
+      console.warn('Map not initialized, cannot add marker');
+      return;
+    }
+
+    const marker = this.mapService.createCustomMarker({
+      type: MapMarkerType.CURRENT,
+      location
+    });
+    
+    marker.addTo(this.map);
+    this.mapMarkers.push(marker);
+  }
+
+  public updateMarker(location: MapLocation): void {
+    if (!this.map) {
+      console.warn('Map not initialized, cannot update marker');
+      return;
+    }
+
+    // Find the marker by description or address
+    const markerIndex = this.mapMarkers.findIndex(marker => {
+      const popup = marker.getPopup();
+      const content = popup?.getContent();
+      
+      // Handle different content types
+      if (typeof content === 'string') {
+        return content.includes(location.description || '') || 
+               content.includes(location.address || '');
+      } else if (content instanceof HTMLElement) {
+        return content.textContent?.includes(location.description || '') || 
+               content.textContent?.includes(location.address || '');
       }
+      return false;
+    });
+
+    if (markerIndex !== -1) {
+      const marker = this.mapMarkers[markerIndex];
+      marker.setLatLng([location.lat, location.lng]);
+      
+      // Update popup content if description changed
+      if (location.description) {
+        marker.getPopup()?.setContent(location.description);
+      }
+      
+      console.log('✅ Marker updated:', location);
+    } else {
+      console.warn('❌ Marker not found for update:', location);
     }
   }
   // Update the list of markers displayed on the map.

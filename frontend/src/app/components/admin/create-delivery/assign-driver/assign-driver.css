@@ -806,6 +806,29 @@
   box-shadow: none;
 }
 
+/* Loading states for assign button */
+.assign-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.assign-btn i {
+  margin-right: 8px;
+}
+
+.assign-btn:disabled i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .warning-message {
   display: flex;
   align-items: center;

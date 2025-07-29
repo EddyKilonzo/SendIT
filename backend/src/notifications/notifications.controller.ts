@@ -18,7 +18,7 @@ import { Roles } from '../common/decorators';
 
 interface AuthenticatedRequest {
   user: {
-    id: string;
+    sub: string;
     role: 'CUSTOMER' | 'DRIVER' | 'ADMIN';
   };
 }
@@ -41,7 +41,7 @@ export class NotificationsController {
   async createTestNotifications(@Request() req: AuthenticatedRequest) {
     const testNotifications = [
       {
-        userId: req.user.id,
+        userId: req.user.sub,
         title: 'Welcome to SendIT!',
         message:
           "Thank you for joining our delivery platform. We're excited to have you on board!",
@@ -49,7 +49,7 @@ export class NotificationsController {
         actionUrl: '/dashboard',
       },
       {
-        userId: req.user.id,
+        userId: req.user.sub,
         title: 'Parcel Assigned',
         message:
           'Your parcel #SIT123456 has been assigned to a driver and is ready for pickup.',
@@ -58,7 +58,7 @@ export class NotificationsController {
         parcelId: 'test-parcel-1',
       },
       {
-        userId: req.user.id,
+        userId: req.user.sub,
         title: 'Parcel Picked Up',
         message:
           'Your parcel #SIT123456 has been picked up and is now in transit.',
@@ -67,7 +67,7 @@ export class NotificationsController {
         parcelId: 'test-parcel-1',
       },
       {
-        userId: req.user.id,
+        userId: req.user.sub,
         title: 'Parcel Delivered',
         message:
           'Your parcel #SIT123456 has been successfully delivered to the recipient.',
@@ -76,7 +76,7 @@ export class NotificationsController {
         parcelId: 'test-parcel-1',
       },
       {
-        userId: req.user.id,
+        userId: req.user.sub,
         title: 'Parcel Completed',
         message:
           'Your parcel #SIT123456 has been marked as completed. You can now leave a review.',
@@ -109,7 +109,7 @@ export class NotificationsController {
     @Request() req: AuthenticatedRequest,
   ) {
     return await this.notificationsService.getUserNotifications(
-      req.user.id,
+      req.user.sub,
       query,
     );
   }
@@ -117,13 +117,13 @@ export class NotificationsController {
   @Get('summary')
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async getNotificationSummary(@Request() req: AuthenticatedRequest) {
-    return this.notificationsService.getNotificationSummary(req.user.id);
+    return this.notificationsService.getNotificationSummary(req.user.sub);
   }
 
   @Get(':id')
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    return this.notificationsService.findOne(id, req.user.id);
+    return this.notificationsService.findOne(id, req.user.sub);
   }
 
   @Patch(':id/read')
@@ -132,25 +132,51 @@ export class NotificationsController {
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.notificationsService.markAsRead(id, req.user.id);
+    return this.notificationsService.markAsRead(id, req.user.sub);
   }
 
   @Patch('mark-all-read')
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async markAllAsRead(@Request() req: AuthenticatedRequest) {
-    return this.notificationsService.markAllAsRead(req.user.id);
+    return this.notificationsService.markAllAsRead(req.user.sub);
   }
 
   @Delete(':id')
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async delete(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    await this.notificationsService.delete(id, req.user.id);
+    await this.notificationsService.delete(id, req.user.sub);
     return { message: 'Notification deleted successfully' };
   }
 
   @Delete()
   @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
   async deleteAll(@Request() req: AuthenticatedRequest) {
-    return this.notificationsService.deleteAll(req.user.id);
+    return this.notificationsService.deleteAll(req.user.sub);
+  }
+
+  @Post('test-user-specific')
+  @Roles('CUSTOMER', 'DRIVER', 'ADMIN')
+  async createUserSpecificTestNotification(@Request() req: AuthenticatedRequest) {
+    try {
+      const notification = await this.notificationsService.create({
+        userId: req.user.sub,
+        title: 'Test User-Specific Notification',
+        message: `This is a test notification for user ${req.user.sub} only.`,
+        type: 'PARCEL_CREATED',
+        actionUrl: '/dashboard',
+      });
+
+      return {
+        success: true,
+        data: notification,
+        message: 'User-specific test notification created successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to create user-specific test notification',
+        error: error.message,
+      };
+    }
   }
 }

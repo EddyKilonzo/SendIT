@@ -90,6 +90,12 @@ export class ManageUsers implements OnInit {
   rejectionReason = '';
   showApplicationDetailsModal = false;
   selectedApplicationForReview: DriverApplication | null = null;
+  isActionInProgress = false; // Flag to prevent modal opening during actions
+  
+  // Loading states for specific actions
+  approvingApplicationId: string | null = null;
+  rejectingApplicationId: string | null = null;
+  isConfirmingRejection = false;
   
   // Users data
   users: User[] = [];
@@ -164,12 +170,21 @@ export class ManageUsers implements OnInit {
     if (this.searchTerm) query.search = this.searchTerm;
     if (this.selectedStatus && this.selectedStatus !== '') {
       if (this.selectedStatus === 'Suspended') {
-        query.showSuspended = true;
-      } else {
-        query.isActive = this.selectedStatus === 'Active';
+        // For suspended users, we want to show them but filter by isActive = false
+        query.isActive = false;
+      } else if (this.selectedStatus === 'Active') {
+        query.isActive = true;
+      } else if (this.selectedStatus === 'Inactive') {
+        query.isActive = false;
       }
+      // If no status is selected, don't filter by isActive (shows all users)
     }
     if (this.selectedRole) query.role = this.selectedRole;
+    
+    console.log('🔍 Debug - loadUsers called with query:', query);
+    console.log('🔍 Debug - selectedStatus:', this.selectedStatus);
+    console.log('🔍 Debug - searchTerm:', this.searchTerm);
+    console.log('🔍 Debug - selectedRole:', this.selectedRole);
     
     this.adminService.getUsers(this.currentPage, this.usersPerPage, query)
       .pipe(
@@ -182,6 +197,9 @@ export class ManageUsers implements OnInit {
       .subscribe({
         next: (response) => {
           console.log('✅ Debug - Users API response:', response);
+          console.log('✅ Debug - Response users array:', response.users);
+          console.log('✅ Debug - Users with isActive=false:', response.users?.filter(u => !u.isActive));
+          console.log('✅ Debug - Users with isActive=true:', response.users?.filter(u => u.isActive));
           this.users = response.users || [];
           this.totalUsers = response.total || 0;
           this.isLoadingUsers = false;
@@ -201,26 +219,27 @@ export class ManageUsers implements OnInit {
     this.isLoadingApplications = true;
     
     const query: any = {};
-    if (this.selectedApplicationStatus) query.status = this.selectedApplicationStatus; // Changed from driverApplicationStatus to status
+    if (this.selectedApplicationStatus) query.status = this.selectedApplicationStatus;
     
-
+    console.log('🔍 Loading driver applications with query:', query);
     
     this.adminService.getDriverApplications(this.currentApplicationPage, this.applicationsPerPage, query)
       .pipe(
         catchError(error => {
-          console.error('Error loading driver applications:', error);
+          console.error('❌ Error loading driver applications:', error);
           this.toastService.showError('Failed to load driver applications. Please try again.');
           return of({ applications: [], total: 0 });
         })
       )
       .subscribe({
         next: (response) => {
+          console.log('✅ Driver applications loaded:', response);
           this.driverApplications = response.applications || [];
           this.totalApplications = response.total || 0;
           this.isLoadingApplications = false;
         },
         error: (error) => {
-          console.error('Error loading driver applications:', error);
+          console.error('❌ Error loading driver applications:', error);
           this.toastService.showError('Failed to load driver applications. Please try again.');
           this.isLoadingApplications = false;
         }
@@ -299,6 +318,15 @@ export class ManageUsers implements OnInit {
     
     // Load additional user data before navigation
     this.loadUserDetails(userId, user);
+    
+    // Scroll to top after navigation
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
   }
 
   private loadUserDetails(userId: string, user: User) {
@@ -352,7 +380,19 @@ export class ManageUsers implements OnInit {
   // Tab Management
   switchTab(tab: string) {
     this.activeTab = tab;
-    if (tab === 'applications' && this.driverApplications.length === 0) {
+    
+    // Scroll to top when switching tabs for better UX
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
+    
+    if (tab === 'users') {
+      this.loadUsers();
+    } else if (tab === 'applications') {
       this.loadDriverApplications();
     }
   }
@@ -483,6 +523,10 @@ export class ManageUsers implements OnInit {
 
   // Application Actions
   viewApplicationDetails(applicationId: string) {
+    // Don't open modal if an action is in progress
+    if (this.isActionInProgress) {
+      return;
+    }
     const application = this.driverApplications.find(app => app.id === applicationId);
     if (application) {
       this.selectedApplicationForReview = application;
@@ -492,28 +536,42 @@ export class ManageUsers implements OnInit {
 
   approveApplication(applicationId: string, event: Event) {
     event.stopPropagation();
+    event.preventDefault();
+    this.approvingApplicationId = applicationId;
+    this.isActionInProgress = true;
     const application = this.driverApplications.find(app => app.id === applicationId);
     if (application) {
-      console.log('Approving application for:', application.name, 'ID:', applicationId);
+      console.log('🔍 Approving application for:', application.name, 'ID:', applicationId);
+      console.log('🔍 Current application status:', application.driverApplicationStatus);
+      
       this.adminService.approveDriverApplication(applicationId)
         .pipe(
           catchError(error => {
-            console.error('Approval error:', error);
+            console.error('❌ Approval error:', error);
             const errorMessage = error.error?.message || 'Failed to approve application.';
             this.toastService.showError(errorMessage);
+            this.isActionInProgress = false;
+            this.approvingApplicationId = null;
             return of(null);
           })
         )
         .subscribe((result) => {
-          console.log('Approval result:', result);
-          this.toastService.showSuccess(`Application from ${application.name} has been approved successfully!`);
-          this.loadDriverApplications();
+          console.log('✅ Approval result:', result);
+          this.isActionInProgress = false;
+          this.approvingApplicationId = null;
+          if (result) {
+            this.toastService.showSuccess(`Application from ${application.name} has been approved successfully!`);
+            this.loadDriverApplications();
+          }
         });
     }
   }
 
   rejectApplication(applicationId: string, event: Event) {
     event.stopPropagation();
+    event.preventDefault();
+    this.rejectingApplicationId = applicationId;
+    this.isActionInProgress = true;
     const application = this.driverApplications.find(app => app.id === applicationId);
     if (application) {
       console.log('Rejecting application for:', application.name, 'ID:', applicationId);
@@ -529,22 +587,28 @@ export class ManageUsers implements OnInit {
       return;
     }
 
-    console.log('Confirming rejection for:', this.selectedApplicationForRejection.name, 'Reason:', this.rejectionReason);
+    this.isConfirmingRejection = true;
+    console.log('🔍 Confirming rejection for:', this.selectedApplicationForRejection.name, 'Reason:', this.rejectionReason);
+    console.log('🔍 Current application status:', this.selectedApplicationForRejection.driverApplicationStatus);
 
     this.adminService.rejectDriverApplication(this.selectedApplicationForRejection!.id, this.rejectionReason)
       .pipe(
         catchError(error => {
-          console.error('Rejection error:', error);
+          console.error('❌ Rejection error:', error);
           const errorMessage = error.error?.message || 'Failed to reject application.';
           this.toastService.showError(errorMessage);
+          this.isConfirmingRejection = false;
           return of(null);
         })
       )
       .subscribe((result) => {
-        console.log('Rejection result:', result);
-        this.toastService.showSuccess(`Application from ${this.selectedApplicationForRejection!.name} has been rejected.`);
-        this.loadDriverApplications();
-        this.closeRejectionModal();
+        console.log('✅ Rejection result:', result);
+        this.isConfirmingRejection = false;
+        if (result) {
+          this.toastService.showSuccess(`Application from ${this.selectedApplicationForRejection!.name} has been rejected.`);
+          this.loadDriverApplications();
+          this.closeRejectionModal();
+        }
       });
   }
 
@@ -552,6 +616,8 @@ export class ManageUsers implements OnInit {
     this.showRejectionModal = false;
     this.selectedApplicationForRejection = null;
     this.rejectionReason = '';
+    this.isActionInProgress = false;
+    this.rejectingApplicationId = null;
   }
 
   // Application Details Modal Methods
@@ -563,6 +629,7 @@ export class ManageUsers implements OnInit {
   approveApplicationFromModal() {
     if (!this.selectedApplicationForReview) return;
     
+    this.approvingApplicationId = this.selectedApplicationForReview.id;
     console.log('Approving application from modal for:', this.selectedApplicationForReview.name);
     
     this.adminService.approveDriverApplication(this.selectedApplicationForReview!.id)
@@ -571,20 +638,25 @@ export class ManageUsers implements OnInit {
           console.error('Modal approval error:', error);
           const errorMessage = error.error?.message || 'Failed to approve application from modal.';
           this.toastService.showError(errorMessage);
+          this.approvingApplicationId = null;
           return of(null);
         })
       )
       .subscribe((result) => {
         console.log('Modal approval result:', result);
-        this.toastService.showSuccess(`Application from ${this.selectedApplicationForReview!.name} has been approved successfully!`);
-        this.closeApplicationDetailsModal();
-        this.loadDriverApplications();
+        this.approvingApplicationId = null;
+        if (result) {
+          this.toastService.showSuccess(`Application from ${this.selectedApplicationForReview!.name} has been approved successfully!`);
+          this.closeApplicationDetailsModal();
+          this.loadDriverApplications();
+        }
       });
   }
 
   rejectApplicationFromModal() {
     if (!this.selectedApplicationForReview) return;
     
+    this.rejectingApplicationId = this.selectedApplicationForReview.id;
     console.log('Rejecting application from modal for:', this.selectedApplicationForReview.name);
     
     this.selectedApplicationForRejection = this.selectedApplicationForReview;

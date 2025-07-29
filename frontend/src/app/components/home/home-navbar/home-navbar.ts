@@ -17,6 +17,7 @@ export class HomeNavbarComponent implements OnInit {
   currentUser: any = null;
   showUserMenu = false;
   isMobileMenuOpen = false;
+  profilePictureError = false;
 
   constructor(
     private authService: AuthService,
@@ -33,8 +34,10 @@ export class HomeNavbarComponent implements OnInit {
         this.isAuthenticated = isAuth;
         if (isAuth) {
           this.currentUser = this.authService.getCurrentUser();
+          this.profilePictureError = false; // Reset error when user changes
         } else {
           this.currentUser = null;
+          this.profilePictureError = false;
         }
       }
     );
@@ -44,7 +47,13 @@ export class HomeNavbarComponent implements OnInit {
     this.isAuthenticated = this.authService.isAuthenticated();
     if (this.isAuthenticated) {
       this.currentUser = this.authService.getCurrentUser();
+      this.profilePictureError = false;
     }
+  }
+
+  onProfilePictureError(event: Event) {
+    this.profilePictureError = true;
+    console.warn('Profile picture failed to load, falling back to initials');
   }
 
   toggleUserMenu(event: Event) {

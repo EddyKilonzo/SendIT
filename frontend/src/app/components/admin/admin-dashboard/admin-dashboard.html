@@ -101,14 +101,6 @@
                     <i class="fas fa-box"></i>
                     {{ driver.totalDeliveries }}
                   </span>
-                  <span class="stat-item">
-                    <i class="fas fa-clock"></i>
-                    {{ driver.averageDeliveryTime }}h
-                  </span>
-                  <span class="stat-item">
-                    <i class="fas fa-percentage"></i>
-                    {{ driver.onTimeDeliveryRate }}%
-                  </span>
                 </div>
               </div>
             </div>
@@ -257,11 +249,18 @@
                       >
                         All
                       </button>
+                      <button 
+                        class="filter-btn show-all-btn"
+                        [class.active]="showAllReviews"
+                        (click)="toggleShowAllReviews()"
+                      >
+                        {{ showAllReviews ? 'Show Less' : 'Show All' }}
+                      </button>
                     </div>
                   </div>
                   <div class="reviews-grid">
                     <div 
-                      *ngFor="let review of filteredReviews.slice(0, 3)" 
+                      *ngFor="let review of currentPageReviews" 
                       class="review-card"
                     >
                       <div class="review-header-modern">
@@ -303,7 +302,18 @@
                       </div>
                     </div>
                   </div>
-                  <div class="reviews-pagination">
+                  <div class="no-reviews-found" *ngIf="filteredReviews.length === 0">
+                    <div class="no-reviews-message">
+                      <i class="fas fa-search"></i>
+                      <h4>No reviews found</h4>
+                      <p>No reviews match the selected filter criteria.</p>
+                      <button class="reset-filter-btn" (click)="filterReviewsByRating(0)">
+                        <i class="fas fa-times"></i>
+                        Clear Filter
+                      </button>
+                    </div>
+                  </div>
+                  <div class="reviews-pagination" *ngIf="!showAllReviews && totalReviewPages > 1">
                     <button class="pagination-btn" [disabled]="currentReviewPage === 1" (click)="previousReviewPage()">
                       <i class="fas fa-chevron-left"></i>
                     </button>

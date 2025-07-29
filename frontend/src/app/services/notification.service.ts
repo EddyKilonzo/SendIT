@@ -77,8 +77,13 @@ export class NotificationService {
     // Initialize notifications when user is authenticated
     this.authService.isAuthenticated$.subscribe(isAuth => {
       if (isAuth) {
-        this.loadNotificationSummary();
+        console.log('🔐 User authenticated, loading notifications...');
+        // Add a small delay to ensure user data is loaded
+        setTimeout(() => {
+          this.loadNotificationSummary();
+        }, 500);
       } else {
+        console.log('🚪 User logged out, clearing notifications...');
         this.clearNotifications();
       }
     });
@@ -144,18 +149,25 @@ export class NotificationService {
     }
 
     this.isLoadingSubject.next(true);
+    console.log('📧 Loading notification summary...');
     
     return this.http.get<NotificationSummary>(
       this.getApiUrl('/summary'),
       { headers: this.getHeaders() }
     ).pipe(
       tap(summary => {
+        console.log('✅ Notification summary loaded:', {
+          total: summary.totalNotifications,
+          unread: summary.unreadCount,
+          recent: summary.recentNotifications.length
+        });
         this.unreadCountSubject.next(summary.unreadCount);
         this.notificationsSubject.next(summary.recentNotifications);
         this.isLoadingSubject.next(false);
       }),
       catchError(error => {
         this.isLoadingSubject.next(false);
+        console.error('❌ Error loading notification summary:', error);
         return this.handleError(error);
       })
     );
@@ -315,6 +327,8 @@ export class NotificationService {
   refreshNotifications(): void {
     this.loadNotificationSummary().subscribe();
   }
+
+
 
   // Clear notifications (when user logs out)
   clearNotifications(): void {

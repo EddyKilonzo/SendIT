@@ -19,6 +19,7 @@ import {
 export class MapService {
   private readonly DEFAULT_CENTER: MapCoordinates = { lat: -1.2921, lng: 36.8219 }; // Nairobi
   private readonly DEFAULT_ZOOM = 13;
+  private geocodingCache = new Map<string, GeocodingResult>();
 
   constructor() {
     this.initializeLeafletIcons();
@@ -79,6 +80,12 @@ export class MapService {
    */
   createCustomMarker(config: MapMarkerConfig): L.Marker {
     // Create custom colored marker based on type
+    console.log('🎯 Creating marker with config:', {
+      type: config.type,
+      location: config.location,
+      color: config.color
+    });
+    
     const icon = this.createCustomIcon(config);
     const marker = L.marker([config.location.lat, config.location.lng], { icon });
     
@@ -98,11 +105,17 @@ export class MapService {
       [MapMarkerType.PICKUP]: '#28a745',    // Green for pickup
       [MapMarkerType.DELIVERY]: '#dc3545',  // Red for delivery
       [MapMarkerType.CURRENT]: '#007bff',   // Blue for current location
-      [MapMarkerType.DRIVER]: '#ffc107'     // Yellow for driver
+      [MapMarkerType.DRIVER]: '#6f42c1'     // Purple for driver
     };
 
     const color = config.color || colors[config.type] || '#007bff';
     const iconText = this.getMarkerText(config.type);
+
+    console.log('🎨 Creating icon with:', {
+      type: config.type,
+      color: color,
+      iconText: iconText
+    });
 
     // Create marker element
     const markerElement = document.createElement('div');
@@ -154,7 +167,7 @@ export class MapService {
       case MapMarkerType.PICKUP: return 'P';
       case MapMarkerType.DELIVERY: return 'D';
       case MapMarkerType.CURRENT: return 'C';
-      case MapMarkerType.DRIVER: return 'D';
+      case MapMarkerType.DRIVER: return '🚗';
       default: return '•';
     }
   }
@@ -171,33 +184,64 @@ export class MapService {
           error: { code: 'INVALID_ADDRESS', message: 'Address must be at least 3 characters long' }
         };
       }
-      // Use Nominatim API for geocoding
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address.trim())}&limit=1&countrycodes=ke`
-      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Check cache first
+      const cachedResult = this.geocodingCache.get(address);
+      if (cachedResult) {
+        console.log(`💾 Using cached geocoding result for: ${address}`);
+        return cachedResult;
       }
 
-      const data = await response.json();
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      if (data && data.length > 0) {
-        const result = data[0];
-        return {
-          success: true,
-          location: {
-            lat: parseFloat(result.lat),
-            lng: parseFloat(result.lon),
-            address: result.display_name
-          }
+      try {
+        // Use Nominatim API for geocoding
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address.trim())}&limit=1&countrycodes=ke`,
+          { signal: controller.signal }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+          const result = data[0];
+          const geocodingResult: GeocodingResult = {
+            success: true,
+            location: {
+              lat: parseFloat(result.lat),
+              lng: parseFloat(result.lon),
+              address: result.display_name
+            }
+          };
+          this.geocodingCache.set(address, geocodingResult);
+          return geocodingResult;
+        }
+
+        const geocodingResult: GeocodingResult = {
+          success: false,
+          error: { code: 'ADDRESS_NOT_FOUND', message: `No coordinates found for address: ${address}` }
         };
-      }
+        this.geocodingCache.set(address, geocodingResult);
+        return geocodingResult;
 
-      return {
-        success: false,
-        error: { code: 'ADDRESS_NOT_FOUND', message: `No coordinates found for address: ${address}` }
-      };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          return {
+            success: false,
+            error: { code: 'TIMEOUT', message: 'Geocoding request timed out' }
+          };
+        }
+        throw error;
+      }
 
     } catch (error) {
       return {
@@ -319,7 +363,26 @@ export class MapService {
       totalDistance += this.calculateDistance(waypoints[i], waypoints[i + 1]);
     }
 
-    const estimatedTime = Math.round((totalDistance / 30) * 60); // in minutes
+    // Calculate realistic delivery time based on distance
+    // For urban delivery, consider traffic, stops, and delivery time
+    let estimatedTime: number;
+    
+    if (totalDistance <= 5) {
+      // Local delivery (within 5km): 15-30 minutes
+      estimatedTime = Math.max(15, Math.round(totalDistance * 4));
+    } else if (totalDistance <= 15) {
+      // City delivery (5-15km): 30-90 minutes
+      estimatedTime = Math.max(30, Math.round(totalDistance * 3));
+    } else if (totalDistance <= 50) {
+      // Regional delivery (15-50km): 1-3 hours
+      estimatedTime = Math.max(60, Math.round(totalDistance * 2.5));
+    } else {
+      // Long distance (50km+): 3+ hours
+      estimatedTime = Math.max(180, Math.round(totalDistance * 2));
+    }
+    
+    // Add buffer time for pickup and delivery stops
+    estimatedTime += 10;
 
     return {
       distance: totalDistance,
@@ -416,5 +479,19 @@ export class MapService {
         }
       }
     }
+  }
+  /**
+   * Clears the geocoding cache.
+   */
+  clearGeocodingCache(): void {
+    this.geocodingCache.clear();
+    console.log('🗑️ Geocoding cache cleared');
+  }
+
+  /**
+   * Gets the current cache size for debugging purposes.
+   */
+  getCacheSize(): number {
+    return this.geocodingCache.size;
   }
 } 

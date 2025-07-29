@@ -147,8 +147,12 @@ export class ParcelsController {
     @Param('type') contactType: 'sender' | 'recipient',
     @Query('q') query: string,
     @Query('limit') limit: number = 10,
+    @Query('excludeRoles') excludeRoles?: string,
   ) {
-    return this.parcelsService.getContactSuggestions(query, contactType, limit);
+    const excludeRolesArray = excludeRoles 
+      ? (excludeRoles.split(',') as ('CUSTOMER' | 'DRIVER' | 'ADMIN')[])
+      : ['DRIVER', 'ADMIN'] as ('CUSTOMER' | 'DRIVER' | 'ADMIN')[];
+    return this.parcelsService.getContactSuggestions(query, contactType, limit, excludeRolesArray);
   }
 
   @Get('my-parcels')

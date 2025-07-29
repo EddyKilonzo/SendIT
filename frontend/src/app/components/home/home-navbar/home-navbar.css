@@ -149,6 +149,15 @@
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid #e9ecef;
+  overflow: hidden;
+  position: relative;
+}
+
+.user-profile-picture {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .user-avatar:hover {
@@ -180,6 +189,41 @@
 .user-info {
   padding: 16px;
   border-bottom: 1px solid #e9ecef;
+}
+
+.user-profile-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-profile-picture-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #DBBB02;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dropdown-profile-picture {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.dropdown-user-initials {
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.user-details {
+  flex: 1;
 }
 
 .welcome-message {
@@ -407,6 +451,14 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.mobile-user-profile-picture {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .mobile-user-initials {
@@ -430,6 +482,27 @@
   color: #6c757d;
   font-size: 0.8rem;
   text-transform: capitalize;
+}
+
+.mobile-profile-btn {
+  background: #DBBB02;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mobile-profile-btn:hover {
+  background: #c4a602;
+  transform: translateY(-2px);
 }
 
 .mobile-logout-btn {

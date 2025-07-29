@@ -5,7 +5,8 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { ToastService } from '../components/shared/toast/toast.service';
 import { environment } from '../../environments/environment';
-import { switchMap, of } from 'rxjs';
+import { switchMap, of, forkJoin } from 'rxjs';
+import { ReviewService } from './review.service';
 
 export interface Parcel {
   id: string;
@@ -120,7 +121,8 @@ export class ParcelsService {
   constructor(
     private http: HttpClient,
     private authService: AuthService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private reviewService: ReviewService
   ) {}
 
   private getHeaders(): { [key: string]: string } {
@@ -209,6 +211,15 @@ export class ParcelsService {
         headers: this.getHeaders(),
         params 
       }
+    ).pipe(
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  getMyParcels(): Observable<ParcelsResponse> {
+    return this.http.get<ParcelsResponse>(
+      this.getApiUrl('/parcels/my-parcels'),
+      { headers: this.getHeaders() }
     ).pipe(
       catchError(error => this.handleError(error))
     );
@@ -356,10 +367,11 @@ export class ParcelsService {
   }
 
   // Get contact suggestions for sender or recipient
-  getContactSuggestions(query: string, contactType: 'sender' | 'recipient', limit: number = 10): Observable<any[]> {
+  getContactSuggestions(query: string, contactType: 'sender' | 'recipient', limit: number = 10, excludeRoles: string[] = ['DRIVER', 'ADMIN']): Observable<any[]> {
     const params = new HttpParams()
       .set('q', query)
-      .set('limit', limit.toString());
+      .set('limit', limit.toString())
+      .set('excludeRoles', excludeRoles.join(','));
     
     const url = `${this.baseUrl}/parcels/suggestions/contact/${contactType}`;
     return this.http.get<any[]>(url, { params })
@@ -384,9 +396,27 @@ export class ParcelsService {
   getDriverDeliveryHistory(): Observable<any[]> {
     const url = `${this.baseUrl}/parcels/assigned`;
     return this.http.get<any[]>(url, { 
-      headers: this.getHeaders(),
-      params: new HttpParams().set('status', 'delivered')
-    }).pipe(catchError(this.handleError));
+      headers: this.getHeaders()
+    }).pipe(
+      switchMap(parcels => {
+        // Filter for completed deliveries (delivered, completed, delivered_to_recipient)
+        const completedDeliveries = parcels.filter(p => 
+          p.status === 'delivered' || 
+          p.status === 'completed' || 
+          p.status === 'delivered_to_recipient'
+        );
+        
+        // Sort by completion date (most recent first)
+        const sortedDeliveries = completedDeliveries.sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt);
+          const dateB = new Date(b.updatedAt || b.createdAt);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        return of(sortedDeliveries);
+      }),
+      catchError(this.handleError)
+    );
   }
 
   // Get driver performance metrics
@@ -398,39 +428,74 @@ export class ParcelsService {
       switchMap(parcels => {
         // Calculate metrics from parcels data
         const totalDeliveries = parcels.length;
-        const completedDeliveries = parcels.filter(p => p.status === 'delivered').length;
-        const inTransitDeliveries = parcels.filter(p => p.status === 'in_transit').length;
-        const pendingDeliveries = parcels.filter(p => p.status === 'assigned' || p.status === 'picked_up').length;
+        const completedDeliveries = parcels.filter(p => 
+          p.status === 'delivered' || p.status === 'completed' || p.status === 'delivered_to_recipient'
+        ).length;
+        const inTransitDeliveries = parcels.filter(p => 
+          ['assigned', 'picked_up', 'in_transit', 'delivered_to_recipient'].includes(p.status)
+        ).length;
+        const pendingDeliveries = parcels.filter(p => 
+          p.status === 'assigned' || p.status === 'picked_up' || p.status === 'pending'
+        ).length;
         
-        // Calculate average rating (if available)
-        const ratings = parcels
-          .filter(p => p.reviews && p.reviews.length > 0)
-          .map(p => p.reviews[0]?.rating)
-          .filter(rating => rating !== undefined);
+        // Calculate today's deliveries
+        const today = new Date();
+        const todayDeliveries = parcels.filter(p => {
+          const parcelDate = new Date(p.createdAt);
+          return parcelDate.toDateString() === today.toDateString();
+        }).length;
         
-        const averageRating = ratings.length > 0 
-          ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-          : 0; // No default rating
+        // Get current user to get driver ID
+        const currentUser = this.authService.getCurrentUser();
+        const driverId = currentUser?.id;
         
-        // Calculate on-time delivery rate (simplified)
-        const onTimeDeliveries = completedDeliveries * 0.9; // Assume 90% on-time
-        const onTimeRate = completedDeliveries > 0 ? (onTimeDeliveries / completedDeliveries) * 100 : 0;
-        
-        return of({
-          totalDeliveries,
-          completedDeliveries,
-          inTransitDeliveries,
-          pendingDeliveries,
-          averageRating: Math.round(averageRating * 10) / 10,
-          onTimeDeliveryRate: Math.round(onTimeRate),
-          todayDeliveries: parcels.filter(p => {
-            const today = new Date().toDateString();
-            const parcelDate = new Date(p.createdAt).toDateString();
-            return parcelDate === today;
-          })
-        });
+        if (driverId) {
+          // Get driver review summary from dedicated endpoint
+          return this.reviewService.getDriverReviewSummary(driverId).pipe(
+            switchMap(reviewSummary => {
+              console.log('Driver review summary:', reviewSummary);
+              return of({
+                totalDeliveries,
+                completedDeliveries,
+                inTransitDeliveries,
+                pendingDeliveries,
+                averageRating: reviewSummary.averageRating || 0,
+                todayDeliveries,
+                // Calculate change percentages (simplified)
+                ratingChange: 0, // Could be calculated from historical data
+                deliveriesChange: 0 // Could be calculated from historical data
+              });
+            }),
+            catchError(error => {
+              console.error('Error getting driver review summary:', error);
+              // Fallback to parcels data if review service fails
+              return of({
+                totalDeliveries,
+                completedDeliveries,
+                inTransitDeliveries,
+                pendingDeliveries,
+                averageRating: 0,
+                todayDeliveries,
+                ratingChange: 0,
+                deliveriesChange: 0
+              });
+            })
+          );
+        } else {
+          // No driver ID available, return basic metrics
+          return of({
+            totalDeliveries,
+            completedDeliveries,
+            inTransitDeliveries,
+            pendingDeliveries,
+            averageRating: 0,
+            todayDeliveries,
+            ratingChange: 0,
+            deliveriesChange: 0
+          });
+        }
       }),
       catchError(this.handleError)
     );
   }
-} 
+}

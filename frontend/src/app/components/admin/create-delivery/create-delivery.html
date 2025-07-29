@@ -94,20 +94,6 @@
             </div>
             
             <div class="form-group">
-              <label for="senderAddress">Sender Address</label>
-              <input 
-                type="text" 
-                id="senderAddress" 
-                formControlName="senderAddress"
-                placeholder="Enter sender's address"
-                [class.error]="isFieldInvalid('senderAddress')"
-              >
-              <div class="error-message" *ngIf="getFieldError('senderAddress')">
-                {{ getFieldError('senderAddress') }}
-              </div>
-            </div>
-            
-            <div class="form-group">
               <label for="senderEmail">Sender Email</label>
               <input 
                 type="email" 
@@ -184,20 +170,6 @@
             </div>
             
             <div class="form-group">
-              <label for="recipientAddress">Recipient Address</label>
-              <input 
-                type="text" 
-                id="recipientAddress" 
-                formControlName="recipientAddress"
-                placeholder="Recipient's address"
-                [class.error]="isFieldInvalid('recipientAddress')"
-              >
-              <div class="error-message" *ngIf="getFieldError('recipientAddress')">
-                {{ getFieldError('recipientAddress') }}
-              </div>
-            </div>
-            
-            <div class="form-group">
               <label for="recipientEmail">Recipient Email</label>
               <input 
                 type="email" 
@@ -264,6 +236,14 @@
             <div class="price-row">
               <span class="price-label">Parcel Weight:</span>
               <span class="price-value">{{ deliveryForm.get('parcelWeight')?.value || 0 }} kg</span>
+            </div>
+            <div class="price-row">
+              <span class="price-label">Weight Price:</span>
+              <span class="price-value">{{ getFormattedWeightPrice() }}</span>
+            </div>
+            <div class="price-row">
+              <span class="price-label">Delivery Fee:</span>
+              <span class="price-value">{{ getFormattedDeliveryFee() }}</span>
             </div>
             <div class="price-row total">
               <span class="price-label">Total Price:</span>
@@ -472,7 +452,6 @@
                 <p><strong>Name:</strong> {{ deliveryForm.get('senderName')?.value || 'Not specified' }}</p>
                 <p><strong>Contact:</strong> {{ deliveryForm.get('senderContact')?.value || 'Not specified' }}</p>
                 <p><strong>Email:</strong> {{ deliveryForm.get('senderEmail')?.value || 'Not specified' }}</p>
-                <p><strong>Address:</strong> {{ deliveryForm.get('senderAddress')?.value || 'Not specified' }}</p>
               </div>
             </div>
             <div class="preview-section">
@@ -481,7 +460,6 @@
                 <p><strong>Name:</strong> {{ deliveryForm.get('recipientName')?.value || 'Not specified' }}</p>
                 <p><strong>Contact:</strong> {{ deliveryForm.get('recipientContact')?.value || 'Not specified' }}</p>
                 <p><strong>Email:</strong> {{ deliveryForm.get('recipientEmail')?.value || 'Not specified' }}</p>
-                <p><strong>Address:</strong> {{ deliveryForm.get('recipientAddress')?.value || 'Not specified' }}</p>
               </div>
             </div>
             <div class="preview-section">

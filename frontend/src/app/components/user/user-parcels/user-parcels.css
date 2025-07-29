@@ -548,95 +548,7 @@
   line-height: 1.5;
 }
 
-/* Notifications Section */
-.notifications-section {
-  background-color: white;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e9ecef;
-  max-width: 400px;
-}
 
-.section-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0 0 20px 0;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #DBBB02;
-}
-
-.notifications-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.notification-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 15px;
-  border-radius: 8px;
-  background-color: #f8f9fa;
-  transition: all 0.3s ease;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-}
-
-.notification-item:hover {
-  background-color: #fef7e0;
-  transform: translateX(3px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.notification-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: #f8f9fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #333;
-  font-size: 12px;
-  flex-shrink: 0;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-}
-
-.notification-content {
-  flex: 1;
-}
-
-.notification-message {
-  color: #2c3e50;
-  font-size: 0.9rem;
-  margin: 0 0 5px 0;
-  line-height: 1.4;
-}
-
-.notification-date {
-  color: #6c757d;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.notification-update .notification-icon {
-  background-color: rgba(59, 130, 246, 0.2);
-  color: #1d4ed8;
-}
-
-.notification-delivered .notification-icon {
-  background-color: rgba(34, 197, 94, 0.2);
-  color: #15803d;
-}
-
-.notification-pending .notification-icon {
-  background-color: rgba(219, 187, 2, 0.2);
-  color: #b89400;
-}
 
 /* Responsive Design */
 @media (max-width: 1024px) {
@@ -662,9 +574,7 @@
     align-self: flex-start;
   }
   
-  .notifications-section {
-    max-width: none;
-  }
+
 }
 
 @media (max-width: 768px) {

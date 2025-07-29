@@ -1,301 +1,270 @@
-.map-container {
-  position: relative;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  background: #f8f9fa;
+/* Driver Marker Styles */
+.driver-marker {
+  background: none !important;
+  border: none !important;
 }
 
-.map {
-  z-index: 1;
-  background: #e9ecef;
+.driver-marker-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.driver-marker-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #DBBB02, #c4a902);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+  animation: driverPulse 2s infinite;
+}
+
+.driver-marker-icon i {
+  color: #000;
+  font-size: 16px;
+  animation: driverBounce 1s infinite;
+}
+
+.driver-marker-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(219, 187, 2, 0.3);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes driverPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(219, 187, 2, 0.4);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes driverBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* Driver Popup Styles */
+.driver-popup {
+  padding: 10px;
+  min-width: 200px;
+}
+
+.driver-popup h4 {
+  margin: 0 0 10px 0;
+  color: #DBBB02;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.driver-popup p {
+  margin: 5px 0;
+  font-size: 12px;
+  color: #333;
+}
+
+.driver-popup strong {
+  color: #DBBB02;
+}
+
+/* Live Drivers Counter */
+.live-drivers-counter {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(219, 187, 2, 0.9);
+  color: #000;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.live-drivers-counter i {
+  margin-right: 5px;
+  animation: pulse 2s infinite;
+}
+
+/* Map Container Styles */
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .map-controls {
   position: absolute;
   top: 10px;
-  right: 10px;
+  left: 10px;
   z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
-.control-btn {
-  background: white;
-  border: 2px solid rgba(0,0,0,0.2);
-  border-radius: 4px;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-  transition: all 0.2s;
-  color: #333;
-}
-
-.control-btn:hover:not(:disabled) {
-  background: #f4f4f4;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
-  transform: translateY(-1px);
-}
-
-.control-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.control-btn.active {
-  background: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
-.map-container.fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9999;
-  border-radius: 0;
-}
-
-.map-container.fullscreen .map {
-  height: 100vh !important;
-  width: 100vw !important;
-}
-
-/* Loading overlay */
-.map-loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+.map-control-btn {
   background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 2000;
+  gap: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.loading-spinner {
+.map-control-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.map-control-btn i {
+  color: #DBBB02;
+}
+
+.map-control-btn.active {
+  background: #DBBB02;
+  color: #000;
+}
+
+.map-control-btn.active i {
+  color: #000;
+}
+
+/* Loading State */
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
-  color: #007bff;
+  color: #DBBB02;
+  z-index: 1000;
 }
 
-.loading-spinner i {
-  font-size: 2rem;
+.map-loading i {
+  font-size: 32px;
+  animation: spin 1s linear infinite;
+}
+
+.map-loading p {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error State */
+.map-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #dc3545;
+  z-index: 1000;
+}
+
+.map-error i {
+  font-size: 32px;
   margin-bottom: 10px;
 }
 
-.loading-spinner p {
-  margin: 0;
+.map-error p {
+  margin: 10px 0;
   font-size: 14px;
-  color: #666;
 }
 
-/* Error overlay */
-.map-error-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.error-message {
-  text-align: center;
-  padding: 20px;
-  max-width: 300px;
-}
-
-.error-message i {
-  font-size: 3rem;
-  color: #dc3545;
-  margin-bottom: 15px;
-}
-
-.error-message h4 {
-  margin: 0 0 10px 0;
-  color: #333;
-  font-size: 18px;
-}
-
-.error-message p {
-  margin: 0 0 20px 0;
-  color: #666;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.retry-btn {
-  background: #007bff;
-  color: white;
+.map-error button {
+  background: #DBBB02;
+  color: #000;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
 }
 
-.retry-btn:hover {
-  background: #0056b3;
+.map-error button:hover {
+  background: #c4a902;
 }
 
-/* Custom marker styles */
-.custom-marker {
-  border: none !important;
-  background: transparent !important;
+/* Fullscreen Styles */
+.map-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
 }
 
-.custom-marker-element {
-  transition: all 0.2s ease;
-}
-
-.custom-marker-element:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4) !important;
-}
-
-/* Ensure custom markers are visible */
-.leaflet-marker-icon.custom-marker {
-  background: transparent;
-  border: none;
-}
-
-/* Leaflet popup customization */
-.leaflet-popup-content-wrapper {
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.leaflet-popup-content {
-  margin: 8px 12px;
-  line-height: 1.4;
-  font-size: 14px;
-}
-
-.leaflet-popup-tip {
-  background: white;
-}
-
-/* Map placeholder styles */
-.tracking-map-placeholder {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8f9fa;
-  border: 2px dashed #dee2e6;
-  border-radius: 8px;
-  color: #6c757d;
-}
-
-.map-loading {
-  text-align: center;
-}
-
-.map-loading i {
-  font-size: 2rem;
-  margin-bottom: 10px;
-  color: #007bff;
-}
-
-.map-loading p {
-  margin: 0;
-  font-size: 14px;
-}
-
-/* Responsive design */
+/* Responsive Design */
 @media (max-width: 768px) {
   .map-controls {
-    top: 5px;
-    right: 5px;
-    gap: 3px;
-  }
-  
-  .control-btn {
-    width: 30px;
-    height: 30px;
-    font-size: 12px;
-  }
-  
-  .error-message {
-    padding: 15px;
-    max-width: 250px;
-  }
-  
-  .error-message i {
-    font-size: 2rem;
-  }
-  
-  .error-message h4 {
-    font-size: 16px;
-  }
-  
-  .error-message p {
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 480px) {
-  .map-controls {
     position: relative;
-    top: auto;
-    right: auto;
     flex-direction: row;
     justify-content: center;
-    margin-top: 10px;
+    margin-bottom: 10px;
   }
   
-  .map-container {
-    border-radius: 4px;
+  .map-control-btn {
+    padding: 6px 10px;
+    font-size: 11px;
   }
-}
-
-/* Animation for loading states */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+  
+  .live-drivers-counter {
+    position: relative;
+    margin: 10px 0;
+    text-align: center;
   }
-  to {
-    opacity: 1;
-  }
-}
-
-.map-loading-overlay,
-.map-error-overlay {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-/* Custom scrollbar for map container */
-.map-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.map-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.map-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.map-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
 } 

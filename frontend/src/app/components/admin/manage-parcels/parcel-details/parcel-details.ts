@@ -30,6 +30,7 @@ interface ParcelDetailsData {
     email: string;
     vehicleNumber: string;
     licenseNumber: string;
+    profilePicture?: string;
   };
   sender: {
     name: string;
@@ -48,13 +49,7 @@ interface ParcelDetailsData {
     date: string;
     time: string;
     icon: string;
-  }>;
-  activityLog: Array<{
-    action: string;
-    date: string;
-    time: string;
-    user: string;
-    icon: string;
+    location?: string;
   }>;
 }
 
@@ -113,7 +108,6 @@ export class ParcelDetails implements OnInit {
     setTimeout(() => {
       if (this.showMapView && this.mapComponent && this.mapComponent.isMapReady() && this.mapMarkers.length > 0) {
         this.mapComponent.fitToMarkersAlways();
-        console.log('Map fitted to markers after view init');
       }
     }, 1000);
   }
@@ -124,14 +118,11 @@ export class ParcelDetails implements OnInit {
     // Get the parcel ID from the URL parameter
     const parcelId = this.parcelId.replace('#', ''); // Remove # from parcel ID if present
     
-    console.log('🔍 Loading parcel details for ID:', parcelId);
-    
     // Check if we have parcel details from navigation state
     const navigation = this.router.getCurrentNavigation();
     if (navigation?.extras.state) {
       const state = navigation.extras.state as any;
       if (state.parcelDetails) {
-        console.log('✅ Using parcel details from navigation state:', state.parcelDetails);
         // Use the parcel details from navigation state
         this.createParcelFromDetails(state.parcelDetails);
         this.loading = false;
@@ -140,10 +131,8 @@ export class ParcelDetails implements OnInit {
     }
     
     // Call the API to get the actual parcel details
-    console.log('🌐 Fetching parcel details from API for ID:', parcelId);
     this.parcelsService.getParcel(parcelId).subscribe({
       next: async (response: any) => {
-        console.log('✅ API response for parcel:', response);
         await this.createParcelFromApiResponse(response);
         this.loading = false;
       },
@@ -169,7 +158,6 @@ export class ParcelDetails implements OnInit {
   }
 
   private createParcelFromDetails(parcelDetails: any) {
-    console.log('🔄 Creating parcel from details:', parcelDetails);
     // Create detailed parcel data from the provided details
     const weight = '5 kg';
     this.parcel = {
@@ -194,8 +182,9 @@ export class ParcelDetails implements OnInit {
         phone: parcelDetails.recipientPhone || 'Not available',
         email: parcelDetails.recipientEmail || 'Not available'
       },
-      orderHistory: this.generateOrderHistory('Pending', new Date().toISOString().split('T')[0]),
-      activityLog: this.generateActivityLog('Pending', new Date().toISOString().split('T')[0])
+      orderHistory: parcelDetails.statusHistory ? 
+        this.mapStatusHistoryToOrderHistory(parcelDetails.statusHistory) : 
+        this.generateOrderHistory('Pending', new Date().toISOString().split('T')[0])
     };
 
     // Setup map markers after parcel is loaded
@@ -205,8 +194,6 @@ export class ParcelDetails implements OnInit {
   }
 
   private async createParcelFromApiResponse(apiResponse: any) {
-    console.log('🔄 Creating parcel from API response:', apiResponse);
-    
     // Convert API response to the format expected by the component
     const weight = `${apiResponse.weight || 5} kg`;
     const status = this.mapStatus(apiResponse.status);
@@ -235,11 +222,8 @@ export class ParcelDetails implements OnInit {
         phone: apiResponse.recipientPhone || 'Not available',
         email: apiResponse.recipientEmail || 'Not available'
       },
-      orderHistory: this.generateOrderHistory(status, apiResponse.createdAt || new Date().toISOString()),
-      activityLog: this.generateActivityLog(status, apiResponse.createdAt || new Date().toISOString())
+      orderHistory: this.mapStatusHistoryToOrderHistory(apiResponse.statusHistory || [])
     };
-    
-    console.log('✅ Created parcel object:', this.parcel);
     
     // Setup map markers after parcel is loaded
     if (this.parcel) {
@@ -341,13 +325,14 @@ export class ParcelDetails implements OnInit {
 
 
 
-  private generateOrderHistory(status: string, deliveryDate: string): Array<{status: string, date: string, time: string, icon: string}> {
+  private generateOrderHistory(status: string, deliveryDate: string): Array<{status: string, date: string, time: string, icon: string, location?: string}> {
     const history = [
       {
         status: 'Order Placed',
         date: this.getPickupDate(deliveryDate),
         time: '10:00 AM',
-        icon: 'fas fa-circle'
+        icon: 'fas fa-circle',
+        location: 'Pickup Location'
       }
     ];
 
@@ -357,7 +342,8 @@ export class ParcelDetails implements OnInit {
         status: 'Driver Assigned',
         date: this.getPickupDate(deliveryDate),
         time: '11:30 AM',
-        icon: 'fas fa-user-plus'
+        icon: 'fas fa-user-plus',
+        location: 'Pickup Location'
       });
     }
 
@@ -366,14 +352,16 @@ export class ParcelDetails implements OnInit {
         status: 'Picked Up',
         date: this.getPickupDate(deliveryDate),
         time: '2:00 PM',
-        icon: 'fas fa-box'
+        icon: 'fas fa-box',
+        location: 'Pickup Location'
       });
       
       history.push({
         status: 'In Transit',
         date: deliveryDate,
         time: '9:00 AM',
-        icon: 'fas fa-truck'
+        icon: 'fas fa-truck',
+        location: 'Delivery Location'
       });
     }
 
@@ -382,14 +370,98 @@ export class ParcelDetails implements OnInit {
         status: 'Delivered',
         date: deliveryDate,
         time: '3:00 PM',
-        icon: 'fas fa-check-circle'
+        icon: 'fas fa-check-circle',
+        location: 'Delivery Location'
       });
     }
 
     return history;
   }
 
-  private getDriverInfo(driverName: string): {id?: string, name: string, phone: string, email: string, vehicleNumber: string, licenseNumber: string} {
+  private mapStatusHistoryToOrderHistory(statusHistory: any[]): Array<{status: string, date: string, time: string, icon: string, location?: string}> {
+    if (!statusHistory || statusHistory.length === 0) {
+      // Fallback to generated history if no real data
+      return this.generateOrderHistory('Pending', new Date().toISOString());
+    }
+
+    return statusHistory.map((historyItem, index) => {
+      const status = this.mapStatusDisplayName(historyItem.status);
+      const date = this.formatDateTime(historyItem.timestamp);
+      const time = this.formatTime(historyItem.timestamp);
+      const icon = this.getStatusIcon(historyItem.status);
+      const location = historyItem.location || this.getDefaultLocation(historyItem.status);
+
+      return {
+        status,
+        date,
+        time,
+        icon,
+        location
+      };
+    });
+  }
+
+  private mapStatusDisplayName(status: string): string {
+    switch (status) {
+      case 'pending': return 'Order Placed';
+      case 'assigned': return 'Driver Assigned';
+      case 'picked_up': return 'Picked Up';
+      case 'in_transit': return 'In Transit';
+      case 'delivered_to_recipient': return 'Delivered to Recipient';
+      case 'delivered': return 'Delivered';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      default: return status;
+    }
+  }
+
+  private getStatusIcon(status: string): string {
+    switch (status) {
+      case 'pending': return 'fas fa-circle';
+      case 'assigned': return 'fas fa-user-plus';
+      case 'picked_up': return 'fas fa-box';
+      case 'in_transit': return 'fas fa-truck';
+      case 'delivered_to_recipient': return 'fas fa-flag-checkered';
+      case 'delivered': return 'fas fa-check-circle';
+      case 'completed': return 'fas fa-check-double';
+      case 'cancelled': return 'fas fa-times-circle';
+      default: return 'fas fa-circle';
+    }
+  }
+
+  private getDefaultLocation(status: string): string {
+    switch (status) {
+      case 'pending':
+      case 'assigned':
+      case 'picked_up':
+        return 'Pickup Location';
+      case 'in_transit':
+      case 'delivered_to_recipient':
+      case 'delivered':
+      case 'completed':
+        return 'Delivery Location';
+      default:
+        return 'Unknown Location';
+    }
+  }
+
+  private formatTime(timestamp: string | Date): string {
+    if (!timestamp) return 'TBD';
+    
+    try {
+      const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      if (isNaN(date.getTime())) return 'TBD';
+      
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'TBD';
+    }
+  }
+
+  private getDriverInfo(driverName: string): {id?: string, name: string, phone: string, email: string, vehicleNumber: string, licenseNumber: string, profilePicture?: string} {
     // This method is kept for backward compatibility but should be replaced with getDriverInfoById
     return {
       id: undefined,
@@ -397,11 +469,12 @@ export class ParcelDetails implements OnInit {
       phone: 'Not available',
       email: 'Not available',
       vehicleNumber: 'Not available',
-      licenseNumber: 'Not available'
+      licenseNumber: 'Not available',
+      profilePicture: undefined
     };
   }
 
-  private async getDriverInfoById(driverId: string): Promise<{id?: string, name: string, phone: string, email: string, vehicleNumber: string, licenseNumber: string}> {
+  private async getDriverInfoById(driverId: string): Promise<{id?: string, name: string, phone: string, email: string, vehicleNumber: string, licenseNumber: string, profilePicture?: string}> {
     try {
       // Import DriversService dynamically to avoid circular dependency
       const { DriversService } = await import('../../../../services/drivers.service');
@@ -423,7 +496,8 @@ export class ParcelDetails implements OnInit {
         phone: driver.phone || 'Not available',
         email: driver.email || 'Not available',
         vehicleNumber: driver.vehicleNumber || 'Not available',
-        licenseNumber: driver.licenseNumber || 'Not available'
+        licenseNumber: driver.licenseNumber || 'Not available',
+        profilePicture: driver.profilePicture || undefined
       };
     } catch (error) {
       console.error('Error fetching driver info:', error);
@@ -433,54 +507,10 @@ export class ParcelDetails implements OnInit {
         phone: 'Not available',
         email: 'Not available',
         vehicleNumber: 'Not available',
-        licenseNumber: 'Not available'
+        licenseNumber: 'Not available',
+        profilePicture: undefined
       };
     }
-  }
-
-  private generateActivityLog(status: string, deliveryDate: string): Array<{action: string, date: string, time: string, user: string, icon: string}> {
-    const log = [
-      {
-        action: 'Order Created',
-        date: this.getPickupDate(deliveryDate),
-        time: '10:00 AM',
-        user: 'System',
-        icon: 'fas fa-circle'
-      }
-    ];
-
-    // Add "Driver Assigned" if parcel has a driver (even if still pending)
-    if (this.parcel?.driver) {
-      log.push({
-        action: 'Driver Assigned',
-        date: this.getPickupDate(deliveryDate),
-        time: '11:30 AM',
-        user: 'Admin',
-        icon: 'fas fa-user-plus'
-      });
-    }
-
-    if (status === 'In Transit' || status === 'Delivered') {
-      log.push({
-        action: 'Parcel Picked Up',
-        date: this.getPickupDate(deliveryDate),
-        time: '2:00 PM',
-        user: 'Driver',
-        icon: 'fas fa-box'
-      });
-    }
-
-    if (status === 'Delivered') {
-      log.push({
-        action: 'Parcel Delivered',
-        date: deliveryDate,
-        time: '3:00 PM',
-        user: 'Driver',
-        icon: 'fas fa-check-circle'
-      });
-    }
-
-    return log;
   }
 
   getStatusClass(status: string): string {
@@ -576,23 +606,7 @@ export class ParcelDetails implements OnInit {
       const action = isReassignment ? 'Driver Reassigned' : 'Driver Assigned';
       const icon = isReassignment ? 'fas fa-exchange-alt' : 'fas fa-user-plus';
       
-      this.parcel.activityLog.unshift({
-        action: action,
-        date: new Date().toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }),
-        time: new Date().toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
-        user: 'Admin',
-        icon: icon
-      });
-
-      // Add to order history
-      this.parcel.orderHistory.push({
+      this.parcel.orderHistory.unshift({
         status: action,
         date: new Date().toLocaleDateString('en-US', { 
           year: 'numeric', 
@@ -870,8 +884,27 @@ export class ParcelDetails implements OnInit {
         const distance = this.calculateDistance(pickup.lat, pickup.lng, delivery.lat, delivery.lng);
         this.routeDistance = `${distance.toFixed(1)}`;
         
-        // Estimate time based on distance (assuming average speed of 30 km/h)
-        const estimatedTimeMinutes = Math.round((distance / 30) * 60);
+        // Calculate realistic delivery time based on distance
+        // For urban delivery, consider traffic, stops, and delivery time
+        let estimatedTimeMinutes: number;
+        
+        if (distance <= 5) {
+          // Local delivery (within 5km): 15-30 minutes
+          estimatedTimeMinutes = Math.max(15, Math.round(distance * 4));
+        } else if (distance <= 15) {
+          // City delivery (5-15km): 30-90 minutes
+          estimatedTimeMinutes = Math.max(30, Math.round(distance * 3));
+        } else if (distance <= 50) {
+          // Regional delivery (15-50km): 1-3 hours
+          estimatedTimeMinutes = Math.max(60, Math.round(distance * 2.5));
+        } else {
+          // Long distance (50km+): 3+ hours
+          estimatedTimeMinutes = Math.max(180, Math.round(distance * 2));
+        }
+        
+        // Add buffer time for pickup and delivery stops
+        estimatedTimeMinutes += 10;
+        
         this.routeDuration = `${estimatedTimeMinutes} min`;
       }
     }
@@ -985,5 +1018,14 @@ export class ParcelDetails implements OnInit {
     }, 500);
     
     this.toastService.showSuccess('Map markers refreshed!');
+  }
+
+  onDriverImageError(event: any): void {
+    // Hide the image and show the fallback icon
+    const img = event.target as HTMLImageElement;
+    img.style.display = 'none';
+    
+    // The fallback icon will show automatically since it's in the same container
+    console.log('Driver profile image failed to load, showing fallback icon');
   }
 } 

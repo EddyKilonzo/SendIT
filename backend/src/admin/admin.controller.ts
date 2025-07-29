@@ -27,12 +27,12 @@ import {
   UserFilterDto,
   DriverApplicationFilterDto,
 } from './dto/admin.dto';
-import { driverApplicationManagementSchema } from './dto/admin.schemas';
-import { createJoiValidationPipe } from '../common/pipes/joi-validation.pipe';
+
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { assignParcelToDriverSchema } from './dto/admin.schemas';
+
+import { PrismaService } from '../database/prisma.service';
 
 // Define request interface
 interface AuthenticatedRequest extends Request {
@@ -46,7 +46,7 @@ interface AuthenticatedRequest extends Request {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService, private readonly prisma: PrismaService) {}
 
   // Dashboard and Statistics
   @Get('dashboard/stats')
@@ -71,13 +71,130 @@ export class AdminController {
     @Query() query: UserFilterDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    console.log(
-      '🔍 Backend Controller - findAllUsers called with query:',
-      query,
-    );
-    console.log('🔍 Backend Controller - User making request:', req.user);
-    console.log('🔍 Backend Controller - Request headers:', req.headers);
     return this.adminService.findAllUsers(query);
+  }
+
+  @Get('users/all-for-dropdown')
+  async getAllUsersForDropdown() {
+    return this.adminService.getAllUsersForDropdown();
+  }
+
+  @Get('users/test-suspended-inclusion')
+  async testSuspendedUserInclusion() {
+    const result = await this.adminService.getAllUsersForDropdown();
+    const suspendedUsers = result.users.filter(user => !user.isActive);
+    const activeUsers = result.users.filter(user => user.isActive);
+    
+    return {
+      message: 'Suspended users are now included in dropdown',
+      totalUsers: result.users.length,
+      activeUsers: activeUsers.length,
+      suspendedUsers: suspendedUsers.length,
+      suspendedUsersList: suspendedUsers.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      })),
+    };
+  }
+
+  @Get('users/debug-all-users')
+  async debugAllUsers() {
+    return this.adminService.debugAllUsers();
+  }
+
+  @Post('users/create-test-suspended')
+  @Roles('ADMIN')
+  async createTestSuspendedUser() {
+    try {
+      const testUser = await this.adminService.createTestSuspendedUser();
+      return {
+        success: true,
+        data: testUser,
+        message: 'Test suspended user created successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to create test suspended user',
+        error: error.message,
+      };
+    }
+  }
+
+  @Post('users/:id/add-test-profile-picture')
+  @Roles('ADMIN')
+  async addTestProfilePicture(@Param('id') userId: string) {
+    try {
+      // Add a test profile picture URL to the user
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          profilePicture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+        }
+      });
+      
+      return {
+        success: true,
+        data: updatedUser,
+        message: 'Test profile picture added successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to add test profile picture',
+        error: error.message,
+      };
+    }
+  }
+
+  @Get('debug/notifications')
+  @Roles('ADMIN')
+  async debugNotifications() {
+    try {
+      // Get all notifications with user info
+      const notifications = await this.prisma.notification.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: 20
+      });
+      
+      return {
+        success: true,
+        data: {
+          totalNotifications: notifications.length,
+          notifications: notifications.map(n => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: n.type,
+            isRead: n.isRead,
+            createdAt: n.createdAt,
+            user: n.user
+          }))
+        },
+        message: 'Notifications debug info retrieved successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to get notifications debug info',
+        error: error.message,
+      };
+    }
   }
 
   @Get('users/:id')
@@ -108,6 +225,15 @@ export class AdminController {
     return this.adminService.manageUser(userId, managementDto);
   }
 
+  @Patch('users/:id/reactivate')
+  async reactivateUser(@Param('id') userId: string) {
+    return this.adminService.manageUser(userId, {
+      userId,
+      action: 'unsuspend',
+      reason: 'User reactivated by admin',
+    });
+  }
+
   // Driver Management
   @Get('drivers')
   async findAllDrivers(@Query() query: DriverFilterDto) {
@@ -129,22 +255,37 @@ export class AdminController {
   }
 
   @Patch('driver-applications/:id/manage')
-  @UsePipes(createJoiValidationPipe(driverApplicationManagementSchema))
   async manageDriverApplication(
     @Param('id') userId: string,
     @Body() managementDto: DriverApplicationManagementDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    console.log('🔍 Backend Controller - manageDriverApplication called');
-    console.log('🔍 Backend Controller - User ID:', userId);
-    console.log('🔍 Backend Controller - Management DTO:', managementDto);
-    console.log('🔍 Backend Controller - Request user:', req.user);
+    try {
+      console.log('🔍 Backend Controller - manageDriverApplication called');
+      console.log('🔍 Backend Controller - User ID from URL:', userId);
+      console.log('🔍 Backend Controller - Request body:', JSON.stringify(managementDto, null, 2));
+      console.log('🔍 Backend Controller - Request user:', req.user);
 
-    return this.adminService.manageDriverApplication(
-      userId,
-      managementDto,
-      req.user?.id || 'admin'
-    );
+      const result = await this.adminService.manageDriverApplication(
+        userId,
+        managementDto,
+        req.user?.id || 'admin'
+      );
+
+      console.log('🔍 Backend Controller - Service result:', {
+        id: result.id,
+        name: result.name,
+        role: result.role,
+        driverApplicationStatus: result.driverApplicationStatus,
+      });
+
+      return result;
+    } catch (error) {
+      console.error('❌ Backend Controller - Error in manageDriverApplication:', error);
+      console.error('❌ Backend Controller - Error message:', error.message);
+      console.error('❌ Backend Controller - Error stack:', error.stack);
+      throw error;
+    }
   }
 
   // Parcel Management
@@ -167,7 +308,6 @@ export class AdminController {
   }
 
   @Post('parcels/assign')
-  @UsePipes(createJoiValidationPipe(assignParcelToDriverSchema))
   async assignParcelToDriver(@Body() assignmentDto: AssignParcelToDriverDto) {
     return this.adminService.assignParcelToDriver(assignmentDto);
   }

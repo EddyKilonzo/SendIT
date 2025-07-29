@@ -125,6 +125,7 @@ export interface UserDashboardData {
   totalParcelsReceived: number;
   parcelsInTransit: number;
   scheduledForTomorrow: number;
+  totalSpent: number;
   recentParcels: Parcel[];
   summaryCards: {
     title: string;
@@ -207,7 +208,8 @@ export class BaseApiService {
     const params = {
       type: type,
       page: page.toString(),
-      limit: limit.toString()
+      limit: limit.toString(),
+      _t: new Date().getTime().toString() // Cache buster
     };
 
     console.log(`🚀 API Call - getUserParcels(${type})`);
@@ -236,8 +238,13 @@ export class BaseApiService {
 
   // Get user dashboard data
   getUserDashboardData(): Observable<UserDashboardData> {
+    const params = {
+      _t: new Date().getTime().toString() // Cache buster
+    };
+
     return this.http.get<{success: boolean; data: UserDashboardData; message: string}>(`${this.apiUrl}/users/dashboard`, {
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      params: this.buildParams(params)
     }).pipe(
       map(response => response.data),
       catchError(error => this.handleError(error))
@@ -251,13 +258,18 @@ export class BaseApiService {
     page: number;
     limit: number;
   }> {
+    const params = {
+      _t: new Date().getTime().toString() // Cache buster
+    };
+
     return this.http.get<{
       parcels: Parcel[];
       total: number;
       page: number;
       limit: number;
     }>(`${this.apiUrl}/parcels`, {
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      params: this.buildParams(params)
     }).pipe(
       catchError(error => this.handleError(error))
     );

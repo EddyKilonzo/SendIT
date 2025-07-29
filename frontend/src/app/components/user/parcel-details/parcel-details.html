@@ -67,11 +67,11 @@
               </div>
               <div class="info-item">
                 <label>Contact Number</label>
-                <span>+1-555-123-4567</span>
+                <span>{{ parcel.senderPhone || 'Not provided' }}</span>
               </div>
               <div class="info-item">
                 <label>Email</label>
-                <span>{{ (parcel.senderName || 'sender').toLowerCase().replace(' ', '.') }}&#64;email.com</span>
+                <span>{{ parcel.senderEmail || (parcel.senderName || 'sender').toLowerCase().replace(' ', '.') + '@email.com' }}</span>
               </div>
             </div>
           </div>
@@ -90,11 +90,11 @@
               </div>
               <div class="info-item">
                 <label>Contact Number</label>
-                <span>+1-555-987-6543</span>
+                <span>{{ parcel.receiverPhone || 'Not provided' }}</span>
               </div>
               <div class="info-item">
                 <label>Email</label>
-                <span>{{ (parcel.receiverName || 'receiver').toLowerCase().replace(' ', '.') }}&#64;email.com</span>
+                <span>{{ parcel.receiverEmail || (parcel.receiverName || 'receiver').toLowerCase().replace(' ', '.') + '@email.com' }}</span>
               </div>
             </div>
           </div>
@@ -138,9 +138,9 @@
                   <i class="fas fa-expand-arrows-alt"></i>
                   Fit to Route
                 </button>
-                <button class="btn-secondary" (click)="refreshMapMarkers()" *ngIf="showMapView">
-                  <i class="fas fa-sync-alt"></i>
-                  Refresh
+                <button class="btn-secondary" (click)="toggleDriverTracking()" *ngIf="showMapView && parcel.driver">
+                  <i class="fas fa-location-arrow"></i>
+                  {{ isDriverTrackingEnabled ? 'Disable' : 'Enable' }} Live Tracking
                 </button>
               </div>
             </div>
@@ -156,11 +156,14 @@
                 [showRoute]="mapMarkers.length >= 2"
                 [zoom]="mapMarkers.length > 1 ? 11 : 13"
                 [showControls]="true"
+                [showDriverTracking]="parcel.driver ? true : false"
+                [driverId]="parcel.driver?.id || ''"
                 (mapReady)="onMapReady($event)"
                 (markerClick)="onMarkerClick($event)"
                 (mapClick)="onMapClick($event)"
                 (mapErrorEvent)="onMapError($event)"
-                (routeUpdated)="onRouteUpdated($event)">
+                (routeUpdated)="onRouteUpdated($event)"
+                (driverLocationUpdate)="updateDriverLocationOnMap($event)">
               </app-map>
               
               <!-- Map Legend -->
@@ -259,6 +262,13 @@
                       <label>Driver Location:</label>
                       <span>{{ parcel.driver.currentLat && parcel.driver.currentLng ? 'Live tracking available' : 'Location updating...' }}</span>
                     </div>
+                    <div class="status-item" *ngIf="parcel.driver && isDriverTrackingEnabled">
+                      <label>Live Tracking:</label>
+                      <span class="live-tracking-indicator">
+                        <i class="fas fa-circle"></i>
+                        Active
+                      </span>
+                    </div>
                   </div>
                 </div>
                 
@@ -313,7 +323,6 @@
                     <span class="timeline-time">{{ event.timestamp }}</span>
                   </div>
                   <p class="timeline-location">{{ event.location }}</p>
-                  <p class="timeline-description">{{ event.description }}</p>
                 </div>
               </div>
             </div>
@@ -368,19 +377,19 @@
             <div class="completion-header">
               <h2 class="section-title">
                 <i class="fas" [class.fa-check-double]="canMarkAsComplete()" [class.fa-clock]="!canMarkAsComplete()"></i>
-                {{ canMarkAsComplete() ? 'Complete Delivery' : 'Delivery Completion' }}
+                {{ canMarkAsComplete() ? 'Complete Delivery' : 'Delivery Status' }}
               </h2>
               <p class="completion-description" [class.completion-description-disabled]="!canMarkAsComplete()" *ngIf="canMarkAsComplete()">
-                Your parcel has been delivered! Please confirm that you have received it to complete the delivery process.
+                Confirm receipt to complete delivery
               </p>
               <p class="completion-description completion-description-disabled" *ngIf="!canMarkAsComplete() && isRecipient">
-                This section will be available once your parcel has been delivered to you. You'll be able to confirm receipt and leave a review.
+                Available once parcel is delivered
               </p>
               <p class="completion-description completion-description-disabled" *ngIf="!canMarkAsComplete() && isSender">
-                As the sender, you cannot mark this parcel as complete. Only the recipient can confirm delivery and leave a review.
+                Only recipient can confirm delivery
               </p>
               <p class="completion-description completion-description-disabled" *ngIf="!canMarkAsComplete() && !isRecipient && !isSender">
-                This section will be available once your parcel has been delivered to you. You'll be able to confirm receipt and leave a review.
+                Available once parcel is delivered
               </p>
             </div>
             <div class="completion-actions">
@@ -390,7 +399,7 @@
                 [disabled]="!canMarkAsComplete()"
               >
                 <i class="fas fa-check-double"></i>
-                Mark as Complete
+                <span>Mark as Complete</span>
               </button>
               <p class="completion-note" *ngIf="canMarkAsComplete()">
                 Once you mark as complete, you'll be able to leave a review for this delivery.

@@ -48,6 +48,9 @@ export class DriverParcelDetails implements OnInit {
   userRole: string = 'DRIVER';
   showMapView: boolean = false;
   isLoading: boolean = false;
+  isCalculatingRoute: boolean = false;
+  isSettingUpMap: boolean = false;
+  isUpdatingStatus: boolean = false; // Add loading state for status updates
   
   // Map-related properties
   mapMarkers: MapLocation[] = [];
@@ -74,14 +77,39 @@ export class DriverParcelDetails implements OnInit {
 
   loadParcelDetails(parcelId: string) {
     this.isLoading = true;
+    const startTime = performance.now();
+    
+    console.log('🚀 Starting to load parcel details for ID:', parcelId);
     
     this.parcelsService.getParcel(parcelId).subscribe({
-      next: (parcel) => {
+      next: async (parcel) => {
+        const parcelLoadTime = performance.now() - startTime;
+        console.log(`✅ Parcel loaded in ${parcelLoadTime.toFixed(2)}ms`);
+        
         this.parcel = parcel;
+        
+        // Initialize basic data immediately
         this.initializeDeliveryInstructions();
-        this.loadStatusHistory(parcelId);
-        this.setupMapMarkers();
-        this.calculateRouteInfo();
+        
+        // Load all data in parallel instead of sequentially
+        const parallelStartTime = performance.now();
+        try {
+          await Promise.all([
+            this.loadStatusHistory(parcelId),
+            this.setupMapMarkers(),
+            this.calculateRouteInfo()
+          ]);
+          
+          const parallelLoadTime = performance.now() - parallelStartTime;
+          console.log(`✅ Parallel operations completed in ${parallelLoadTime.toFixed(2)}ms`);
+        } catch (error) {
+          console.error('Error loading parallel data:', error);
+          // Continue even if some operations fail
+        }
+        
+        const totalTime = performance.now() - startTime;
+        console.log(`🎉 Total parcel details load time: ${totalTime.toFixed(2)}ms`);
+        
         this.isLoading = false;
       },
       error: (error) => {
@@ -92,20 +120,24 @@ export class DriverParcelDetails implements OnInit {
     });
   }
 
-  private loadStatusHistory(parcelId: string) {
-    this.parcelsService.getParcelHistory(parcelId).subscribe({
-      next: (history: any[]) => {
-        this.statusHistory = history.map((item: any) => ({
-          status: item.status,
-          timestamp: new Date(item.timestamp),
-          notes: item.notes,
-          location: item.location,
-          completed: true
-        }));
-      },
-      error: (error: any) => {
-        console.error('Error loading status history:', error);
-      }
+  private loadStatusHistory(parcelId: string): Promise<void> {
+    return new Promise((resolve) => {
+      this.parcelsService.getParcelHistory(parcelId).subscribe({
+        next: (history: any[]) => {
+          this.statusHistory = history.map((item: any) => ({
+            status: item.status,
+            timestamp: new Date(item.timestamp),
+            notes: item.notes,
+            location: item.location,
+            completed: true
+          }));
+          resolve();
+        },
+        error: (error: any) => {
+          console.error('Error loading status history:', error);
+          resolve(); // Resolve even on error to not block other operations
+        }
+      });
     });
   }
 
@@ -148,6 +180,7 @@ export class DriverParcelDetails implements OnInit {
   private async setupMapMarkers(): Promise<void> {
     if (!this.parcel) return;
 
+    this.isSettingUpMap = true;
     try {
       this.mapMarkers = [];
       this.mapMarkerTypes = [];
@@ -167,9 +200,14 @@ export class DriverParcelDetails implements OnInit {
       });
       this.mapMarkerTypes.push(MapMarkerType.CURRENT);
 
-      // Geocode pickup address with fallback
+      // Geocode pickup and delivery addresses in parallel
+      const [pickupResult, deliveryResult] = await Promise.all([
+        this.mapService.geocodeAddress(this.parcel.pickupAddress),
+        this.mapService.geocodeAddress(this.parcel.deliveryAddress)
+      ]);
+
+      // Add pickup location marker
       let pickupLocation: MapLocation | null = null;
-      const pickupResult = await this.mapService.geocodeAddress(this.parcel.pickupAddress);
       if (pickupResult.success && pickupResult.location) {
         pickupLocation = pickupResult.location;
       } else {
@@ -192,9 +230,8 @@ export class DriverParcelDetails implements OnInit {
         this.mapMarkerTypes.push(MapMarkerType.PICKUP);
       }
 
-      // Geocode delivery address with fallback
+      // Add delivery location marker
       let deliveryLocation: MapLocation | null = null;
-      const deliveryResult = await this.mapService.geocodeAddress(this.parcel.deliveryAddress);
       if (deliveryResult.success && deliveryResult.location) {
         deliveryLocation = deliveryResult.location;
       } else {
@@ -233,6 +270,8 @@ export class DriverParcelDetails implements OnInit {
         });
         this.mapMarkerTypes.push(MapMarkerType.CURRENT);
       }
+    } finally {
+      this.isSettingUpMap = false;
     }
   }
 
@@ -254,25 +293,153 @@ export class DriverParcelDetails implements OnInit {
     }
   }
 
-  private calculateRouteInfo(): void {
+  private async calculateRouteInfo(): Promise<void> {
+    if (!this.parcel) return;
+
+    this.isCalculatingRoute = true;
+
+    try {
+      // Use existing map markers if available, otherwise geocode addresses
+      let pickupCoords: MapCoordinates | null = null;
+      let deliveryCoords: MapCoordinates | null = null;
+
+      // Check if we already have geocoded coordinates from map markers
+      const pickupMarker = this.mapMarkers.find(m => m.address === this.parcel?.pickupAddress);
+      const deliveryMarker = this.mapMarkers.find(m => m.address === this.parcel?.deliveryAddress);
+
+      if (pickupMarker && deliveryMarker) {
+        // Use existing coordinates from map markers
+        pickupCoords = { lat: pickupMarker.lat, lng: pickupMarker.lng };
+        deliveryCoords = { lat: deliveryMarker.lat, lng: deliveryMarker.lng };
+      } else {
+        // Fallback: geocode addresses if markers aren't available yet
+        const [pickupResult, deliveryResult] = await Promise.all([
+          this.mapService.geocodeAddress(this.parcel.pickupAddress),
+          this.mapService.geocodeAddress(this.parcel.deliveryAddress)
+        ]);
+
+        if (pickupResult.success && pickupResult.location) {
+          pickupCoords = { lat: pickupResult.location.lat, lng: pickupResult.location.lng };
+        }
+        if (deliveryResult.success && deliveryResult.location) {
+          deliveryCoords = { lat: deliveryResult.location.lat, lng: deliveryResult.location.lng };
+        }
+      }
+
+      if (pickupCoords && deliveryCoords) {
+        const waypoints: MapCoordinates[] = [pickupCoords, deliveryCoords];
+
+        // Use the map service to calculate accurate route info
+        const routeInfo = this.mapService.calculateRouteInfo(waypoints);
+        
+        // Round distance to 2 decimal places for better accuracy
+        const roundedDistance = Math.round(routeInfo.distance * 100) / 100;
+        
+        this.routeInfo = {
+          distance: roundedDistance,
+          estimatedTime: routeInfo.estimatedTime,
+          optimized: false
+        };
+
+        console.log('Route calculated:', {
+          pickup: this.parcel.pickupAddress,
+          delivery: this.parcel.deliveryAddress,
+          distance: routeInfo.distance,
+          estimatedTime: routeInfo.estimatedTime
+        });
+      } else {
+        console.warn('Failed to get coordinates for route calculation');
+        // Fallback to basic calculation if geocoding fails
+        this.calculateBasicRouteInfo();
+      }
+    } catch (error) {
+      console.error('Error calculating route info:', error);
+      // Fallback to basic calculation
+      this.calculateBasicRouteInfo();
+    } finally {
+      this.isCalculatingRoute = false;
+    }
+  }
+
+  private calculateBasicRouteInfo(): void {
     if (this.mapMarkers.length >= 2) {
       // Calculate distance between pickup and delivery
       const pickup = this.mapMarkers.find(m => m.address === this.parcel?.pickupAddress);
       const delivery = this.mapMarkers.find(m => m.address === this.parcel?.deliveryAddress);
       
       if (pickup && delivery) {
-        // Simple distance calculation (in real app, use proper routing API)
-        const latDiff = Math.abs(pickup.lat - delivery.lat);
-        const lngDiff = Math.abs(pickup.lng - delivery.lng);
-        const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111; // Rough km conversion
+        // Use Haversine formula for more accurate distance calculation
+        const distance = this.mapService.calculateDistance(
+          { lat: pickup.lat, lng: pickup.lng },
+          { lat: delivery.lat, lng: delivery.lng }
+        );
+        
+        // Round to 2 decimal places for better accuracy
+        const roundedDistance = Math.round(distance * 100) / 100;
         
         this.routeInfo = {
-          distance: Math.round(distance * 10) / 10,
-          estimatedTime: Math.round(distance * 3), // Rough estimate: 3 min per km
+          distance: roundedDistance,
+          estimatedTime: Math.round((roundedDistance / 30) * 60), // 30 km/h average speed
           optimized: false
         };
+        
+        console.log('Calculated route distance:', {
+          pickup: this.parcel?.pickupAddress,
+          delivery: this.parcel?.deliveryAddress,
+          distance: roundedDistance,
+          estimatedTime: this.routeInfo.estimatedTime
+        });
+      } else {
+        // If no markers found, use a fallback calculation based on addresses
+        this.calculateFallbackDistance();
       }
+    } else {
+      // If not enough markers, use fallback calculation
+      this.calculateFallbackDistance();
     }
+  }
+
+  private calculateFallbackDistance(): void {
+    if (!this.parcel) return;
+    
+    // Use a simple estimation based on address similarity
+    // This is a fallback when geocoding fails
+    const estimatedDistance = this.estimateDistanceFromAddresses(
+      this.parcel.pickupAddress,
+      this.parcel.deliveryAddress
+    );
+    
+    this.routeInfo = {
+      distance: estimatedDistance,
+      estimatedTime: Math.round((estimatedDistance / 25) * 60), // 25 km/h average speed
+      optimized: false
+    };
+  }
+
+  private estimateDistanceFromAddresses(pickupAddress: string, deliveryAddress: string): number {
+    // Simple estimation based on address analysis
+    // This is a fallback method when geocoding is not available
+    
+    // Check if addresses are in same city/area
+    const pickupCity = this.extractCity(pickupAddress);
+    const deliveryCity = this.extractCity(deliveryAddress);
+    
+    if (pickupCity === deliveryCity) {
+      // Same city - estimate 5-15 km
+      return Math.random() * 10 + 5;
+    } else {
+      // Different cities - estimate 20-50 km
+      return Math.random() * 30 + 20;
+    }
+  }
+
+  private extractCity(address: string): string {
+    // Extract city from address (simple implementation)
+    const parts = address.split(',').map(part => part.trim());
+    if (parts.length >= 2) {
+      return parts[parts.length - 2]; // Usually city is second to last
+    }
+    return address;
   }
 
   toggleInstruction(index: number) {
@@ -326,6 +493,8 @@ export class DriverParcelDetails implements OnInit {
   private updateParcelStatusOnServer(newStatus: string) {
     if (!this.parcel) return;
 
+    this.isUpdatingStatus = true; // Set loading state
+
     // Determine the appropriate status update based on the new status
     let statusUpdate: any = {
       status: newStatus as any,
@@ -361,6 +530,9 @@ export class DriverParcelDetails implements OnInit {
         
         // Revert the instruction completion if the update failed
         this.initializeDeliveryInstructions();
+      },
+      complete: () => {
+        this.isUpdatingStatus = false; // Reset loading state
       }
     });
   }
@@ -551,7 +723,7 @@ export class DriverParcelDetails implements OnInit {
 
 
   goBack() {
-    this.router.navigate(['/driver/assigned-parcels']);
+    this.router.navigate(['/driver/my-parcels']);
   }
 
   // Helper methods for new features

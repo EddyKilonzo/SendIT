@@ -263,7 +263,7 @@
             </div>
             <div class="user-avatar">
                 <!-- Debug: name="<%= typeof name !== 'undefined' ? name : 'UNDEFINED' %>", profilePicture="<%= typeof profilePicture !== 'undefined' ? profilePicture : 'UNDEFINED' %>" -->
-                <% if (profilePicture) { %>
+                <% if (profilePicture && profilePicture.trim() !== '' && profilePicture !== 'undefined' && profilePicture !== 'null') { %>
                     <img src="<%= profilePicture %>" alt="<%= name %>'s profile">
                 <% } else { %>
                     <span class="initial"><%= name ? name.charAt(0).toUpperCase() : 'U' %></span>

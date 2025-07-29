@@ -1,0 +1,79 @@
+<div class="location-tracker">
+  <div class="tracker-header">
+    <h3>Live Location Tracking</h3>
+    <div class="status-indicator" [class.connected]="isConnected">
+      <i class="fas" [class.fa-circle]="isConnected" [class.fa-times-circle]="!isConnected"></i>
+      {{ isConnected ? 'Connected' : 'Disconnected' }}
+    </div>
+  </div>
+
+  <div class="tracker-content">
+    <div class="location-info">
+      <div class="info-card">
+        <h4>Current Location</h4>
+        <p *ngIf="currentLocation">
+          <i class="fas fa-map-marker-alt"></i>
+          {{ currentLocation.lat.toFixed(6) }}, {{ currentLocation.lng.toFixed(6) }}
+        </p>
+        <p *ngIf="currentAddress">
+          <i class="fas fa-map"></i>
+          {{ currentAddress }}
+        </p>
+        <p *ngIf="!currentLocation">
+          <i class="fas fa-exclamation-triangle"></i>
+          Location not available
+        </p>
+      </div>
+
+      <div class="info-card">
+        <h4>Tracking Status</h4>
+        <p>
+          <i class="fas fa-clock"></i>
+          Last Update: {{ lastUpdateTime | date:'shortTime' }}
+        </p>
+        <p>
+          <i class="fas fa-satellite"></i>
+          Update Interval: {{ updateInterval }} seconds
+        </p>
+      </div>
+    </div>
+
+    <div class="map-container">
+      <app-map
+        [height]="'300px'"
+        [showLiveDrivers]="true"
+        [trackedDriverIds]="[driverId]"
+        (driverLocationUpdate)="onDriverLocationUpdate($event)"
+      ></app-map>
+    </div>
+
+    <div class="tracker-controls">
+      <button 
+        class="btn btn-primary" 
+        (click)="toggleTracking()"
+        [disabled]="!isConnected"
+      >
+        <i class="fas" [class.fa-pause]="isTracking" [class.fa-play]="!isTracking"></i>
+        {{ isTracking ? 'Pause Tracking' : 'Start Tracking' }}
+      </button>
+
+      <button 
+        class="btn btn-secondary" 
+        (click)="updateLocationNow()"
+        [disabled]="!isConnected || !isTracking"
+      >
+        <i class="fas fa-sync-alt"></i>
+        Update Now
+      </button>
+
+      <button 
+        class="btn btn-info" 
+        (click)="getCurrentLocation()"
+        [disabled]="!isConnected"
+      >
+        <i class="fas fa-crosshairs"></i>
+        Get Location
+      </button>
+    </div>
+  </div>
+</div>
