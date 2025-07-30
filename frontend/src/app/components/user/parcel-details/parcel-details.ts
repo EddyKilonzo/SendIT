@@ -89,7 +89,8 @@ export class ParcelDetails implements OnInit, OnDestroy {
   isRecipient: boolean | undefined = undefined;
   isSender: boolean | undefined = undefined;
   lastCanCompleteState: boolean | undefined = undefined;
-  
+  isMarkingAsComplete: boolean = false; // Add loading state property
+
   parcels: Parcel[] = [
     {
       id: '#12345',
@@ -463,6 +464,9 @@ export class ParcelDetails implements OnInit, OnDestroy {
 
   markAsComplete() {
     if (this.parcel && this.parcel.originalStatus === 'delivered_to_recipient') {
+      // Set loading state
+      this.isMarkingAsComplete = true;
+      
       console.log('Attempting to mark parcel as complete:', {
         parcelId: this.parcel.id,
         trackingNumber: this.parcel.trackingNumber,
@@ -527,6 +531,9 @@ export class ParcelDetails implements OnInit, OnDestroy {
             console.error('❌ Invalid response from markAsCompleted API:', response);
             this.toastService.showError('Received invalid response from server. Please try again.');
           }
+          
+          // Reset loading state
+          this.isMarkingAsComplete = false;
         },
         error: (error) => {
           console.error('❌ Error marking parcel as completed:', error);
@@ -537,6 +544,9 @@ export class ParcelDetails implements OnInit, OnDestroy {
             error: error.error
           });
           this.toastService.showError('Failed to mark parcel as completed. Please try again.');
+          
+          // Reset loading state
+          this.isMarkingAsComplete = false;
         }
       });
       

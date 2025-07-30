@@ -1949,7 +1949,7 @@
   margin-right: 8px;
 }
 
-.completion-btn:disabled i {
+.completion-btn:disabled i.fa-spinner {
   animation: spin 1s linear infinite;
 }
 

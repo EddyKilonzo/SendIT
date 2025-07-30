@@ -396,10 +396,10 @@
               <button 
                 class="btn-primary completion-btn" 
                 (click)="markAsComplete()"
-                [disabled]="!canMarkAsComplete()"
+                [disabled]="!canMarkAsComplete() || isMarkingAsComplete"
               >
-                <i class="fas fa-check-double"></i>
-                <span>Mark as Complete</span>
+                <i class="fas" [class.fa-check-double]="!isMarkingAsComplete" [class.fa-spinner]="isMarkingAsComplete"></i>
+                <span>{{ isMarkingAsComplete ? 'Marking as Complete...' : 'Mark as Complete' }}</span>
               </button>
               <p class="completion-note" *ngIf="canMarkAsComplete()">
                 Once you mark as complete, you'll be able to leave a review for this delivery.
