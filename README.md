@@ -75,7 +75,7 @@ Before you begin, ensure you have the following installed:
 
 - **Node.js** (v18 or higher) - [Download](https://nodejs.org/)
 - **npm** (comes with Node.js) or **yarn**
-- **PostgreSQL** (v12 or higher) - [Download](https://www.postgresql.org/download/)
+- **MongoDB** (v4.4 or higher) - [Download](https://www.mongodb.com/try/download/community) or use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (cloud)
 - **Git** - [Download](https://git-scm.com/)
 
 ### Additional Services (Optional but Recommended)
@@ -120,8 +120,13 @@ Before you begin, ensure you have the following installed:
 3. **Set up environment variables:**
    Create a `.env` file in the `backend` directory with the following variables:
    ```env
-   # Database
-   DATABASE_URL="postgresql://username:password@localhost:5432/sendit_db"
+   # Database (MongoDB)
+   # For local MongoDB:
+   DATABASE_URL="mongodb://localhost:27017/sendit_db"
+   # For MongoDB with authentication:
+   # DATABASE_URL="mongodb://username:password@localhost:27017/sendit_db?authSource=admin"
+   # For MongoDB Atlas (cloud):
+   # DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/sendit_db?retryWrites=true&w=majority"
 
    # JWT Secrets
    JWT_SECRET=your-super-secret-jwt-key-change-in-production
@@ -151,14 +156,11 @@ Before you begin, ensure you have the following installed:
    # Generate Prisma Client
    npx prisma generate
 
-   # Run database migrations
-   npx prisma migrate dev
+   # Push schema to MongoDB (MongoDB doesn't use traditional migrations)
+   npx prisma db push
    ```
 
-   Or if you want to reset the database (⚠️ This will delete all data):
-   ```bash
-   npx prisma migrate reset
-   ```
+   > **Note**: MongoDB uses `prisma db push` instead of migrations. This will sync your schema with the database.
 
 5. **Start the development server:**
    ```bash
@@ -201,15 +203,29 @@ Before you begin, ensure you have the following installed:
 
 ### Database Setup
 
-1. **Create a PostgreSQL database:**
-   ```sql
-   CREATE DATABASE sendit_db;
+1. **Set up MongoDB:**
+   
+   **Option A: Local MongoDB**
+   - Install MongoDB Community Server from [mongodb.com](https://www.mongodb.com/try/download/community)
+   - Start MongoDB service
+   - Update the DATABASE_URL in your `.env` file:
+   ```env
+   DATABASE_URL="mongodb://localhost:27017/sendit_db"
    ```
 
-2. **Update the DATABASE_URL** in your `.env` file:
+   **Option B: MongoDB Atlas (Cloud)**
+   - Sign up for free at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   - Create a cluster and database user
+   - Get your connection string and update `.env`:
    ```env
-   DATABASE_URL="postgresql://your_username:your_password@localhost:5432/sendit_db"
+   DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/sendit_db?retryWrites=true&w=majority"
    ```
+
+   **Option C: Docker**
+   ```bash
+   docker run -d -p 27017:27017 --name mongodb mongo
+   ```
+   Then use: `DATABASE_URL="mongodb://localhost:27017/sendit_db"`
 
 ### Email Configuration
 

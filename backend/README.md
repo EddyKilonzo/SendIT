@@ -112,7 +112,7 @@ This is the backend API for the SendIT delivery application.
 ## Prerequisites
 
 - Node.js (v18 or higher)
-- PostgreSQL database
+- MongoDB database (local or MongoDB Atlas)
 - SMTP email service (Gmail, SendGrid, etc.)
 
 ## Installation
@@ -134,7 +134,14 @@ cp .env.example .env
 
 ### Database Configuration
 ```env
-DATABASE_URL="postgresql://username:password@localhost:5432/sendit_db"
+# For local MongoDB:
+DATABASE_URL="mongodb://localhost:27017/sendit_db"
+
+# For MongoDB with authentication:
+DATABASE_URL="mongodb://username:password@localhost:27017/sendit_db?authSource=admin"
+
+# For MongoDB Atlas (cloud):
+DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/sendit_db?retryWrites=true&w=majority"
 ```
 
 ### SMTP Email Configuration
@@ -177,9 +184,13 @@ SMTP_FROM=your-verified-sender@yourdomain.com
 FRONTEND_URL=http://localhost:4200
 ```
 
-4. Run database migrations:
+4. Set up the database:
 ```bash
-npx prisma migrate dev
+# Generate Prisma Client
+npx prisma generate
+
+# Push schema to MongoDB (MongoDB doesn't use traditional migrations)
+npx prisma db push
 ```
 
 5. Start the development server:
