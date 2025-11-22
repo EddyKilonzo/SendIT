@@ -218,6 +218,7 @@ export class AdminController {
   }
 
   @Patch('users/:id/manage')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async manageUser(
     @Param('id') userId: string,
     @Body() managementDto: UserManagementDto,
@@ -255,6 +256,7 @@ export class AdminController {
   }
 
   @Patch('driver-applications/:id/manage')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async manageDriverApplication(
     @Param('id') userId: string,
     @Body() managementDto: DriverApplicationManagementDto,

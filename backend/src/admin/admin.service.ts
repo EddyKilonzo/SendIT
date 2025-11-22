@@ -1057,11 +1057,19 @@ export class AdminService {
     userId: string,
     managementDto: UserManagementDto,
   ): Promise<UserResponseDto> {
+    // Use userId from URL parameter if not provided in body
+    const targetUserId = managementDto.userId || userId;
+    
+    // Validate that userId in body matches URL parameter if provided
+    if (managementDto.userId && managementDto.userId !== userId) {
+      throw new BadRequestException('User ID in request body must match the URL parameter.');
+    }
+    
     const { action } = managementDto;
 
     const user = await this.prisma.user.findFirst({
       where: {
-        id: userId,
+        id: targetUserId,
         // Allow access to both active and suspended users for management
         // deletedAt: null, // Removed this filter to allow access to suspended users
       },
@@ -1075,7 +1083,11 @@ export class AdminService {
 
     switch (action) {
       case 'activate':
-        updateData = { isActive: true };
+        // Activate user - if suspended, also clear deletedAt
+        updateData = { 
+          isActive: true,
+          ...(user.deletedAt && { deletedAt: null }) // Clear deletedAt if user was suspended
+        };
         break;
       case 'deactivate':
         updateData = { isActive: false };
@@ -1097,7 +1109,7 @@ export class AdminService {
     }
 
     const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: targetUserId },
       data: updateData,
     });
 
@@ -1337,6 +1349,11 @@ export class AdminService {
     // Validate action
     if (!['approve', 'reject'].includes(action)) {
       throw new BadRequestException('Invalid action. Must be approve or reject.');
+    }
+
+    // Validate reason is provided when rejecting
+    if (action === 'reject' && (!reason || !reason.trim())) {
+      throw new BadRequestException('Rejection reason is required when action is reject.');
     }
 
     // Check if user exists and has a driver application

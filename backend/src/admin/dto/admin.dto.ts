@@ -72,9 +72,9 @@ export class DriverManagementDto {
 }
 
 export class UserManagementDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  userId: string;
+  userId?: string;
 
   @IsString()
   @IsIn(['activate', 'deactivate', 'suspend', 'unsuspend'])
@@ -95,11 +95,10 @@ export class DriverApplicationManagementDto {
   @IsIn(['approve', 'reject'])
   action: 'approve' | 'reject';
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
   @ValidateIf((o) => o.action === 'reject')
   @IsNotEmpty({ message: 'Rejection reason is required when action is reject' })
+  @IsString()
+  @MaxLength(500)
   reason?: string; // Required when action is 'reject'
 }
 
